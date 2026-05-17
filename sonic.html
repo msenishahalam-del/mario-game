@@ -68,6 +68,32 @@
       font-family: 'Courier New', monospace;
       font-size: 11px;
     }
+    .startNotice {
+      background: linear-gradient(90deg, #00AEEF, #003a66);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      text-align: center;
+      max-width: 900px;
+      width: 100%;
+      animation: blink 1.5s ease-in-out infinite;
+      border: 2px solid #FFD700;
+    }
+    @keyframes blink {
+      0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+      50%      { box-shadow: 0 0 30px rgba(255,215,0,1); }
+    }
+    .startNotice .step {
+      display: inline-block;
+      background: rgba(0,0,0,0.4);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin: 0 4px;
+    }
   </style>
 </head>
 <body>
@@ -76,6 +102,13 @@
 
   <h1>🦔 SONIC</h1>
   <p class="subtitle">SEGA GENESIS 1991 — GOTTA GO FAST</p>
+
+  <div class="startNotice">
+    👇 KLIK BUTANG HIJAU ⏻ DI TENGAH GAME DULU 👇<br>
+    <span class="step">1️⃣ Klik ⏻</span>
+    <span class="step">2️⃣ Tekan 1 (Start)</span>
+    <span class="step">3️⃣ Tekan SPACE untuk Jump</span>
+  </div>
 
   <iframe
     class="sonic-frame"
@@ -86,11 +119,11 @@
 
   <p class="info">
     <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp;
-    <kbd>1</kbd> Start &nbsp;|&nbsp;
+    <kbd>1</kbd> Start (selepas klik ⏻) &nbsp;|&nbsp;
     <kbd>CTRL</kbd> A button &nbsp;|&nbsp;
     <kbd>ALT</kbd> B button &nbsp;|&nbsp;
     <kbd>SPACE</kbd> C button (Jump)<br>
-    Klik dalam game window untuk mula main • Tekan <kbd>1</kbd> untuk start game lepas tu <kbd>SPACE</kbd> untuk Jump
+    <b style="color:#FFD700">Penting:</b> Keyboard buttons hanya berfungsi selepas klik dalam kotak game. Kalau panah tak respond, klik kotak game sekali lagi.
   </p>
 
 <script src="/reward-timer.js"></script>
