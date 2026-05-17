@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SONIC The Hedgehog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #00AEEF;
+      font-size: 48px;
+      letter-spacing: 8px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(0,174,239,0.6);
+    }
+    .subtitle {
+      color: #FFD700;
+      font-size: 14px;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+    }
+    .sonic-frame {
+      width: 900px;
+      max-width: 100%;
+      height: 650px;
+      max-height: 80vh;
+      border: 3px solid #00AEEF;
+      box-shadow: 0 0 40px rgba(0,174,239,0.5);
+      background: #000;
+    }
+    #backBtn {
+      position: fixed; top: 12px; left: 12px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 8px 16px;
+      border: 2px solid #00AEEF;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      letter-spacing: 2px;
+      z-index: 999;
+    }
+    #backBtn:hover { background: #00AEEF; }
+    .info {
+      color: #aaa;
+      font-size: 12px;
+      letter-spacing: 1px;
+      margin-top: 16px;
+      text-align: center;
+      max-width: 800px;
+      line-height: 1.8;
+    }
+    .info kbd {
+      background: #222;
+      color: #FFD700;
+      padding: 2px 8px;
+      border: 1px solid #00AEEF;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <a id="backBtn" href="/arcade.html">◀ HUB</a>
+
+  <h1>🦔 SONIC</h1>
+  <p class="subtitle">SEGA GENESIS 1991 — GOTTA GO FAST</p>
+
+  <iframe
+    class="sonic-frame"
+    src="https://archive.org/embed/Sonic_The_Hedgehog_W_REV01_h3C"
+    allow="autoplay; fullscreen; gamepad"
+    allowfullscreen
+  ></iframe>
+
+  <p class="info">
+    <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp;
+    <kbd>1</kbd> Start &nbsp;|&nbsp;
+    <kbd>CTRL</kbd> A button &nbsp;|&nbsp;
+    <kbd>ALT</kbd> B button &nbsp;|&nbsp;
+    <kbd>SPACE</kbd> C button (Jump)<br>
+    Klik dalam game window untuk mula main • Tekan <kbd>1</kbd> untuk start game lepas tu <kbd>SPACE</kbd> untuk Jump
+  </p>
+
+<script src="/reward-timer.js"></script>
+</body>
+</html>
