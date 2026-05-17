@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <title>Floppy Bird</title>
+      <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+      <meta name="author" content="Nebez Briefkani" />
+      <meta name="description" content="play floppy bird. a remake of popular game flappy bird built in html/css/js" />
+      <meta name="keywords" content="flappybird,flappy,bird,floppybird,floppy,html,html5,css,css3,js,javascript,jquery,github,nebez,briefkani,nebezb,open,source,opensource" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
+      <!-- Open Graph tags -->
+      <meta property="og:title" content="Floppy Bird" />
+      <meta property="og:description" content="play floppy bird. a remake of popular game flappy bird built in html/css/js" />
+      <meta property="og:type" content="website" />
+      <meta property="og:image" content="https://nebezb.com/floppybird/assets/thumb.png" />
+      <meta property="og:url" content="https://nebezb.com/floppybird/" />
+      <meta property="og:site_name" content="Floppy Bird" />
+
+      <!-- Style sheets -->
+      <link href="css/reset.css" rel="stylesheet">
+      <link href="css/main.css" rel="stylesheet">
+
+      <script defer src="https://yummy.nebez.dev/script.js" data-website-id="9ceaba15-371f-4407-a59a-f57a7214af41"></script>
+   </head>
+   <body>
+      <a href="/arcade.html" style="position:fixed;top:12px;left:12px;background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border:2px solid #FFE000;border-radius:6px;text-decoration:none;font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;z-index:9999;">◀ HUB</a>
+      <button onclick="showFlappyLeaderboard()" style="position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border:2px solid #FFE000;border-radius:6px;cursor:pointer;font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;z-index:9999;">🏆 LEADERBOARD</button>
+
+      <!-- Name Prompt -->
+      <div id="flappyNameScreen" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;font-family:'Courier New',monospace;">
+         <h1 style="color:#FFE000;font-size:48px;letter-spacing:6px;margin-bottom:8px;text-shadow:0 0 20px rgba(255,224,0,0.6);">🐦 FLAPPY</h1>
+         <p style="color:#fff;font-size:14px;letter-spacing:3px;margin-bottom:24px;">FLOPPY BIRD</p>
+         <input id="flappyNameInput" type="text" maxlength="10" placeholder="NAMA KAMU" autocomplete="off"
+            style="font-family:'Courier New',monospace;font-size:24px;font-weight:bold;text-align:center;text-transform:uppercase;padding:12px 24px;width:280px;background:#222;color:#fff;border:3px solid #FFE000;border-radius:8px;outline:none;letter-spacing:4px;" />
+         <button onclick="flappyStart()"
+            style="margin-top:20px;font-family:'Courier New',monospace;font-size:18px;font-weight:bold;padding:14px 50px;background:#FFE000;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:4px;">MAIN ▶</button>
+      </div>
+
+      <!-- Leaderboard Overlay -->
+      <div id="flappyLeaderboard" style="position:fixed;inset:0;background:rgba(0,0,0,0.95);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10001;font-family:'Courier New',monospace;">
+         <h2 style="color:#FFE000;font-size:30px;letter-spacing:4px;margin-bottom:20px;">🏆 FLAPPY LEADERBOARD</h2>
+         <table id="flappyLbTable" style="width:500px;max-width:90vw;border-collapse:collapse;">
+            <thead><tr>
+               <th style="color:#FFE000;font-size:13px;padding:8px;border-bottom:2px solid #FFE000;text-align:left;">#</th>
+               <th style="color:#FFE000;font-size:13px;padding:8px;border-bottom:2px solid #FFE000;text-align:left;">NAMA</th>
+               <th style="color:#FFE000;font-size:13px;padding:8px;border-bottom:2px solid #FFE000;text-align:left;">SCORE</th>
+               <th style="color:#FFE000;font-size:13px;padding:8px;border-bottom:2px solid #FFE000;text-align:left;">TARIKH</th>
+            </tr></thead>
+            <tbody id="flappyLbBody"></tbody>
+         </table>
+         <button onclick="document.getElementById('flappyLeaderboard').style.display='none'"
+            style="margin-top:20px;font-family:'Courier New',monospace;font-size:16px;padding:10px 30px;background:#FFE000;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:2px;font-weight:bold;">TUTUP</button>
+      </div>
+
+      <script>
+         var flappyPlayerName = '';
+         var flappyScoreSent = false;
+
+         function flappyStart() {
+            var v = document.getElementById('flappyNameInput').value.trim();
+            if (!v) return;
+            flappyPlayerName = v.toUpperCase();
+            document.getElementById('flappyNameScreen').style.display = 'none';
+         }
+         document.getElementById('flappyNameInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') flappyStart();
+         });
+
+         async function submitFlappyScore(s) {
+            if (flappyScoreSent || !flappyPlayerName || s <= 0) return;
+            flappyScoreSent = true;
+            try {
+               await fetch('/api/score', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                     name: 'FLAPPY:' + flappyPlayerName,
+                     score: s,
+                     coins: s
+                  })
+               });
+            } catch(e) { console.log('Submit failed:', e); }
+         }
+
+         // Reset scoreSent each new game
+         var _origSplash = window.splash;
+
+         function showFlappyLeaderboard() {
+            // Show overlay immediately
+            var lb = document.getElementById('flappyLeaderboard');
+            lb.style.display = 'flex';
+            var tbody = document.getElementById('flappyLbBody');
+            tbody.innerHTML = '<tr><td colspan="4" style="color:#FFE000;padding:20px;text-align:center;">⏳ Loading...</td></tr>';
+
+            fetch('/api/leaderboard')
+               .then(function(res) { return res.json(); })
+               .then(function(all) {
+                  var flappyScores = all.filter(function(s) {
+                     return String(s.name).indexOf('FLAPPY:') === 0;
+                  }).slice(0, 10);
+
+                  tbody.innerHTML = '';
+                  var medals = ['🥇','🥈','🥉'];
+
+                  if (flappyScores.length === 0) {
+                     tbody.innerHTML = '<tr><td colspan="4" style="color:#fff;padding:20px;text-align:center;">Belum ada score lagi. Jadi yang pertama!</td></tr>';
+                     return;
+                  }
+
+                  flappyScores.forEach(function(entry, i) {
+                     var tr = document.createElement('tr');
+                     var cleanName = String(entry.name).replace('FLAPPY:', '');
+                     tr.innerHTML =
+                        '<td style="color:#fff;font-size:15px;padding:8px 10px;border-bottom:1px solid #333;">' + (medals[i] || (i+1)) + '</td>' +
+                        '<td style="color:#fff;font-size:15px;padding:8px 10px;border-bottom:1px solid #333;">' + cleanName + '</td>' +
+                        '<td style="color:#FFE000;font-size:15px;padding:8px 10px;border-bottom:1px solid #333;">' + entry.score + '</td>' +
+                        '<td style="color:#fff;font-size:15px;padding:8px 10px;border-bottom:1px solid #333;">' + entry.date + '</td>';
+                     if (cleanName === flappyPlayerName) tr.style.background = 'rgba(255,224,0,0.2)';
+                     tbody.appendChild(tr);
+                  });
+               })
+               .catch(function(e) {
+                  tbody.innerHTML = '<tr><td colspan="4" style="color:#FF4444;padding:20px;text-align:center;">❌ Gagal load: ' + e.message + '</td></tr>';
+               });
+         }
+
+         // Reset on each new game
+         document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') flappyScoreSent = false;
+         });
+         document.addEventListener('touchstart', function() { flappyScoreSent = false; });
+         document.addEventListener('mousedown', function() { flappyScoreSent = false; });
+      </script>
+      <div id="gamecontainer">
+         <div id="gamescreen">
+            <div id="sky" class="animated">
+               <div id="flyarea">
+                  <div id="ceiling" class="animated"></div>
+                  <!-- This is the flying and pipe area container -->
+                  <div id="player" class="bird animated"></div>
+
+                  <div id="bigscore"></div>
+
+                  <div id="splash"></div>
+
+                  <div id="scoreboard">
+                     <div id="medal"></div>
+                     <div id="currentscore"></div>
+                     <div id="highscore"></div>
+                     <div id="replay"><img src="assets/replay.png" alt="replay"></div>
+                  </div>
+
+                  <!-- Pipes go here! -->
+               </div>
+            </div>
+            <div id="land" class="animated"><div id="debug"></div></div>
+         </div>
+      </div>
+      <div id="footer">
+         <a href="https://www.dotgears.com/">original game/concept/art by dong nguyen</a>
+         <a href="https://nebezb.com/">recreated by nebez briefkani</a>
+         <a href="https://github.com/nebez/floppybird/">view github project</a>
+      </div>
+      <div class="boundingbox" id="playerbox"></div>
+      <div class="boundingbox" id="pipebox"></div>
+
+      <script src="js/jquery.min.js"></script>
+      <script src="js/jquery.transit.min.js"></script>
+      <script src="js/buzz.min.js"></script>
+      <script src="js/main.js"></script>
+      <script src="/reward-timer.js"></script>
+   </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "math-quiz-arcade",
+  "version": "1.0.0",
+  "description": "Math multiplication quiz with arcade game reward (Mario, Doom, Tetris, Flappy)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
