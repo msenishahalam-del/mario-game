@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cabaran Sifir — Jawab & Main!</title>
+<title>Cabaran Matematik — Jawab & Main!</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -149,22 +149,34 @@
     color: #856404;
   }
 
+  .set-sub {
+    display: block;
+    font-size: 0.5em;
+    font-weight: normal;
+    opacity: 0.9;
+    margin-top: 6px;
+  }
+
   .hidden { display: none; }
 </style>
 </head>
 <body>
 
 <div id="welcomeScreen" class="screen">
-  <h1>🎯 Cabaran Sifir!</h1>
-  <p>Jawab <b>10 soalan darab</b> dengan betul.<br>
+  <h1>🎯 Cabaran Matematik!</h1>
+  <p>Jawab <b>10 soalan</b> dengan betul.<br>
   Setiap jawapan betul = <b>+1 minit</b> main Arcade Game!<br>
   <small>🎮 Mario · 💀 Doom · 🧱 Tetris · 🐦 Flappy · 🦔 Sonic</small></p>
-  <div class="reward-info">
-    📌 7 soalan biasa (sifir 2-9)<br>
-    🔥 3 soalan bonus (sifir 11-12)<br>
-    ⏰ 15 saat setiap soalan
-  </div>
-  <button class="big" onclick="startQuiz()">MULA! 🚀</button>
+  <div class="reward-info">👇 Pilih set soalan ikut umur anak</div>
+  <button class="big" onclick="startQuiz('darab')">
+    ✖️ Darab
+    <span class="set-sub">Darjah 3 · sifir 2-12 · 10 soalan · 15 saat</span>
+  </button>
+  <br>
+  <button class="big" onclick="startQuiz('tambahtolak')" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+    ➕ ➖ Tambah &amp; Tolak
+    <span class="set-sub">6 tahun · single digit · 10 soalan · 20 saat</span>
+  </button>
 </div>
 
 <div id="quizScreen" class="screen hidden">
@@ -196,7 +208,7 @@
 
 <script>
   // ===== STATE =====
-  const TIME_PER_QUESTION = 15;
+  let TIME_PER_QUESTION = 15;
   let questions = [];
   let currentQ = 0;
   let score = 0;
@@ -205,23 +217,43 @@
   let qDeadline = 0;
   let qAnswered = false;
 
-  // ===== QUIZ =====
-  function generateQuestions() {
-    const qs = [];
-    // 7 soalan sifir 2-9
-    while (qs.length < 7) {
-      const a = randInt(2, 9);
-      const b = randInt(2, 9);
-      qs.push({ a, b });
+  // ===== SET SOALAN =====
+  const SETS = {
+    darab: {
+      time: 15,
+      generate() {
+        const qs = [];
+        // 7 soalan sifir 2-9
+        while (qs.length < 7) {
+          const a = randInt(2, 9), b = randInt(2, 9);
+          qs.push({ text: `${a} × ${b}`, answer: a * b });
+        }
+        // 3 soalan bonus 11-12
+        while (qs.length < 10) {
+          const a = randInt(11, 12), b = randInt(2, 9);
+          qs.push({ text: `${a} × ${b}`, answer: a * b });
+        }
+        return shuffle(qs);
+      }
+    },
+    tambahtolak: {
+      time: 20,
+      generate() {
+        const qs = [];
+        while (qs.length < 10) {
+          if (Math.random() < 0.5) {
+            const a = randInt(0, 9), b = randInt(0, 9);
+            qs.push({ text: `${a} + ${b}`, answer: a + b });
+          } else {
+            let a = randInt(0, 9), b = randInt(0, 9);
+            if (b > a) [a, b] = [b, a];   // pastikan jawapan tak negatif
+            qs.push({ text: `${a} − ${b}`, answer: a - b });
+          }
+        }
+        return shuffle(qs);
+      }
     }
-    // 3 soalan bonus 11-12
-    while (qs.length < 10) {
-      const a = randInt(11, 12);
-      const b = randInt(2, 9);
-      qs.push({ a, b });
-    }
-    return shuffle(qs);
-  }
+  };
 
   function randInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -235,8 +267,10 @@
     return arr;
   }
 
-  function startQuiz() {
-    questions = generateQuestions();
+  function startQuiz(setKey) {
+    const set = SETS[setKey];
+    TIME_PER_QUESTION = set.time;
+    questions = set.generate();
     currentQ = 0;
     score = 0;
     document.getElementById('welcomeScreen').classList.add('hidden');
@@ -247,7 +281,7 @@
   function showQuestion() {
     const q = questions[currentQ];
     document.getElementById('qNum').textContent = currentQ + 1;
-    document.getElementById('questionText').textContent = `${q.a} × ${q.b}`;
+    document.getElementById('questionText').textContent = q.text;
     const input = document.getElementById('answerInput');
     input.value = '';
     input.disabled = false;
@@ -291,8 +325,7 @@
   function timeUp() {
     if (qAnswered) return;
     qAnswered = true;
-    const q = questions[currentQ];
-    const correct = q.a * q.b;
+    const correct = questions[currentQ].answer;
     const feedback = document.getElementById('feedback');
     feedback.textContent = `⏰ Masa habis! Jawapan: ${correct}`;
     feedback.className = 'feedback wrong';
@@ -304,8 +337,7 @@
     if (qAnswered) return;
     const input = document.getElementById('answerInput');
     const userAns = parseInt(input.value);
-    const q = questions[currentQ];
-    const correct = q.a * q.b;
+    const correct = questions[currentQ].answer;
     const feedback = document.getElementById('feedback');
 
     if (isNaN(userAns)) {
@@ -332,7 +364,7 @@
 
   function advanceQuestion() {
     currentQ++;
-    if (currentQ < 10) {
+    if (currentQ < questions.length) {
       showQuestion();
     } else {
       stopQuestionTimer();
