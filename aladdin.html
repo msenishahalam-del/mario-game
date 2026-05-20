@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disney's ALADDIN</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #9B59B6;
+      font-size: 48px;
+      letter-spacing: 8px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(155,89,182,0.6);
+    }
+    .subtitle {
+      color: #FFD700;
+      font-size: 14px;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+    }
+    .aladdin-frame {
+      width: 900px;
+      max-width: 100%;
+      height: 650px;
+      max-height: 80vh;
+      border: 3px solid #9B59B6;
+      box-shadow: 0 0 40px rgba(155,89,182,0.5);
+      background: #000;
+    }
+    #backBtn {
+      position: fixed; top: 12px; left: 12px;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 8px 16px;
+      border: 2px solid #9B59B6;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      letter-spacing: 2px;
+      z-index: 999;
+    }
+    #backBtn:hover { background: #9B59B6; }
+    .info {
+      color: #aaa;
+      font-size: 12px;
+      letter-spacing: 1px;
+      margin-top: 16px;
+      text-align: center;
+      max-width: 800px;
+      line-height: 1.8;
+    }
+    .info kbd {
+      background: #222;
+      color: #FFD700;
+      padding: 2px 8px;
+      border: 1px solid #9B59B6;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+    .startNotice {
+      background: linear-gradient(90deg, #9B59B6, #4a2466);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      text-align: center;
+      max-width: 900px;
+      width: 100%;
+      animation: blink 1.5s ease-in-out infinite;
+      border: 2px solid #FFD700;
+    }
+    @keyframes blink {
+      0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+      50%      { box-shadow: 0 0 30px rgba(255,215,0,1); }
+    }
+    .startNotice .step {
+      display: inline-block;
+      background: rgba(0,0,0,0.4);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin: 0 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <a id="backBtn" href="/arcade.html">◀ HUB</a>
+
+  <h1>🧞 ALADDIN</h1>
+  <p class="subtitle">DISNEY · SEGA GENESIS 1993</p>
+
+  <div class="startNotice">
+    👇 KLIK BUTANG HIJAU ⏻ DI TENGAH GAME DULU 👇<br>
+    <span class="step">1️⃣ Klik ⏻</span>
+    <span class="step">2️⃣ Tekan 1 (Start)</span>
+    <span class="step">3️⃣ Tekan SPACE untuk Jump</span>
+  </div>
+
+  <iframe
+    class="aladdin-frame"
+    src="https://archive.org/embed/Disneys_Aladdin_U_p1"
+    allow="autoplay; fullscreen; gamepad"
+    sandbox="allow-scripts allow-same-origin allow-fullscreen allow-pointer-lock allow-modals"
+    allowfullscreen
+  ></iframe>
+
+  <p class="info">
+    <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Move &nbsp;|&nbsp;
+    <kbd>1</kbd> Start (selepas klik ⏻) &nbsp;|&nbsp;
+    <kbd>CTRL</kbd> Slash pedang &nbsp;|&nbsp;
+    <kbd>ALT</kbd> Lempar epal &nbsp;|&nbsp;
+    <kbd>SPACE</kbd> Lompat<br>
+    <b style="color:#FFD700">Penting:</b> Keyboard buttons hanya berfungsi selepas klik dalam kotak game. Kalau panah tak respond, klik kotak game sekali lagi.
+  </p>
+
+<script src="/reward-timer.js"></script>
+</body>
+</html>
