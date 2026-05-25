@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNAKE</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a1a0a;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    color: #fff;
+    user-select: none;
+  }
+  h1 {
+    color: #4caf50;
+    font-size: 44px;
+    letter-spacing: 10px;
+    text-shadow: 0 0 20px rgba(76,175,80,0.7);
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    color: #FFD700;
+    font-size: 13px;
+    letter-spacing: 4px;
+    margin-bottom: 14px;
+  }
+  #backBtn {
+    position: fixed; top: 12px; left: 12px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 8px 16px;
+    border: 2px solid #4caf50;
+    border-radius: 6px;
+    text-decoration: none;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    z-index: 999;
+  }
+  #backBtn:hover { background: #4caf50; }
+  .hud {
+    color: #4caf50;
+    font-size: 22px;
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 30px;
+  }
+  #gameCanvas {
+    background: #000;
+    border: 3px solid #4caf50;
+    box-shadow: 0 0 30px rgba(76,175,80,0.5);
+    image-rendering: pixelated;
+    display: block;
+  }
+  .info {
+    color: #aaa;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-top: 14px;
+    text-align: center;
+    line-height: 1.7;
+  }
+  .info kbd {
+    background: #222;
+    color: #4caf50;
+    padding: 2px 8px;
+    border: 1px solid #4caf50;
+    border-radius: 4px;
+    font-size: 11px;
+  }
+  .overlay {
+    position: absolute;
+    color: #fff;
+    text-align: center;
+    background: rgba(0,0,0,0.85);
+    padding: 30px 40px;
+    border-radius: 16px;
+    border: 3px solid #4caf50;
+    box-shadow: 0 0 40px rgba(76,175,80,0.5);
+  }
+  .overlay h2 { color: #4caf50; margin-bottom: 14px; font-size: 32px; letter-spacing: 4px; }
+  .overlay p { margin-bottom: 10px; font-size: 18px; }
+  .overlay button {
+    margin-top: 14px;
+    padding: 12px 30px;
+    background: #4caf50;
+    border: none;
+    color: #000;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .overlay button:hover { background: #66bb6a; }
+  .canvas-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<a id="backBtn" href="/arcade.html">◀ HUB</a>
+
+<h1>🐍 SNAKE</h1>
+<p class="subtitle">CLASSIC · MAKAN EPAL · JANGAN LANGGAR DIRI SENDIRI</p>
+
+<div class="hud">
+  <div>SKOR: <span id="score">0</span></div>
+  <div>HIGH: <span id="high">0</span></div>
+</div>
+
+<div class="canvas-wrap">
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <div id="startOverlay" class="overlay">
+    <h2>🐍 SNAKE</h2>
+    <p>Panah untuk gerak</p>
+    <p>Makan 🍎 untuk membesar</p>
+    <p>Jangan langgar diri sendiri!</p>
+    <button onclick="startGame()">MULA 🚀</button>
+  </div>
+</div>
+
+<p class="info">
+  <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Arah ular &nbsp;|&nbsp;
+  <kbd>SPACE</kbd> Pause / Resume &nbsp;|&nbsp;
+  <kbd>R</kbd> Restart
+</p>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const GRID = 20;
+const CELLS = canvas.width / GRID; // 20 cells
+let snake, dir, nextDir, apple, score, highScore, gameOver, paused, tickInterval, speed;
+
+highScore = parseInt(localStorage.getItem('snakeHigh') || '0', 10);
+document.getElementById('high').textContent = highScore;
+
+function reset() {
+  snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  dir = {x:1,y:0};
+  nextDir = dir;
+  score = 0;
+  speed = 130;
+  gameOver = false;
+  paused = false;
+  spawnApple();
+  updateHUD();
+}
+
+function spawnApple() {
+  while (true) {
+    const a = { x: Math.floor(Math.random()*CELLS), y: Math.floor(Math.random()*CELLS) };
+    if (!snake.some(s => s.x===a.x && s.y===a.y)) { apple = a; return; }
+  }
+}
+
+function updateHUD() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('high').textContent = highScore;
+}
+
+function tick() {
+  if (paused || gameOver) return draw();
+  dir = nextDir;
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+  // Wall collision
+  if (head.x < 0 || head.x >= CELLS || head.y < 0 || head.y >= CELLS) return endGame();
+  // Self collision
+  if (snake.some(s => s.x===head.x && s.y===head.y)) return endGame();
+  snake.unshift(head);
+  if (head.x===apple.x && head.y===apple.y) {
+    score += 10;
+    if (score > highScore) { highScore = score; localStorage.setItem('snakeHigh', highScore); }
+    updateHUD();
+    spawnApple();
+    if (speed > 60) { speed -= 3; clearInterval(tickInterval); tickInterval = setInterval(tick, speed); }
+  } else {
+    snake.pop();
+  }
+  draw();
+}
+
+function draw() {
+  // bg
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // grid lines
+  ctx.strokeStyle = 'rgba(76,175,80,0.08)';
+  ctx.lineWidth = 1;
+  for (let i=1;i<CELLS;i++){ ctx.beginPath(); ctx.moveTo(i*GRID,0); ctx.lineTo(i*GRID,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*GRID); ctx.lineTo(canvas.width,i*GRID); ctx.stroke(); }
+  // apple
+  ctx.fillStyle = '#e53935';
+  ctx.fillRect(apple.x*GRID+3, apple.y*GRID+3, GRID-6, GRID-6);
+  ctx.fillStyle = '#69f0ae';
+  ctx.fillRect(apple.x*GRID+9, apple.y*GRID+2, 4, 4);
+  // snake
+  snake.forEach((s, i) => {
+    if (i===0) {
+      ctx.fillStyle = '#66bb6a';
+      ctx.fillRect(s.x*GRID, s.y*GRID, GRID, GRID);
+      // eyes
+      ctx.fillStyle = '#000';
+      const ex1 = s.x*GRID + (dir.x===1?14:dir.x===-1?2:4);
+      const ey1 = s.y*GRID + (dir.y===1?14:dir.y===-1?2:4);
+      const ex2 = s.x*GRID + (dir.x===1?14:dir.x===-1?2:14);
+      const ey2 = s.y*GRID + (dir.y===1?14:dir.y===-1?2:14);
+      ctx.fillRect(ex1, ey1, 3, 3);
+      ctx.fillRect(ex2, ey2, 3, 3);
+    } else {
+      const shade = Math.max(40, 76 - i*2);
+      ctx.fillStyle = `rgb(${shade}, ${shade+99}, ${shade})`;
+      ctx.fillRect(s.x*GRID+1, s.y*GRID+1, GRID-2, GRID-2);
+    }
+  });
+  if (paused && !gameOver) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, canvas.height/2 - 30, canvas.width, 60);
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 32px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width/2, canvas.height/2 + 10);
+  }
+}
+
+function endGame() {
+  gameOver = true;
+  clearInterval(tickInterval);
+  draw();
+  const o = document.getElementById('startOverlay');
+  o.innerHTML = `
+    <h2>💀 GAME OVER</h2>
+    <p>Skor: <b>${score}</b></p>
+    <p>Tertinggi: <b>${highScore}</b></p>
+    <button onclick="startGame()">MAIN LAGI 🔄</button>`;
+  o.style.display = 'block';
+}
+
+function startGame() {
+  document.getElementById('startOverlay').style.display = 'none';
+  reset();
+  draw();
+  tickInterval = setInterval(tick, speed);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ') {
+    e.preventDefault();
+    if (!gameOver) paused = !paused;
+  } else if (e.key.toLowerCase() === 'r') {
+    if (gameOver) startGame();
+  } else if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && dir.y !== 1) nextDir = {x:0,y:-1};
+  else if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && dir.y !== -1) nextDir = {x:0,y:1};
+  else if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && dir.x !== 1) nextDir = {x:-1,y:0};
+  else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && dir.x !== -1) nextDir = {x:1,y:0};
+});
+
+draw();
+</script>
+
+<script src="/reward-timer.js"></script>
+</body>
+</html>
