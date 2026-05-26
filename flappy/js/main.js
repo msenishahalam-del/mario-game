@@ -18,7 +18,7 @@ var flyArea = $("#flyarea").height();
 var score = 0;
 var highscore = 0;
 
-var pipeheight = 140;
+var pipeheight = 200;
 var pipewidth = 52;
 var pipes = new Array();
 
@@ -123,6 +123,7 @@ function startGame()
    var updaterate = 1000.0 / 60.0 ; //60 times a second
    loopGameloop = setInterval(gameloop, updaterate);
    loopPipeloop = setInterval(updatePipes, 1400);
+   updatePipes();   //spawn first pipe immediately so player doesn't wait
 
    //jump from the start!
    playerJump();
