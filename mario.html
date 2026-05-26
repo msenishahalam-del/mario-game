@@ -178,7 +178,7 @@
     <span id="scoreDisplay">SCORE: 0</span>
     <span id="coinsDisplay">🪙 0</span>
     <span id="livesDisplay">❤️ 3</span>
-    <span>WORLD 1-1</span>
+    <span id="worldDisplay">WORLD 1-1</span>
   </div>
   <canvas id="canvas" width="800" height="480"></canvas>
   <div id="message">PRESS ENTER TO START</div>
@@ -213,6 +213,8 @@ let score = 0, coins = 0, lives = 3;
 let gameState = 'start'; // start | playing | dead | win | gameover
 let cameraX = 0;
 let spawnX = 60; // checkpoint spawn position
+let currentLevel = 1;
+const MAX_LEVEL = 2;
 
 // ─── INPUT ───────────────────────────────────────────────
 const keys = {};
@@ -266,7 +268,8 @@ function setupMobileControls() {
 setupMobileControls();
 
 // ─── LEVEL DATA ───────────────────────────────────────────
-function buildLevel() {
+function buildLevel(num) {
+  if (num === 2) return buildLevel2();
   const platforms = [
     // x, y, w, h, type: 'ground'|'brick'|'solid'
     { x: 0,    y: GROUND_Y, w: 3200, h: 40,  type: 'ground' },
@@ -342,7 +345,118 @@ function buildLevel() {
     { x: 2700, activated: false },
   ];
 
-  return { platforms, coinList, enemies, flag, checkpoints };
+  const powerups = [];
+
+  return { platforms, coinList, enemies, flag, checkpoints, powerups };
+}
+
+function buildLevel2() {
+  // Level 2 — cabaran lebih: pit lebih lebar, lebih banyak musuh, ada bunga power-up
+  const platforms = [
+    { x: 0,    y: GROUND_Y, w: 500,  h: 40, type: 'ground' },
+    // pit lebar 1: 500-660
+    { x: 660,  y: GROUND_Y, w: 540,  h: 40, type: 'ground' },
+    // pit lebar 2: 1200-1380
+    { x: 1380, y: GROUND_Y, w: 720,  h: 40, type: 'ground' },
+    // pit lebar 3: 2100-2280
+    { x: 2280, y: GROUND_Y, w: 920,  h: 40, type: 'ground' },
+
+    // bahagian 1
+    { x: 180,  y: 320, w: 96,  h: 20, type: 'brick' },
+    { x: 320,  y: 260, w: 96,  h: 20, type: 'brick' },
+    { x: 440,  y: 320, w: 64,  h: 20, type: 'brick' },
+    // bunga ada atas platform tinggi ni
+    { x: 380,  y: 200, w: 128, h: 20, type: 'solid' },
+
+    // melompat pit 1
+    { x: 560,  y: 280, w: 64,  h: 20, type: 'brick' },
+
+    // bahagian 2
+    { x: 720,  y: 300, w: 96,  h: 20, type: 'brick' },
+    { x: 860,  y: 240, w: 128, h: 20, type: 'solid' },
+    { x: 1020, y: 300, w: 96,  h: 20, type: 'brick' },
+    { x: 1140, y: 260, w: 64,  h: 20, type: 'brick' },
+
+    // melompat pit 2
+    { x: 1260, y: 280, w: 80,  h: 20, type: 'brick' },
+
+    // bahagian 3
+    { x: 1440, y: 320, w: 96,  h: 20, type: 'brick' },
+    { x: 1580, y: 260, w: 128, h: 20, type: 'solid' },
+    { x: 1750, y: 300, w: 96,  h: 20, type: 'brick' },
+    { x: 1880, y: 240, w: 96,  h: 20, type: 'brick' },
+    { x: 2020, y: 300, w: 64,  h: 20, type: 'brick' },
+
+    // melompat pit 3
+    { x: 2160, y: 280, w: 80,  h: 20, type: 'brick' },
+
+    // bahagian akhir
+    { x: 2340, y: 320, w: 96,  h: 20, type: 'brick' },
+    { x: 2480, y: 260, w: 128, h: 20, type: 'solid' },
+    { x: 2660, y: 300, w: 96,  h: 20, type: 'brick' },
+    { x: 2820, y: 240, w: 96,  h: 20, type: 'brick' },
+    { x: 2980, y: 300, w: 96,  h: 20, type: 'brick' },
+  ];
+
+  const coinList = [
+    { x: 200, y: 280 }, { x: 230, y: 280 }, { x: 260, y: 280 },
+    { x: 340, y: 220 }, { x: 370, y: 220 },
+    { x: 460, y: 280 },
+    { x: 400, y: 160 }, { x: 430, y: 160 }, { x: 460, y: 160 }, { x: 490, y: 160 },
+    { x: 580, y: 240 },
+    { x: 740, y: 260 }, { x: 770, y: 260 },
+    { x: 880, y: 200 }, { x: 910, y: 200 }, { x: 940, y: 200 },
+    { x: 1040, y: 260 }, { x: 1070, y: 260 },
+    { x: 1160, y: 220 },
+    { x: 1280, y: 240 },
+    { x: 1460, y: 280 }, { x: 1490, y: 280 },
+    { x: 1600, y: 220 }, { x: 1630, y: 220 }, { x: 1660, y: 220 },
+    { x: 1770, y: 260 }, { x: 1800, y: 260 },
+    { x: 1900, y: 200 }, { x: 1930, y: 200 },
+    { x: 2040, y: 260 },
+    { x: 2180, y: 240 },
+    { x: 2360, y: 280 }, { x: 2390, y: 280 },
+    { x: 2500, y: 220 }, { x: 2530, y: 220 }, { x: 2560, y: 220 },
+    { x: 2680, y: 260 }, { x: 2710, y: 260 },
+    { x: 2840, y: 200 }, { x: 2870, y: 200 },
+    { x: 3000, y: 260 }, { x: 3030, y: 260 },
+  ].map(c => ({ ...c, collected: false, animY: 0, animating: false }));
+
+  const enemies = [
+    { x: 350,  vx: -1.5 },
+    { x: 480,  vx: -1.5 },
+    { x: 750,  vx: -1.8 },
+    { x: 900,  vx: -1.5 },
+    { x: 1080, vx: -1.8 },
+    { x: 1480, vx: -1.5 },
+    { x: 1620, vx: -2.0 },
+    { x: 1820, vx: -1.8 },
+    { x: 1960, vx: -2.0 },
+    { x: 2380, vx: -1.8 },
+    { x: 2540, vx: -2.0 },
+    { x: 2720, vx: -2.0 },
+    { x: 2880, vx: -2.2 },
+    { x: 3020, vx: -2.2 },
+  ].map(e => ({
+    x: e.x, y: GROUND_Y - 32, w: 32, h: 32,
+    vx: e.vx, vy: 0, alive: true, squished: false, squishTimer: 0,
+    animFrame: 0, animTimer: 0
+  }));
+
+  const flag = { x: 3120, y: GROUND_Y - 200, w: 20, h: 200, reached: false };
+
+  const checkpoints = [
+    { x: 700,  activated: false },
+    { x: 1500, activated: false },
+    { x: 2400, activated: false },
+  ];
+
+  // Bunga power-up — atas platform tinggi awal level
+  const powerups = [
+    { type: 'flower', x: 432, y: 168, w: 24, h: 28, taken: false, bobTimer: 0 },
+  ];
+
+  return { platforms, coinList, enemies, flag, checkpoints, powerups };
 }
 
 let level;
@@ -360,7 +474,26 @@ function makePlayer() {
     invincible: 0,
     dead: false,
     deadTimer: 0,
+    big: false,
   };
+}
+
+function growBig() {
+  if (player.big) return;
+  player.big = true;
+  player.h = 64;
+  player.y -= 16;
+  player.invincible = 30;   // short flash
+  spawnParticles(player.x + player.w / 2, player.y, '#FFD700', 14);
+  spawnParticles(player.x + player.w / 2, player.y, '#FF4444', 8);
+}
+
+function shrinkSmall() {
+  player.big = false;
+  player.h = 48;
+  player.y += 16;
+  player.invincible = 90;   // ~1.5s grace period
+  spawnParticles(player.x + player.w / 2, player.y, '#FFFFFF', 10);
 }
 let player;
 
@@ -382,7 +515,8 @@ function spawnParticles(x, y, color, count = 6) {
 // ─── GAME START ───────────────────────────────────────────
 function startGame() {
   score = 0; coins = 0; lives = 3;
-  level = buildLevel();
+  currentLevel = 1;
+  level = buildLevel(currentLevel);
   player = makePlayer();
   cameraX = 0;
   particles = [];
@@ -392,10 +526,21 @@ function startGame() {
   updateHUD();
 }
 
+function nextLevel() {
+  currentLevel++;
+  level = buildLevel(currentLevel);
+  player = makePlayer();
+  cameraX = 0;
+  spawnX = 60;
+  gameState = 'playing';
+  updateHUD();
+}
+
 function updateHUD() {
   document.getElementById('scoreDisplay').textContent = 'SCORE: ' + score;
   document.getElementById('coinsDisplay').textContent = '🪙 ' + coins;
   document.getElementById('livesDisplay').textContent = '❤️ ' + lives;
+  document.getElementById('worldDisplay').textContent = 'WORLD ' + currentLevel + '-1';
   document.getElementById('message').textContent =
     gameState === 'start'    ? 'PRESS ENTER TO START' :
     gameState === 'dead'     ? (lives > 0 ? 'PRESS ENTER TO RETRY' : '') :
@@ -524,6 +669,8 @@ function update() {
         player.vy = -8;
         score += 100; updateHUD();
         spawnParticles(e.x + e.w / 2, e.y, '#FF4400', 8);
+      } else if (player.big) {
+        shrinkSmall();
       } else {
         killPlayer();
       }
@@ -562,7 +709,22 @@ function update() {
     flag.reached = true;
     score += 500;
     updateHUD();
-    setTimeout(() => { gameState = 'win'; updateHUD(); }, 1000);
+    if (currentLevel < MAX_LEVEL) {
+      setTimeout(nextLevel, 1200);
+    } else {
+      setTimeout(() => { gameState = 'win'; updateHUD(); }, 1000);
+    }
+  }
+
+  // ── Powerups ──
+  for (const pu of level.powerups) {
+    if (pu.taken) continue;
+    pu.bobTimer = (pu.bobTimer || 0) + 1;
+    if (rectOverlap(player, pu)) {
+      pu.taken = true;
+      score += 1000; updateHUD();
+      if (pu.type === 'flower') growBig();
+    }
   }
 
   // ── Camera ──
@@ -667,6 +829,7 @@ function drawMario(p) {
   ctx.globalAlpha = alpha;
   if (flip) { ctx.translate(sx + p.w, sy); ctx.scale(-1, 1); }
   else       { ctx.translate(sx, sy); }
+  if (p.big) ctx.scale(1.1, 1.33);
 
   if (p.dead) {
     // spinning star shape when dead
@@ -1001,10 +1164,40 @@ function render() {
   for (const c of level.coinList)  drawCoin(c);
   drawCheckpoints(level.checkpoints);
   drawFlag(level.flag);
+  for (const pu of level.powerups) drawPowerup(pu);
   for (const e of level.enemies)   drawEnemy(e);
   drawParticles();
   drawMario(player);
   drawOverlay();
+}
+
+function drawPowerup(pu) {
+  if (pu.taken) return;
+  const sx = Math.round(pu.x - cameraX);
+  const bob = Math.sin(pu.bobTimer * 0.1) * 3;
+  const sy = Math.round(pu.y + bob);
+  if (pu.type === 'flower') {
+    // stem
+    ctx.fillStyle = '#1B7F1B';
+    ctx.fillRect(sx + 10, sy + 14, 4, 14);
+    // leaf
+    ctx.fillStyle = '#2EAF2E';
+    ctx.fillRect(sx + 14, sy + 18, 6, 4);
+    // petals (red)
+    ctx.fillStyle = '#E53935';
+    ctx.fillRect(sx + 4,  sy + 4,  6, 6);
+    ctx.fillRect(sx + 14, sy + 4,  6, 6);
+    ctx.fillRect(sx + 4,  sy + 14, 6, 6);
+    ctx.fillRect(sx + 14, sy + 14, 6, 6);
+    ctx.fillRect(sx + 9,  sy,      6, 6);
+    ctx.fillRect(sx + 9,  sy + 18, 6, 6);
+    // center (yellow)
+    ctx.fillStyle = '#FFD54F';
+    ctx.fillRect(sx + 8, sy + 8, 8, 8);
+    // center highlight
+    ctx.fillStyle = '#FFF59D';
+    ctx.fillRect(sx + 10, sy + 10, 3, 3);
+  }
 }
 
 // ─── GAME LOOP ────────────────────────────────────────────
@@ -1086,7 +1279,8 @@ async function showLeaderboard(myRank) {
 function closeLeaderboard() {
   document.getElementById('leaderboard').style.display = 'none';
   // Reset game untuk main lagi
-  level = buildLevel();
+  currentLevel = 1;
+  level = buildLevel(currentLevel);
   player = makePlayer();
   cameraX = 0;
   particles = [];
@@ -1100,7 +1294,7 @@ const _origUpdateHUD = updateHUD;
 let scoreSent = false;
 
 // init dengan dummy level untuk name screen
-level = buildLevel();
+level = buildLevel(currentLevel);
 player = makePlayer();
 gameLoop();
 </script>
