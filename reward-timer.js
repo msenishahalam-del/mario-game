@@ -47,12 +47,7 @@
     const remainMs = readDeadline() - Date.now();
     if (remainMs <= 0) {
       localStorage.removeItem(KEY);
-      box.style.background = 'rgba(198,40,40,0.95)';
-      box.querySelector('#rtTime') && (box.querySelector('#rtTime').textContent = '0:00');
-      setTimeout(() => {
-        alert('⏰ Masa tamat! Jawab quiz lagi untuk dapat masa baru.');
-        location.replace(HOME);
-      }, 100);
+      location.replace(HOME);
       return;
     }
     const t = box.querySelector('#rtTime');
