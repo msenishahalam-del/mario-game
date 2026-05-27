@@ -241,6 +241,18 @@
   }
 
   .hidden { display: none; }
+
+  .version-tag {
+    position: fixed;
+    bottom: 6px;
+    right: 10px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    font-family: monospace;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    z-index: 1;
+  }
 </style>
 </head>
 <body>
@@ -319,6 +331,8 @@
   <div class="feedback" id="feedback"></div>
   <button onclick="submitAnswer()" id="submitBtn">JAWAB ✓</button>
 </div>
+
+<div class="version-tag" id="versionTag"></div>
 
 <div id="resultScreen" class="screen hidden">
   <h1>🎉 Tahniah!</h1>
@@ -1010,6 +1024,15 @@
     localStorage.setItem('rewardDeadline', String(deadline));
     location.href = '/arcade.html';
   }
+
+  // Version tag (boot time server = waktu deploy)
+  fetch('/api/version', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('versionTag');
+      if (el && d.version) el.textContent = d.version;
+    })
+    .catch(() => {});
 </script>
 
 </body>
