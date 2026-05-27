@@ -596,43 +596,111 @@
       time: 20,
       generate() {
         const words = [
-          { emoji: '🪨', partial: 'BA', correct: 'TU' },  // BATU
-          { emoji: '👕', partial: 'BA', correct: 'JU' },  // BAJU
-          { emoji: '📚', partial: 'BU', correct: 'KU' },  // BUKU
-          { emoji: '⚽', partial: 'BO', correct: 'LA' },  // BOLA
-          { emoji: '🐟', partial: 'IK', correct: 'AN' },  // IKAN
-          { emoji: '🍎', partial: 'EP', correct: 'AL' },  // EPAL
-          { emoji: '👁️', partial: 'MA', correct: 'TA' },  // MATA
-          { emoji: '🦶', partial: 'KA', correct: 'KI' },  // KAKI
-          { emoji: '🥛', partial: 'SU', correct: 'SU' },  // SUSU
-          { emoji: '🍚', partial: 'NA', correct: 'SI' },  // NASI
-          { emoji: '🍞', partial: 'RO', correct: 'TI' },  // ROTI
-          { emoji: '🎩', partial: 'TO', correct: 'PI' },  // TOPI
-          { emoji: '🦷', partial: 'GI', correct: 'GI' },  // GIGI
-          { emoji: '😀', partial: 'MU', correct: 'KA' },  // MUKA
-          { emoji: '🐒', partial: 'KE', correct: 'RA' },  // KERA
-          { emoji: '🐴', partial: 'KU', correct: 'DA' },  // KUDA
-          { emoji: '🦆', partial: 'IT', correct: 'IK' },  // ITIK
-          { emoji: '🍃', partial: 'DA', correct: 'UN' },  // DAUN
-          { emoji: '🧀', partial: 'KE', correct: 'JU' },  // KEJU
-          { emoji: '🪑', partial: 'ME', correct: 'JA' }   // MEJA
+          // ── 2 suku terbuka (KV-KV)
+          { emoji: '🪨', parts: ['BA','TU'] },         // BATU
+          { emoji: '👕', parts: ['BA','JU'] },         // BAJU
+          { emoji: '📚', parts: ['BU','KU'] },         // BUKU
+          { emoji: '⚽', parts: ['BO','LA'] },         // BOLA
+          { emoji: '👁️', parts: ['MA','TA'] },         // MATA
+          { emoji: '🦶', parts: ['KA','KI'] },         // KAKI
+          { emoji: '🥛', parts: ['SU','SU'] },         // SUSU
+          { emoji: '🍚', parts: ['NA','SI'] },         // NASI
+          { emoji: '🍞', parts: ['RO','TI'] },         // ROTI
+          { emoji: '🎩', parts: ['TO','PI'] },         // TOPI
+          { emoji: '🦷', parts: ['GI','GI'] },         // GIGI
+          { emoji: '😀', parts: ['MU','KA'] },         // MUKA
+          { emoji: '🐒', parts: ['KE','RA'] },         // KERA
+          { emoji: '🐴', parts: ['KU','DA'] },         // KUDA
+          { emoji: '🧀', parts: ['KE','JU'] },         // KEJU
+          { emoji: '🪑', parts: ['ME','JA'] },         // MEJA
+          // ── V-KVK / diftong
+          { emoji: '🐟', parts: ['I','KAN'] },         // IKAN
+          { emoji: '🍎', parts: ['E','PAL'] },         // EPAL
+          { emoji: '🦆', parts: ['I','TIK'] },         // ITIK
+          { emoji: '🐔', parts: ['A','YAM'] },         // AYAM
+          { emoji: '🐰', parts: ['AR','NAB'] },        // ARNAB
+          { emoji: '🍃', parts: ['DA','UN'] },         // DAUN
+          { emoji: '🔪', parts: ['PI','SAU'] },        // PISAU
+          // ── KV-KVK (suku 2 tertutup)
+          { emoji: '🌀', parts: ['KI','PAS'] },        // KIPAS
+          { emoji: '👟', parts: ['KA','SUT'] },        // KASUT
+          { emoji: '🏠', parts: ['RU','MAH'] },        // RUMAH
+          { emoji: '🚢', parts: ['KA','PAL'] },        // KAPAL
+          { emoji: '☕', parts: ['CA','WAN'] },        // CAWAN
+          { emoji: '🥚', parts: ['TE','LUR'] },        // TELUR
+          { emoji: '🧺', parts: ['BA','KUL'] },        // BAKUL
+          { emoji: '🥬', parts: ['SA','YUR'] },        // SAYUR
+          { emoji: '🐭', parts: ['TI','KUS'] },        // TIKUS
+          { emoji: '🍌', parts: ['PI','SANG'] },       // PISANG
+          { emoji: '🐱', parts: ['KU','CING'] },       // KUCING
+          { emoji: '🦜', parts: ['BU','RUNG'] },       // BURUNG
+          { emoji: '🥩', parts: ['DA','GING'] },       // DAGING
+          { emoji: '🐘', parts: ['GA','JAH'] },        // GAJAH
+          // ── KVK-KV (suku 1 tertutup)
+          { emoji: '💡', parts: ['LAM','PU'] },        // LAMPU
+          { emoji: '🔑', parts: ['KUN','CI'] },        // KUNCI
+          { emoji: '🚪', parts: ['PIN','TU'] },        // PINTU
+          { emoji: '🐄', parts: ['LEM','BU'] },        // LEMBU
+          { emoji: '🥭', parts: ['MANG','GA'] },       // MANGGA
+          // ── KVK-KVK
+          { emoji: '🛏', parts: ['BAN','TAL'] },       // BANTAL
+          { emoji: '🥔', parts: ['KEN','TANG'] },      // KENTANG
+          { emoji: '🍽', parts: ['PING','GAN'] },      // PINGGAN
+          // ── 3 suku kata
+          { emoji: '🚗', parts: ['KE','RE','TA'] },    // KERETA
+          { emoji: '🚩', parts: ['BEN','DE','RA'] },   // BENDERA
+          { emoji: '🥥', parts: ['KE','LA','PA'] },    // KELAPA
+          { emoji: '🧈', parts: ['MEN','TE','GA'] },   // MENTEGA
+          { emoji: '💺', parts: ['KE','RU','SI'] },    // KERUSI
+          { emoji: '📞', parts: ['TE','LE','FON'] },   // TELEFON
+          { emoji: '🐅', parts: ['HA','RI','MAU'] },   // HARIMAU
+          { emoji: '👔', parts: ['KE','ME','JA'] },    // KEMEJA
+          { emoji: '🏫', parts: ['SE','KO','LAH'] }    // SEKOLAH
         ];
-        const syllablePool = [
-          'TU','JU','KU','DU','LU','NU','RU','SU','MU','BU','GU','PU',
-          'TA','JA','KA','DA','LA','NA','RA','SA','MA','BA','PA','GA',
-          'TI','JI','KI','DI','LI','NI','RI','SI','MI','BI','PI','GI',
-          'AN','AM','AL','AS','AR','AT','UN','UT','IL','IS','IK','UR','EN'
-        ];
+
+        // Jana suku kata yang bunyi seakan — tukar satu huruf sahaja
+        function similar(syl) {
+          const cons = ['B','C','D','G','H','J','K','L','M','N','P','R','S','T','W','Y'];
+          const vowels = ['A','I','U','E','O'];
+          const finals = ['N','M','K','T','P','L','R','S','H'];
+          const out = new Set();
+          const endsNG = syl.endsWith('NG');
+          // tukar konsonan awal
+          if (!vowels.includes(syl[0])) {
+            for (const c of cons) if (c !== syl[0]) out.add(c + syl.slice(1));
+          }
+          // tukar vokal
+          for (let i = 0; i < syl.length; i++) {
+            if (vowels.includes(syl[i])) {
+              for (const v of vowels) if (v !== syl[i]) out.add(syl.slice(0,i) + v + syl.slice(i+1));
+            }
+          }
+          // tukar konsonan akhir
+          if (endsNG) {
+            const stem = syl.slice(0, -2);
+            for (const f of finals) out.add(stem + f);
+          } else if (!vowels.includes(syl[syl.length-1])) {
+            const stem = syl.slice(0, -1);
+            for (const f of finals) if (f !== syl[syl.length-1]) out.add(stem + f);
+            out.add(stem + 'NG');
+          }
+          out.delete(syl);
+          return [...out];
+        }
+
         const selected = shuffle([...words]).slice(0, 10);
         return selected.map(w => {
-          const choices = new Set([w.correct]);
-          while (choices.size < 4) {
-            const s = syllablePool[Math.floor(Math.random() * syllablePool.length)];
-            if (s !== w.correct) choices.add(s);
+          const correct = w.parts[w.parts.length - 1];
+          const partial = w.parts.slice(0, -1).join('-');
+          const sims = shuffle(similar(correct));
+          const choices = new Set([correct]);
+          for (const s of sims) {
+            if (choices.size >= 4) break;
+            choices.add(s);
           }
           return {
-            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${w.partial}__</span>`,
-            answer: w.correct,
+            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${partial}-__</span>`,
+            answer: correct,
             choices: shuffle([...choices])
           };
         });
