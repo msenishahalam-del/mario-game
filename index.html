@@ -66,6 +66,18 @@
     display: block;
     letter-spacing: 0.1em;
   }
+  .word-problem {
+    display: block;
+    font-size: 0.32em;
+    line-height: 1.45;
+    font-weight: bold;
+    color: #5a3a00;
+  }
+  #answerInput.text-input {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    width: 160px;
+  }
   .progress {
     font-size: 1.1em;
     color: #555;
@@ -140,6 +152,16 @@
   }
   .correct { color: #2e7d32; }
   .wrong { color: #c62828; }
+  .ans-reveal {
+    display: inline-block;
+    margin-top: 8px;
+    background: #2e7d32;
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+  }
 
   .score-display {
     font-size: 3.5em;
@@ -167,6 +189,18 @@
     font-weight: normal;
     opacity: 0.9;
     margin-top: 6px;
+  }
+  #versionStamp {
+    position: fixed;
+    bottom: 6px;
+    right: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.5px;
+    z-index: 9999;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   }
   button.big.locked {
     opacity: 0.55;
@@ -245,6 +279,8 @@
 </head>
 <body>
 
+<div id="versionStamp">v2026-05-28 12:42</div>
+
 <div id="welcomeScreen" class="screen">
   <h1>🎯 Cabaran Matematik!</h1>
   <p>Jawab <b>10 soalan</b> dengan betul.<br>
@@ -272,12 +308,12 @@
   <br>
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
     🔤 Ejaan BM
-    <span class="set-sub">Tengok gambar · pilih suku kata A/B/C/D · 20 saat</span>
+    <span class="set-sub">Tengok gambar · taip suku kata yang hilang · 20 saat</span>
   </button>
   <br>
   <button class="big" data-set="duit" onclick="startQuiz('duit')" style="background: linear-gradient(135deg, #84fab0, #8fd3f4);">
     💰 Duit Ringgit
-    <span class="set-sub">Tambah / tolak RM · key in jawapan · 20 saat</span>
+    <span class="set-sub">Soalan cerita beli-belah · pilih A/B/C/D · 20 saat</span>
   </button>
   <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
@@ -291,14 +327,34 @@
     <span class="set-sub">Sifir 2-12 · key in jawapan · 15 saat</span>
   </button>
   <br>
+  <button class="big" data-set="bahagi" onclick="startQuiz('bahagi')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
+    ➗ Bahagi
+    <span class="set-sub">Sifir 2-12 · key in jawapan · 15 saat</span>
+  </button>
+  <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
     🎯 Bundar
-    <span class="set-sub">Bundar puluh terdekat · pilih A/B/C/D · 15 saat</span>
+    <span class="set-sub">Bundar puluh &amp; ratus terdekat · pilih A/B/C/D · 15 saat</span>
   </button>
   <br>
   <button class="big" data-set="pecahan" onclick="startQuiz('pecahan')" style="background: linear-gradient(135deg, #4facfe, #00c4cc);">
     🍕 Pecahan
-    <span class="set-sub">Tambah &amp; tolak penyebut sama · pilih A/B/C/D · 15 saat</span>
+    <span class="set-sub">Tambah/tolak + permudahkan pecahan · pilih A/B/C/D · 15 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="sains1" onclick="startQuiz('sains1')" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+    🔬 Sains 1
+    <span class="set-sub">Pancaindera · Tumbuhan · Haiwan · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="sains2" onclick="startQuiz('sains2')" style="background: linear-gradient(135deg, #38f9d7, #43b0e9);">
+    🔭 Sains 2
+    <span class="set-sub">Cahaya/Bunyi · Bahan · Cuaca/Angkasa · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="sains3" onclick="startQuiz('sains3')" style="background: linear-gradient(135deg, #43b0e9, #5f72e9);">
+    🧲 Sains 3
+    <span class="set-sub">Badan Manusia · Daya · A/B/C/D · 20 saat</span>
   </button>
   <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
@@ -338,6 +394,8 @@
 
 <script>
   // ===== STATE =====
+  const CORRECT_DELAY = 1200;   // betul → cepat ke soalan seterusnya
+  const WRONG_DELAY = 3500;     // salah → bagi masa baca jawapan betul
   let TIME_PER_QUESTION = 15;
   let questions = [];
   let currentQ = 0;
@@ -350,7 +408,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bundar', 'pecahan'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3'],
     tahun6:  ['tambahtolak', 'ejaan', 'duit']
   };
   const PASS_SCORE = 7;
@@ -400,6 +458,27 @@
         return shuffle(qs);
       }
     },
+    bahagi: {
+      time: 15,
+      generate() {
+        const qs = [];
+        while (qs.length < 10) {
+          let divisor, quotient;
+          if (Math.random() < 0.6) {
+            // SENANG: sifir 2-9
+            divisor = randInt(2, 9);
+            quotient = randInt(2, 9);
+          } else {
+            // MEDIUM: sifir 2-12
+            divisor = randInt(2, 12);
+            quotient = randInt(2, 12);
+          }
+          const dividend = divisor * quotient;  // sentiasa habis dibahagi (tiada baki)
+          qs.push({ text: `${dividend} ÷ ${divisor}`, answer: quotient });
+        }
+        return shuffle(qs);
+      }
+    },
     tambahtolak: {
       time: 20,
       generate() {
@@ -422,31 +501,50 @@
       generate() {
         const qs = [];
         while (qs.length < 10) {
-          const useThreeDigit = Math.random() < 0.4;
-          const n = useThreeDigit ? randInt(105, 995) : randInt(11, 99);
-          if (n % 10 === 0) continue;  // skip already-rounded
-          const correct = Math.round(n / 10) * 10;
-
-          const candidates = new Set([correct]);
-          candidates.add(correct + 10);
-          if (correct >= 20) candidates.add(correct - 10);
-          candidates.add(correct + 20);
-          if (correct >= 30) candidates.add(correct - 20);
-          const lastDigit = n % 10;
-          const partway = n - lastDigit + (lastDigit >= 5 ? 5 : 0);
-          if (partway !== correct) candidates.add(partway);
-
-          const choices = [...candidates].slice(0, 4);
-          while (choices.length < 4) {
-            const r = Math.round(randInt(Math.max(10, correct - 30), correct + 30) / 10) * 10;
-            if (!choices.includes(r) && r > 0) choices.push(r);
+          const toHundred = Math.random() < 0.5;  // 50% ratus, 50% puluh
+          if (toHundred) {
+            // Bundar kepada RATUS terdekat
+            const n = randInt(110, 990);
+            if (n % 100 === 0) continue;  // skip already-rounded
+            const correct = Math.round(n / 100) * 100;
+            const candidates = new Set([correct]);
+            const toTen = Math.round(n / 10) * 10;  // common mistake: bundar puluh
+            if (toTen !== correct) candidates.add(toTen);
+            candidates.add(correct + 100);
+            if (correct >= 200) candidates.add(correct - 100);
+            candidates.add(correct + 200);
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const r = Math.round(randInt(Math.max(100, correct - 200), correct + 200) / 100) * 100;
+              if (!choices.includes(r) && r > 0) choices.push(r);
+            }
+            qs.push({
+              text: `Bundarkan ${n} kepada ratus terdekat`,
+              answer: correct,
+              choices: shuffle(choices)
+            });
+          } else {
+            // Bundar kepada PULUH terdekat
+            const useThreeDigit = Math.random() < 0.4;
+            const n = useThreeDigit ? randInt(105, 995) : randInt(11, 99);
+            if (n % 10 === 0) continue;
+            const correct = Math.round(n / 10) * 10;
+            const candidates = new Set([correct]);
+            candidates.add(correct + 10);
+            if (correct >= 20) candidates.add(correct - 10);
+            candidates.add(correct + 20);
+            if (correct >= 30) candidates.add(correct - 20);
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const r = Math.round(randInt(Math.max(10, correct - 30), correct + 30) / 10) * 10;
+              if (!choices.includes(r) && r > 0) choices.push(r);
+            }
+            qs.push({
+              text: `Bundarkan ${n} kepada puluh terdekat`,
+              answer: correct,
+              choices: shuffle(choices)
+            });
           }
-
-          qs.push({
-            text: `Bundarkan ${n} kepada puluh terdekat`,
-            answer: correct,
-            choices: shuffle(choices)
-          });
         }
         return qs;
       }
@@ -455,47 +553,71 @@
       time: 15,
       generate() {
         const qs = [];
+        const reducedBases = [[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,6],[5,6]];
         while (qs.length < 10) {
-          const denom = randInt(3, 10);
-          let a = randInt(1, denom);
-          let b = randInt(1, denom);
-          const isAdd = Math.random() < 0.5;
-          let text, ansNum;
-          if (isAdd) {
-            if (a + b > denom) continue;  // jawapan kena ≤ 1 (tak melebihi penyebut)
-            text = `${a}/${denom} + ${b}/${denom}`;
-            ansNum = a + b;
+          if (Math.random() < 0.5) {
+            // PERMUDAHKAN (simplify) — cth 4/6 → 2/3
+            const [sa, sb] = reducedBases[Math.floor(Math.random() * reducedBases.length)];
+            const k = randInt(2, 3);
+            const na = sa * k, nb = sb * k;
+            const correct = `${sa}/${sb}`;
+
+            const candidates = new Set([correct]);
+            candidates.add(`${na}/${nb}`);          // tak permudahkan langsung
+            candidates.add(`${sb}/${sa}`);          // terbalik
+            if (sa + 1 <= sb) candidates.add(`${sa + 1}/${sb}`);
+            const other = reducedBases[Math.floor(Math.random() * reducedBases.length)];
+            candidates.add(`${other[0]}/${other[1]}`);
+
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const ra = randInt(1, 5), rb = randInt(ra + 1, 6);
+              const c = `${ra}/${rb}`;
+              if (!choices.includes(c)) choices.push(c);
+            }
+            qs.push({ text: `Permudahkan ${na}/${nb}`, answer: correct, choices: shuffle(choices) });
           } else {
-            if (b > a) [a, b] = [b, a];
-            if (a === b) continue;  // skip jawapan 0
-            text = `${a}/${denom} − ${b}/${denom}`;
-            ansNum = a - b;
+            // TAMBAH / TOLAK penyebut sama
+            const denom = randInt(3, 10);
+            let a = randInt(1, denom);
+            let b = randInt(1, denom);
+            const isAdd = Math.random() < 0.5;
+            let text, ansNum;
+            if (isAdd) {
+              if (a + b > denom) continue;
+              text = `${a}/${denom} + ${b}/${denom}`;
+              ansNum = a + b;
+            } else {
+              if (b > a) [a, b] = [b, a];
+              if (a === b) continue;
+              text = `${a}/${denom} − ${b}/${denom}`;
+              ansNum = a - b;
+            }
+            const correct = `${ansNum}/${denom}`;
+
+            const candidates = new Set([correct]);
+            if (isAdd) candidates.add(`${a + b}/${denom * 2}`);
+            else candidates.add(`${ansNum}/${denom * 2}`);
+            if (isAdd && Math.abs(a - b) !== ansNum) candidates.add(`${Math.abs(a - b)}/${denom}`);
+            if (!isAdd && a + b <= denom) candidates.add(`${a + b}/${denom}`);
+            if (ansNum + 1 <= denom) candidates.add(`${ansNum + 1}/${denom}`);
+            if (ansNum - 1 >= 1) candidates.add(`${ansNum - 1}/${denom}`);
+            candidates.add(`${a}/${denom}`);
+
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const r = `${randInt(1, denom)}/${denom}`;
+              if (!choices.includes(r)) choices.push(r);
+            }
+            qs.push({ text, answer: correct, choices: shuffle(choices) });
           }
-          const correct = `${ansNum}/${denom}`;
-
-          const candidates = new Set([correct]);
-          // common mistake: tambah penyebut juga
-          if (isAdd) candidates.add(`${a + b}/${denom * 2}`);
-          else candidates.add(`${ansNum}/${denom * 2}`);
-          // operasi terbalik
-          if (isAdd && Math.abs(a - b) !== ansNum) candidates.add(`${Math.abs(a - b)}/${denom}`);
-          if (!isAdd && a + b <= denom) candidates.add(`${a + b}/${denom}`);
-          // off-by-one numerator
-          if (ansNum + 1 <= denom) candidates.add(`${ansNum + 1}/${denom}`);
-          if (ansNum - 1 >= 1) candidates.add(`${ansNum - 1}/${denom}`);
-          candidates.add(`${a}/${denom}`);
-
-          const choices = [...candidates].slice(0, 4);
-          while (choices.length < 4) {
-            const r = `${randInt(1, denom)}/${denom}`;
-            if (!choices.includes(r)) choices.push(r);
-          }
-
-          qs.push({ text, answer: correct, choices: shuffle(choices) });
         }
         return qs;
       }
     },
+    sains1: { time: 20, generate() { return buildSains([1, 2, 3]); } },  // Pancaindera, Tumbuhan, Haiwan
+    sains2: { time: 20, generate() { return buildSains([4, 5, 6]); } },  // Cahaya/Bunyi, Bahan, Cuaca/Angkasa
+    sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
     ejaan: {
       time: 20,
       generate() {
@@ -519,45 +641,82 @@
           { emoji: '🦆', partial: 'IT', correct: 'IK' },  // ITIK
           { emoji: '🍃', partial: 'DA', correct: 'UN' },  // DAUN
           { emoji: '🧀', partial: 'KE', correct: 'JU' },  // KEJU
-          { emoji: '🪑', partial: 'ME', correct: 'JA' }   // MEJA
-        ];
-        const syllablePool = [
-          'TU','JU','KU','DU','LU','NU','RU','SU','MU','BU','GU','PU',
-          'TA','JA','KA','DA','LA','NA','RA','SA','MA','BA','PA','GA',
-          'TI','JI','KI','DI','LI','NI','RI','SI','MI','BI','PI','GI',
-          'AN','AM','AL','AS','AR','AT','UN','UT','IL','IS','IK','UR','EN'
+          { emoji: '🪑', partial: 'ME', correct: 'JA' },  // MEJA
+          { emoji: '🎲', partial: 'DA', correct: 'DU' },  // DADU
+          { emoji: '☝️', partial: 'JA', correct: 'RI' },  // JARI
+          { emoji: '🚛', partial: 'LO', correct: 'RI' },  // LORI
+          { emoji: '👶', partial: 'BA', correct: 'YI' },  // BAYI
+          { emoji: '🤴', partial: 'RA', correct: 'JA' },  // RAJA
+          { emoji: '🔩', partial: 'PA', correct: 'KU' },  // PAKU
+          { emoji: '🪢', partial: 'TA', correct: 'LI' },  // TALI
+          { emoji: '☕', partial: 'KO', correct: 'PI' },  // KOPI
+          { emoji: '🧹', partial: 'SA', correct: 'PU' },  // SAPU
+          { emoji: '🍬', partial: 'GU', correct: 'LA' },  // GULA
+          { emoji: '🥄', partial: 'SU', correct: 'DU' },  // SUDU
+          { emoji: '🛞', partial: 'RO', correct: 'DA' },  // RODA
+          { emoji: '🏃', partial: 'LA', correct: 'RI' },  // LARI
+          { emoji: '🦌', partial: 'RU', correct: 'SA' }   // RUSA
         ];
         const selected = shuffle([...words]).slice(0, 10);
-        return selected.map(w => {
-          const choices = new Set([w.correct]);
-          while (choices.size < 4) {
-            const s = syllablePool[Math.floor(Math.random() * syllablePool.length)];
-            if (s !== w.correct) choices.add(s);
-          }
-          return {
-            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${w.partial}__</span>`,
-            answer: w.correct,
-            choices: shuffle([...choices])
-          };
-        });
+        return selected.map(w => ({
+          text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${w.partial}__</span>`,
+          answer: w.correct,
+          inputMode: 'text'   // anak taip sendiri suku kata yang hilang
+        }));
       }
     },
     duit: {
       time: 20,
       generate() {
+        const names = ['Edris', 'Aisha', 'Ali', 'Siti', 'Hadi', 'Lisa', 'Danish', 'Nur', 'Faris', 'Mira'];
+        const items = [
+          { name: 'aiskrim', price: [1, 2, 3] },
+          { name: 'gula-gula', price: [1, 2] },
+          { name: 'roti', price: [2, 3] },
+          { name: 'air kotak', price: [1, 2] },
+          { name: 'pensel', price: [1, 2, 3] },
+          { name: 'pemadam', price: [1, 2] },
+          { name: 'biskut', price: [2, 3] },
+          { name: 'belon', price: [1, 2] }
+        ];
+        const pick = arr => arr[randInt(0, arr.length - 1)];
         const qs = [];
         while (qs.length < 10) {
-          if (Math.random() < 0.5) {
-            const a = randInt(1, 9), b = randInt(1, 9);
-            qs.push({ text: `RM${a} + RM${b}`, answer: a + b });
+          const name = pick(names);
+          const item = pick(items);
+          const price = pick(item.price);
+          let text, answer;
+          if (Math.random() < 0.55) {
+            // SENANG — Baki (change)
+            const money = randInt(price + 1, 10);
+            text = `${name} ada RM${money}. ${name} beli ${item.name} berharga RM${price}. Berapa baki ${name}?`;
+            answer = money - price;
           } else {
-            let a = randInt(1, 9), b = randInt(1, 9);
-            if (b > a) [a, b] = [b, a];
-            if (a === b) continue;  // skip jawapan 0
-            qs.push({ text: `RM${a} − RM${b}`, answer: a - b });
+            // MEDIUM — Jumlah (total of two items berbeza)
+            let item2 = pick(items);
+            while (item2.name === item.name) item2 = pick(items);
+            const price2 = pick(item2.price);
+            text = `${name} beli ${item.name} RM${price} dan ${item2.name} RM${price2}. Berapa jumlah yang ${name} kena bayar?`;
+            answer = price + price2;
           }
+          // MCQ pilihan (RM)
+          const nums = new Set([answer]);
+          nums.add(answer + 1);
+          if (answer - 1 >= 0) nums.add(answer - 1);
+          nums.add(answer + 2);
+          if (answer - 2 >= 0) nums.add(answer - 2);
+          const numArr = [...nums].slice(0, 4);
+          while (numArr.length < 4) {
+            const r = randInt(1, 15);
+            if (!numArr.includes(r)) numArr.push(r);
+          }
+          qs.push({
+            text: `<span class="word-problem">${text}</span>`,
+            answer: `RM${answer}`,
+            choices: shuffle(numArr.map(n => `RM${n}`))
+          });
         }
-        return shuffle(qs);
+        return qs;
       }
     }
   };
@@ -572,6 +731,131 @@
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  // ===== BANK SOALAN SAINS (t = nombor topik 1-8) =====
+  const SAINS_BANK = [
+    // Topik 1 — Pancaindera
+    { t: 1, q: 'Kita guna apa untuk mendengar?', a: 'Telinga', d: ['Mata', 'Hidung', 'Lidah'] },
+    { t: 1, q: 'Deria untuk menghidu bau?', a: 'Hidung', d: ['Telinga', 'Mata', 'Kulit'] },
+    { t: 1, q: 'Kita rasa manis menggunakan?', a: 'Lidah', d: ['Hidung', 'Telinga', 'Mata'] },
+    { t: 1, q: 'Kita melihat menggunakan?', a: 'Mata', d: ['Telinga', 'Lidah', 'Kulit'] },
+    { t: 1, q: 'Deria sentuh terletak pada?', a: 'Kulit', d: ['Mata', 'Lidah', 'Telinga'] },
+    { t: 1, q: 'Berapa jumlah pancaindera manusia?', a: '5', d: ['3', '4', '6'] },
+    // Topik 2 — Tumbuhan
+    { t: 2, q: 'Bahagian tumbuhan yang menyerap air dari tanah?', a: 'Akar', d: ['Daun', 'Bunga', 'Buah'] },
+    { t: 2, q: 'Tumbuhan membuat makanan di bahagian?', a: 'Daun', d: ['Akar', 'Batang', 'Bunga'] },
+    { t: 2, q: 'Bahagian tumbuhan yang akan menjadi buah?', a: 'Bunga', d: ['Akar', 'Daun', 'Batang'] },
+    { t: 2, q: 'Apa yang menyokong tumbuhan berdiri tegak?', a: 'Batang', d: ['Daun', 'Akar', 'Bunga'] },
+    { t: 2, q: 'Tumbuhan perlukan apa untuk hidup?', a: 'Air dan cahaya matahari', d: ['Daging', 'Susu', 'Gula'] },
+    { t: 2, q: 'Kebanyakan daun tumbuhan berwarna?', a: 'Hijau', d: ['Merah', 'Biru', 'Hitam'] },
+    { t: 2, q: 'Tumbuhan baru tumbuh daripada?', a: 'Biji benih', d: ['Batu', 'Plastik', 'Pasir'] },
+    // Topik 3 — Haiwan
+    { t: 3, q: 'Haiwan yang makan tumbuhan sahaja dipanggil?', a: 'Herbivor', d: ['Karnivor', 'Omnivor', 'Insektivor'] },
+    { t: 3, q: 'Haiwan yang makan daging sahaja dipanggil?', a: 'Karnivor', d: ['Herbivor', 'Omnivor', 'Herba'] },
+    { t: 3, q: 'Haiwan yang makan tumbuhan dan daging?', a: 'Omnivor', d: ['Herbivor', 'Karnivor', 'Vegetarian'] },
+    { t: 3, q: 'Ayam membiak dengan cara?', a: 'Bertelur', d: ['Beranak', 'Berspora', 'Bercambah'] },
+    { t: 3, q: 'Kucing membiak dengan cara?', a: 'Beranak', d: ['Bertelur', 'Berspora', 'Bertunas'] },
+    { t: 3, q: 'Ikan tinggal di?', a: 'Dalam air', d: ['Atas pokok', 'Dalam tanah', 'Di udara'] },
+    { t: 3, q: 'Lembu makan?', a: 'Rumput', d: ['Daging', 'Ikan', 'Tikus'] },
+    { t: 3, q: 'Ikan bernafas menggunakan?', a: 'Insang', d: ['Paru-paru', 'Hidung', 'Kulit'] },
+    { t: 3, q: 'Tempat tinggal semula jadi haiwan dipanggil?', a: 'Habitat', d: ['Zoo', 'Bandar', 'Sekolah'] },
+    { t: 3, q: 'Burung terbang menggunakan?', a: 'Sayap', d: ['Sirip', 'Ekor', 'Kaki'] },
+    // Topik 4 — Cahaya & Bunyi
+    { t: 4, q: 'Sumber cahaya semula jadi?', a: 'Matahari', d: ['Lampu', 'Lilin', 'Suluh'] },
+    { t: 4, q: 'Sumber cahaya buatan manusia?', a: 'Lampu', d: ['Matahari', 'Bintang', 'Kilat'] },
+    { t: 4, q: 'Kita boleh nampak objek kerana ada?', a: 'Cahaya', d: ['Bunyi', 'Angin', 'Air'] },
+    { t: 4, q: 'Bunyi terhasil apabila objek?', a: 'Bergetar', d: ['Diam', 'Sejuk', 'Kering'] },
+    { t: 4, q: 'Gendang menghasilkan?', a: 'Bunyi', d: ['Cahaya', 'Bau', 'Rasa'] },
+    { t: 4, q: 'Kita mendengar bunyi menggunakan?', a: 'Telinga', d: ['Mata', 'Hidung', 'Tangan'] },
+    // Topik 5 — Bahan
+    { t: 5, q: 'Tingkap biasanya diperbuat daripada?', a: 'Kaca', d: ['Kayu', 'Getah', 'Kertas'] },
+    { t: 5, q: 'Tayar kereta diperbuat daripada?', a: 'Getah', d: ['Kaca', 'Logam', 'Kain'] },
+    { t: 5, q: 'Periuk memasak diperbuat daripada?', a: 'Logam', d: ['Kaca', 'Kertas', 'Getah'] },
+    { t: 5, q: 'Kerusi biasanya diperbuat daripada?', a: 'Kayu', d: ['Kaca', 'Air', 'Getah'] },
+    { t: 5, q: 'Buku diperbuat daripada?', a: 'Kertas', d: ['Logam', 'Kaca', 'Getah'] },
+    { t: 5, q: 'Bahan lutsinar yang membenarkan cahaya lalu?', a: 'Kaca', d: ['Kayu', 'Logam', 'Batu'] },
+    { t: 5, q: 'Baju diperbuat daripada?', a: 'Kain', d: ['Logam', 'Kaca', 'Kayu'] },
+    { t: 5, q: 'Belon biasanya diperbuat daripada?', a: 'Getah', d: ['Logam', 'Kaca', 'Batu'] },
+    // Topik 6 — Cuaca & Angkasa
+    { t: 6, q: 'Hujan turun dari?', a: 'Awan', d: ['Matahari', 'Bulan', 'Bintang'] },
+    { t: 6, q: 'Planet tempat kita tinggal?', a: 'Bumi', d: ['Marikh', 'Zuhrah', 'Musytari'] },
+    { t: 6, q: 'Bila kita biasanya nampak bulan?', a: 'Waktu malam', d: ['Tengah hari', 'Waktu pagi', 'Waktu rehat'] },
+    { t: 6, q: 'Bintang yang paling dekat dengan Bumi?', a: 'Matahari', d: ['Bulan', 'Marikh', 'Zuhal'] },
+    { t: 6, q: 'Pelangi biasanya muncul selepas?', a: 'Hujan', d: ['Gempa bumi', 'Ribut petir', 'Salji'] },
+    { t: 6, q: 'Cuaca yang panas disebabkan oleh?', a: 'Matahari', d: ['Bulan', 'Hujan', 'Angin'] },
+    { t: 6, q: 'Bumi berpusing menyebabkan?', a: 'Siang dan malam', d: ['Hujan', 'Angin', 'Gempa'] },
+    // Topik 7 — Badan Manusia
+    { t: 7, q: 'Organ untuk bernafas?', a: 'Paru-paru', d: ['Jantung', 'Hati', 'Ginjal'] },
+    { t: 7, q: 'Organ yang mengepam darah?', a: 'Jantung', d: ['Paru-paru', 'Otak', 'Perut'] },
+    { t: 7, q: 'Organ untuk berfikir?', a: 'Otak', d: ['Jantung', 'Hati', 'Perut'] },
+    { t: 7, q: 'Kita mengunyah makanan menggunakan?', a: 'Gigi', d: ['Bibir', 'Hidung', 'Telinga'] },
+    { t: 7, q: 'Rangka badan kita terdiri daripada?', a: 'Tulang', d: ['Darah', 'Kulit', 'Rambut'] },
+    { t: 7, q: 'Kita berjalan menggunakan?', a: 'Kaki', d: ['Tangan', 'Kepala', 'Mata'] },
+    { t: 7, q: 'Organ untuk menghadam makanan?', a: 'Perut', d: ['Paru-paru', 'Otak', 'Mata'] },
+    { t: 7, q: 'Kita memegang objek menggunakan?', a: 'Tangan', d: ['Kaki', 'Telinga', 'Hidung'] },
+    { t: 7, q: 'Rambut tumbuh di bahagian?', a: 'Kepala', d: ['Gigi', 'Tulang', 'Jantung'] },
+    // Topik 8 — Daya
+    { t: 8, q: 'Membuka pintu dengan menariknya ialah daya?', a: 'Tarik', d: ['Tolak', 'Putar', 'Angkat'] },
+    { t: 8, q: 'Menolak troli ke hadapan ialah daya?', a: 'Tolak', d: ['Tarik', 'Henti', 'Cair'] },
+    { t: 8, q: 'Bola yang ditendang akan?', a: 'Bergerak', d: ['Diam', 'Cair', 'Membesar'] },
+    { t: 8, q: 'Daya boleh mengubah ... sesuatu objek?', a: 'Pergerakan', d: ['Warna', 'Bau', 'Rasa'] },
+    { t: 8, q: 'Magnet boleh menarik objek diperbuat daripada?', a: 'Logam', d: ['Kayu', 'Plastik', 'Kaca'] },
+    { t: 8, q: 'Daya yang menarik objek ke bawah ke bumi?', a: 'Graviti', d: ['Angin', 'Cahaya', 'Bunyi'] },
+    { t: 8, q: 'Untuk memberhentikan basikal kita guna?', a: 'Brek', d: ['Loceng', 'Lampu', 'Tayar'] },
+    { t: 8, q: 'Mengangkat beg ke atas memerlukan?', a: 'Daya', d: ['Cahaya', 'Bunyi', 'Bau'] },
+    // ── Tambahan ──
+    // Topik 1 — Pancaindera
+    { t: 1, q: 'Apabila kita pegang ais, kita rasa?', a: 'Sejuk', d: ['Panas', 'Manis', 'Bising'] },
+    { t: 1, q: 'Bunga yang wangi dikesan oleh deria?', a: 'Hidung', d: ['Mata', 'Lidah', 'Kulit'] },
+    { t: 1, q: 'Kita guna mata untuk?', a: 'Melihat', d: ['Mendengar', 'Menghidu', 'Merasa'] },
+    { t: 1, q: 'Makanan masin dirasai oleh?', a: 'Lidah', d: ['Mata', 'Telinga', 'Hidung'] },
+    // Topik 2 — Tumbuhan
+    { t: 2, q: 'Bahagian tumbuhan yang berada di bawah tanah?', a: 'Akar', d: ['Daun', 'Bunga', 'Buah'] },
+    { t: 2, q: 'Buah biasanya mempunyai ... untuk membiak?', a: 'Biji', d: ['Batu', 'Plastik', 'Logam'] },
+    // Topik 3 — Haiwan
+    { t: 3, q: 'Katak hidup di darat dan?', a: 'Dalam air', d: ['Udara', 'Bulan', 'Api'] },
+    { t: 3, q: 'Haiwan yang mempunyai belalai panjang?', a: 'Gajah', d: ['Kucing', 'Ayam', 'Ikan'] },
+    { t: 3, q: 'Lebah menghasilkan?', a: 'Madu', d: ['Susu', 'Sutera', 'Telur'] },
+    // Topik 4 — Cahaya & Bunyi
+    { t: 4, q: 'Bayang-bayang terbentuk apabila cahaya?', a: 'Dihalang objek', d: ['Hilang', 'Bertambah', 'Berwarna'] },
+    { t: 4, q: 'Matahari memberi kita cahaya dan?', a: 'Haba', d: ['Hujan', 'Angin', 'Bunyi'] },
+    { t: 4, q: 'Lampu suluh menyala menggunakan?', a: 'Bateri', d: ['Air', 'Pasir', 'Daun'] },
+    { t: 4, q: 'Bunyi yang terlalu kuat boleh menyakitkan?', a: 'Telinga', d: ['Mata', 'Hidung', 'Kaki'] },
+    // Topik 5 — Bahan
+    { t: 5, q: 'Bahan yang mudah pecah?', a: 'Kaca', d: ['Getah', 'Kain', 'Span'] },
+    { t: 5, q: 'Bahan yang boleh terapung di atas air?', a: 'Kayu', d: ['Logam', 'Batu', 'Besi'] },
+    { t: 5, q: 'Duit syiling diperbuat daripada?', a: 'Logam', d: ['Kertas', 'Getah', 'Kaca'] },
+    { t: 5, q: 'Beg plastik diperbuat daripada?', a: 'Plastik', d: ['Kaca', 'Logam', 'Kayu'] },
+    // Topik 6 — Cuaca & Angkasa
+    { t: 6, q: 'Matahari terbit di sebelah?', a: 'Timur', d: ['Barat', 'Utara', 'Bawah'] },
+    { t: 6, q: 'Kita patut bawa apa ketika hujan?', a: 'Payung', d: ['Kipas', 'Cermin mata hitam', 'Topi keledar'] },
+    { t: 6, q: 'Cuaca yang ada titisan air turun dari langit?', a: 'Hujan', d: ['Panas terik', 'Berangin kering', 'Cerah'] },
+    // Topik 7 — Badan Manusia
+    { t: 7, q: 'Berapa jumlah jari pada satu tangan?', a: '5', d: ['4', '6', '10'] },
+    { t: 7, q: 'Organ yang melindungi badan dari luar?', a: 'Kulit', d: ['Tulang', 'Jantung', 'Otak'] },
+    { t: 7, q: 'Darah kita berwarna?', a: 'Merah', d: ['Biru', 'Hijau', 'Kuning'] },
+    { t: 7, q: 'Bahagian badan yang menyambung kepala dan badan?', a: 'Leher', d: ['Kaki', 'Tangan', 'Perut'] },
+    { t: 7, q: 'Otot membantu badan untuk?', a: 'Bergerak', d: ['Tidur', 'Berfikir', 'Makan'] },
+    { t: 7, q: 'Apabila kita berlari, jantung berdegup?', a: 'Lebih laju', d: ['Lebih perlahan', 'Berhenti', 'Sama sahaja'] },
+    // Topik 8 — Daya
+    { t: 8, q: 'Bola yang dibaling ke atas akan jatuh kerana?', a: 'Graviti', d: ['Angin', 'Cahaya', 'Bunyi'] },
+    { t: 8, q: 'Basikal bergerak ke hadapan apabila kita?', a: 'Mengayuh', d: ['Berhenti', 'Tidur', 'Memandang'] },
+    { t: 8, q: 'Kapal layar ditolak bergerak oleh?', a: 'Angin', d: ['Bunyi', 'Cahaya', 'Bau'] },
+    { t: 8, q: 'Permainan tarik tali menggunakan daya?', a: 'Tarik', d: ['Tolak', 'Putar', 'Henti'] },
+    { t: 8, q: 'Objek yang berat memerlukan daya yang?', a: 'Lebih besar', d: ['Lebih kecil', 'Tiada', 'Sama dengan ringan'] },
+    { t: 8, q: 'Magnet mempunyai berapa kutub?', a: '2', d: ['1', '3', '4'] },
+    { t: 8, q: 'Daya geseran berlaku apabila dua permukaan?', a: 'Bergeser', d: ['Berjauhan', 'Terbang', 'Cair'] }
+  ];
+
+  function buildSains(topics) {
+    const pool = SAINS_BANK.filter(item => topics.includes(item.t));
+    const selected = shuffle([...pool]).slice(0, 10);
+    return selected.map(item => ({
+      text: `<span class="word-problem">${item.q}</span>`,
+      answer: item.a,
+      choices: shuffle([item.a, ...item.d])
+    }));
   }
 
   function showDarjah3Menu() {
@@ -649,8 +933,22 @@
         answerArea.appendChild(btn);
       });
       submitBtn.style.display = 'none';
+    } else if (q.inputMode === 'text') {
+      // Text input (letters — untuk Ejaan)
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'answerInput';
+      input.className = 'text-input';
+      input.autocomplete = 'off';
+      input.maxLength = 4;
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitAnswer();
+      });
+      answerArea.appendChild(input);
+      setTimeout(() => input.focus(), 0);
+      submitBtn.style.display = '';
     } else {
-      // Text input
+      // Number input
       const input = document.createElement('input');
       input.type = 'number';
       input.id = 'answerInput';
@@ -703,7 +1001,7 @@
     qAnswered = true;
     const correct = questions[currentQ].answer;
     const feedback = document.getElementById('feedback');
-    feedback.textContent = `⏰ Masa habis! Jawapan: ${correct}`;
+    feedback.innerHTML = `⏰ Masa habis!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
     feedback.className = 'feedback wrong';
     const input = document.getElementById('answerInput');
     if (input) input.disabled = true;
@@ -711,37 +1009,50 @@
       b.disabled = true;
       if (b.dataset.value === String(correct)) b.classList.add('choice-correct');
     });
-    setTimeout(advanceQuestion, 1500);
+    setTimeout(advanceQuestion, WRONG_DELAY);
   }
 
   function submitAnswer() {
     if (qAnswered) return;
     const input = document.getElementById('answerInput');
     if (!input) return;  // MCQ mode — guna submitChoice
-    const userAns = parseInt(input.value);
-    const correct = questions[currentQ].answer;
+    const q = questions[currentQ];
+    const correct = q.answer;
     const feedback = document.getElementById('feedback');
 
-    if (isNaN(userAns)) {
-      feedback.textContent = '⚠️ Tulis jawapan dulu!';
-      feedback.className = 'feedback wrong';
-      return;
+    let isCorrect;
+    if (q.inputMode === 'text') {
+      const userVal = input.value.trim().toUpperCase();
+      if (userVal === '') {
+        feedback.textContent = '⚠️ Tulis jawapan dulu!';
+        feedback.className = 'feedback wrong';
+        return;
+      }
+      isCorrect = (userVal === String(correct).toUpperCase());
+    } else {
+      const userAns = parseInt(input.value);
+      if (isNaN(userAns)) {
+        feedback.textContent = '⚠️ Tulis jawapan dulu!';
+        feedback.className = 'feedback wrong';
+        return;
+      }
+      isCorrect = (userAns === correct);
     }
 
     qAnswered = true;
     stopQuestionTimer();
     input.disabled = true;
 
-    if (userAns === correct) {
+    if (isCorrect) {
       score++;
       feedback.textContent = '✅ Betul!';
       feedback.className = 'feedback correct';
     } else {
-      feedback.textContent = `❌ Salah! Jawapan: ${correct}`;
+      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
       feedback.className = 'feedback wrong';
     }
 
-    setTimeout(advanceQuestion, 1200);
+    setTimeout(advanceQuestion, isCorrect ? CORRECT_DELAY : WRONG_DELAY);
   }
 
   function submitChoice(value) {
@@ -758,16 +1069,17 @@
       else if (b.dataset.value === String(value)) b.classList.add('choice-wrong');
     });
 
-    if (String(value) === correct) {
+    const isCorrect = (String(value) === correct);
+    if (isCorrect) {
       score++;
       feedback.textContent = '✅ Betul!';
       feedback.className = 'feedback correct';
     } else {
-      feedback.textContent = `❌ Salah! Jawapan: ${correct}`;
+      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
       feedback.className = 'feedback wrong';
     }
 
-    setTimeout(advanceQuestion, 1500);
+    setTimeout(advanceQuestion, isCorrect ? CORRECT_DELAY : WRONG_DELAY);
   }
 
   function advanceQuestion() {
