@@ -279,7 +279,7 @@
 </head>
 <body>
 
-<div id="versionStamp">v2026-05-28 12:42</div>
+<div id="versionStamp">v2026-05-28 12:57</div>
 
 <div id="welcomeScreen" class="screen">
   <h1>🎯 Cabaran Matematik!</h1>
@@ -314,6 +314,11 @@
   <button class="big" data-set="duit" onclick="startQuiz('duit')" style="background: linear-gradient(135deg, #84fab0, #8fd3f4);">
     💰 Duit Ringgit
     <span class="set-sub">Soalan cerita beli-belah · pilih A/B/C/D · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="english" onclick="startQuiz('english')" style="background: linear-gradient(135deg, #fa709a, #fee140);">
+    🇬🇧 English
+    <span class="set-sub">Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat</span>
   </button>
   <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
@@ -409,7 +414,7 @@
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3'],
-    tahun6:  ['tambahtolak', 'ejaan', 'duit']
+    tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english']
   };
   const PASS_SCORE = 7;
   const completedSets = new Set();  // resets every page load (no localStorage)
@@ -717,6 +722,66 @@
           });
         }
         return qs;
+      }
+    },
+    english: {
+      time: 20,
+      generate() {
+        const bank = [
+          // is / are / am
+          { q: 'How ___ you?', a: 'are', d: ['is', 'am'] },
+          { q: 'She ___ happy.', a: 'is', d: ['are', 'am'] },
+          { q: 'They ___ my friends.', a: 'are', d: ['is', 'am'] },
+          { q: 'I ___ a pupil.', a: 'am', d: ['is', 'are'] },
+          { q: 'The dog ___ big.', a: 'is', d: ['are', 'am'] },
+          { q: 'We ___ in class.', a: 'are', d: ['is', 'am'] },
+          { q: 'He ___ tall.', a: 'is', d: ['are', 'am'] },
+          { q: 'You ___ kind.', a: 'are', d: ['is', 'am'] },
+          // a / an
+          { q: 'I eat ___ apple.', a: 'an', d: ['a', 'the'] },
+          { q: 'She has ___ cat.', a: 'a', d: ['an', 'the'] },
+          { q: 'He sees ___ elephant.', a: 'an', d: ['a', 'the'] },
+          { q: 'I want ___ orange.', a: 'an', d: ['a', 'the'] },
+          { q: 'It is ___ book.', a: 'a', d: ['an', 'the'] },
+          { q: 'We have ___ umbrella.', a: 'an', d: ['a', 'the'] },
+          // singular / plural
+          { q: 'I have 3 ___.', a: 'apples', d: ['apple'] },
+          { q: 'There is 1 ___.', a: 'cat', d: ['cats'] },
+          { q: 'She has two ___.', a: 'books', d: ['book'] },
+          { q: 'I see five ___.', a: 'birds', d: ['bird'] },
+          { q: 'He has one ___.', a: 'pen', d: ['pens'] },
+          { q: 'We have many ___.', a: 'toys', d: ['toy'] },
+          { q: 'There are four ___.', a: 'cars', d: ['car'] },
+          // has / have
+          { q: 'I ___ a ball.', a: 'have', d: ['has'] },
+          { q: 'She ___ a doll.', a: 'has', d: ['have'] },
+          { q: 'They ___ books.', a: 'have', d: ['has'] },
+          { q: 'He ___ a bag.', a: 'has', d: ['have'] },
+          // this / these
+          { q: '___ is a pen.', a: 'This', d: ['These'] },
+          { q: '___ are shoes.', a: 'These', d: ['This'] },
+          // he / she / it
+          { q: 'My father is here. ___ is tall.', a: 'He', d: ['She', 'It'] },
+          { q: 'My mother cooks. ___ is kind.', a: 'She', d: ['He', 'It'] },
+          { q: 'The cat runs. ___ is fast.', a: 'It', d: ['He', 'She'] },
+          // do / does
+          { q: '___ you like milk?', a: 'Do', d: ['Does'] },
+          { q: '___ she play?', a: 'Does', d: ['Do'] },
+          // opposites
+          { q: 'Opposite of "big"?', a: 'small', d: ['tall', 'fast'] },
+          { q: 'Opposite of "hot"?', a: 'cold', d: ['warm', 'big'] },
+          { q: 'Opposite of "happy"?', a: 'sad', d: ['glad', 'big'] },
+          { q: 'Opposite of "up"?', a: 'down', d: ['top', 'left'] },
+          // was / were
+          { q: 'Yesterday, I ___ happy.', a: 'was', d: ['were'] },
+          { q: 'They ___ at home.', a: 'were', d: ['was'] }
+        ];
+        const selected = shuffle([...bank]).slice(0, 10);
+        return selected.map(item => ({
+          text: `<span class="word-problem">${item.q}</span>`,
+          answer: item.a,
+          choices: shuffle([item.a, ...item.d])
+        }));
       }
     }
   };
