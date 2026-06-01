@@ -274,12 +274,31 @@
     margin-right: 12px;
   }
 
+  #adminBtn {
+    position: fixed;
+    bottom: 6px;
+    left: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    padding: 3px 10px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    z-index: 9999;
+    user-select: none;
+  }
+  #adminBtn:hover { color: #fff; background: rgba(0,0,0,0.4); }
+
   .hidden { display: none; }
 </style>
 </head>
 <body>
 
-<div id="versionStamp">v2026-05-28 13:05</div>
+<div id="versionStamp">v2026-06-01 23:50</div>
+<div id="adminBtn" onclick="adminAccess()">🔧 Admin</div>
 
 <div id="welcomeScreen" class="screen">
   <h1>🎯 Cabaran Matematik!</h1>
@@ -1222,6 +1241,19 @@
     const deadline = Date.now() + rewardSeconds * 1000;
     localStorage.setItem('rewardDeadline', String(deadline));
     location.href = '/arcade.html';
+  }
+
+  // ===== ADMIN (Boss test mode — skip quiz) =====
+  function adminAccess() {
+    const pw = prompt('🔧 Admin password:');
+    if (pw === null) return;            // batal
+    if (pw === '0000') {
+      // bagi 60 minit masa main untuk test
+      localStorage.setItem('rewardDeadline', String(Date.now() + 60 * 60 * 1000));
+      location.href = '/arcade.html';
+    } else {
+      alert('❌ Password salah!');
+    }
   }
 </script>
 
