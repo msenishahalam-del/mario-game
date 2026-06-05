@@ -393,6 +393,11 @@
     <span class="set-sub">Badan Manusia · Daya · A/B/C/D · 20 saat</span>
   </button>
   <br>
+  <button class="big" data-set="agama" onclick="startQuiz('agama')" style="background: linear-gradient(135deg, #0f9b6e, #044a32);">
+    🕌 Pendidikan Islam
+    <span class="set-sub">Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -446,7 +451,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama'],
     tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english']
   };
   const PASS_SCORE = 7;
@@ -738,6 +743,7 @@
     sains1: { time: 20, generate() { return buildSains([1, 2, 3]); } },  // Pancaindera, Tumbuhan, Haiwan
     sains2: { time: 20, generate() { return buildSains([4, 5, 6]); } },  // Cahaya/Bunyi, Bahan, Cuaca/Angkasa
     sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
+    agama: { time: 20, generate() { return buildAgama(); } },            // Pendidikan Islam Tahun 3 (KSSR)
     ejaan: {
       time: 20,
       generate() {
@@ -1098,6 +1104,99 @@
   function buildSains(topics) {
     const pool = SAINS_BANK.filter(item => topics.includes(item.t));
     const selected = shuffle([...pool]).slice(0, 10);
+    return selected.map(item => ({
+      text: `<span class="word-problem">${item.q}</span>`,
+      answer: item.a,
+      choices: shuffle([item.a, ...item.d])
+    }));
+  }
+
+  // ===== BANK SOALAN PENDIDIKAN ISLAM (Tahun 3 KSSR) =====
+  // Topik: 1=Rukun Iman/Islam · 2=Malaikat · 3=Akidah/Allah · 4=Solat · 5=Sirah Rasulullah ·
+  //        6=Al-Quran · 7=Adab · 8=Akhlak
+  const AGAMA_BANK = [
+    // Topik 1 — Rukun Iman & Rukun Islam
+    { t: 1, q: 'Berapa Rukun Iman?', a: '6', d: ['4', '5', '7'] },
+    { t: 1, q: 'Berapa Rukun Islam?', a: '5', d: ['3', '4', '6'] },
+    { t: 1, q: 'Rukun Islam yang pertama?', a: 'Mengucap dua kalimah syahadah', d: ['Mengerjakan solat', 'Mengeluarkan zakat', 'Berpuasa di bulan Ramadan'] },
+    { t: 1, q: 'Rukun Iman yang pertama?', a: 'Beriman kepada Allah', d: ['Beriman kepada Malaikat', 'Beriman kepada Rasul', 'Beriman kepada Hari Akhirat'] },
+    { t: 1, q: 'Rukun Islam yang kedua?', a: 'Mengerjakan solat', d: ['Mengeluarkan zakat', 'Berpuasa', 'Menunaikan haji'] },
+    { t: 1, q: 'Rukun Iman beriman kepada Kitab adalah yang ke?', a: 'Ketiga', d: ['Pertama', 'Kedua', 'Keempat'] },
+    { t: 1, q: 'Menunaikan haji termasuk dalam?', a: 'Rukun Islam', d: ['Rukun Iman', 'Rukun Solat', 'Rukun Wuduk'] },
+
+    // Topik 2 — Malaikat
+    { t: 2, q: 'Malaikat yang menyampaikan wahyu kepada para Rasul?', a: 'Jibrail', d: ['Mikail', 'Israfil', 'Izrail'] },
+    { t: 2, q: 'Malaikat yang mencabut nyawa?', a: 'Izrail', d: ['Jibrail', 'Munkar', 'Nakir'] },
+    { t: 2, q: 'Malaikat yang meniup sangkakala?', a: 'Israfil', d: ['Jibrail', 'Izrail', 'Mikail'] },
+    { t: 2, q: 'Malaikat yang menurunkan hujan dan rezeki?', a: 'Mikail', d: ['Jibrail', 'Israfil', 'Munkar'] },
+    { t: 2, q: 'Dua Malaikat yang menyoal manusia di dalam kubur?', a: 'Munkar dan Nakir', d: ['Jibrail dan Mikail', 'Israfil dan Izrail', 'Raqib dan Atid'] },
+    { t: 2, q: 'Malaikat yang mencatat amal baik dan buruk?', a: 'Raqib dan Atid', d: ['Munkar dan Nakir', 'Malik dan Ridwan', 'Jibrail dan Mikail'] },
+    { t: 2, q: 'Malaikat penjaga pintu syurga?', a: 'Ridwan', d: ['Malik', 'Israfil', 'Jibrail'] },
+    { t: 2, q: 'Malaikat diciptakan daripada?', a: 'Cahaya (Nur)', d: ['Tanah', 'Api', 'Air'] },
+
+    // Topik 3 — Akidah & Sifat Allah
+    { t: 3, q: 'Siapa Pencipta alam semesta?', a: 'Allah SWT', d: ['Manusia', 'Malaikat', 'Nabi'] },
+    { t: 3, q: 'Allah Maha?', a: 'Esa', d: ['Dua', 'Tiga', 'Banyak'] },
+    { t: 3, q: 'Berapa bilangan sifat wajib bagi Allah?', a: '20', d: ['10', '15', '99'] },
+    { t: 3, q: 'Berapa bilangan Asma\'ul Husna (nama-nama indah Allah)?', a: '99', d: ['20', '25', '100'] },
+    { t: 3, q: 'Manusia diciptakan oleh?', a: 'Allah SWT', d: ['Nabi Adam', 'Malaikat', 'Diri sendiri'] },
+
+    // Topik 4 — Solat
+    { t: 4, q: 'Berapa kali solat fardu sehari semalam?', a: '5 kali', d: ['3 kali', '4 kali', '6 kali'] },
+    { t: 4, q: 'Berapa rakaat solat Subuh?', a: '2 rakaat', d: ['3 rakaat', '4 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Zuhur?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Asar?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Maghrib?', a: '3 rakaat', d: ['2 rakaat', '4 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Isyak?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Sebelum solat kita wajib?', a: 'Mengambil wuduk', d: ['Makan dulu', 'Tidur dulu', 'Bercakap-cakap'] },
+    { t: 4, q: 'Arah kiblat orang Islam menghala ke?', a: 'Kaabah di Mekah', d: ['Madinah', 'Baitulmuqaddis', 'Masjid Nabawi'] },
+    { t: 4, q: 'Berapa kali kita basuh muka semasa wuduk?', a: '3 kali', d: ['1 kali', '2 kali', '4 kali'] },
+    { t: 4, q: 'Apakah yang membatalkan wuduk?', a: 'Buang air kecil/besar', d: ['Makan nasi', 'Bercakap', 'Berjalan'] },
+    { t: 4, q: 'Solat yang dikerjakan pada waktu pagi?', a: 'Subuh', d: ['Zuhur', 'Asar', 'Maghrib'] },
+
+    // Topik 5 — Sirah Rasulullah SAW
+    { t: 5, q: 'Nabi Muhammad SAW dilahirkan di kota?', a: 'Makkah', d: ['Madinah', 'Yaman', 'Mesir'] },
+    { t: 5, q: 'Tahun kelahiran Nabi Muhammad SAW dikenali sebagai?', a: 'Tahun Gajah', d: ['Tahun Hijrah', 'Tahun Naga', 'Tahun Kuda'] },
+    { t: 5, q: 'Nama bapa Nabi Muhammad SAW?', a: 'Abdullah', d: ['Abu Talib', 'Abdul Muttalib', 'Hamzah'] },
+    { t: 5, q: 'Nama ibu Nabi Muhammad SAW?', a: 'Aminah', d: ['Khadijah', 'Fatimah', 'Halimah'] },
+    { t: 5, q: 'Nama datuk Nabi Muhammad SAW?', a: 'Abdul Muttalib', d: ['Abdullah', 'Abu Talib', 'Hashim'] },
+    { t: 5, q: 'Nabi Muhammad SAW dilantik menjadi Rasul pada umur?', a: '40 tahun', d: ['25 tahun', '30 tahun', '50 tahun'] },
+    { t: 5, q: 'Nabi Muhammad SAW menerima wahyu pertama di?', a: 'Gua Hira\'', d: ['Gua Thur', 'Masjidil Haram', 'Madinah'] },
+    { t: 5, q: 'Nabi terakhir yang diutuskan Allah?', a: 'Nabi Muhammad SAW', d: ['Nabi Isa AS', 'Nabi Musa AS', 'Nabi Ibrahim AS'] },
+    { t: 5, q: 'Nabi Muhammad SAW berhijrah dari Makkah ke?', a: 'Madinah', d: ['Mesir', 'Yaman', 'Baghdad'] },
+    { t: 5, q: 'Isteri pertama Nabi Muhammad SAW?', a: 'Khadijah', d: ['Aishah', 'Fatimah', 'Aminah'] },
+
+    // Topik 6 — Al-Quran
+    { t: 6, q: 'Kitab suci umat Islam?', a: 'Al-Quran', d: ['Taurat', 'Zabur', 'Injil'] },
+    { t: 6, q: 'Surah pertama dalam Al-Quran?', a: 'Al-Fatihah', d: ['An-Nas', 'Al-Ikhlas', 'Al-Baqarah'] },
+    { t: 6, q: 'Berapa ayat dalam Surah Al-Fatihah?', a: '7 ayat', d: ['5 ayat', '6 ayat', '10 ayat'] },
+    { t: 6, q: 'Surah terakhir dalam Al-Quran?', a: 'An-Nas', d: ['Al-Fatihah', 'Al-Ikhlas', 'Al-Falaq'] },
+    { t: 6, q: 'Berapa jumlah surah dalam Al-Quran?', a: '114', d: ['100', '110', '120'] },
+    { t: 6, q: 'Al-Quran diturunkan dalam bahasa?', a: 'Arab', d: ['Melayu', 'Inggeris', 'Urdu'] },
+
+    // Topik 7 — Adab
+    { t: 7, q: 'Sebelum makan kita ucapkan?', a: 'Bismillah', d: ['Alhamdulillah', 'Subhanallah', 'Astaghfirullah'] },
+    { t: 7, q: 'Selepas makan kita ucapkan?', a: 'Alhamdulillah', d: ['Bismillah', 'Insya-Allah', 'Astaghfirullah'] },
+    { t: 7, q: 'Kita makan dan minum menggunakan tangan?', a: 'Kanan', d: ['Kiri', 'Kedua-dua tangan', 'Suka hati'] },
+    { t: 7, q: 'Apabila kita bersin kita ucapkan?', a: 'Alhamdulillah', d: ['Bismillah', 'Subhanallah', 'Astaghfirullah'] },
+    { t: 7, q: 'Apabila mendengar orang bersin (ucap Alhamdulillah), kita balas?', a: 'Yarhamukallah', d: ['Bismillah', 'Subhanallah', 'Insya-Allah'] },
+    { t: 7, q: 'Masuk masjid mendahulukan kaki?', a: 'Kanan', d: ['Kiri', 'Mana-mana', 'Kedua-dua serentak'] },
+    { t: 7, q: 'Masuk tandas mendahulukan kaki?', a: 'Kiri', d: ['Kanan', 'Mana-mana', 'Kedua-dua serentak'] },
+    { t: 7, q: 'Sebelum tidur kita digalakkan membaca?', a: 'Doa tidur', d: ['Lagu', 'Cerita hantu', 'Tiada apa-apa'] },
+    { t: 7, q: 'Adab terhadap ibu bapa?', a: 'Hormat dan taat', d: ['Marah dan membantah', 'Berbohong', 'Tidak menghiraukan'] },
+    { t: 7, q: 'Adab di dalam masjid?', a: 'Bercakap perlahan', d: ['Berlari', 'Bermain', 'Bergaduh'] },
+
+    // Topik 8 — Akhlak
+    { t: 8, q: 'Sifat sentiasa bercakap benar dipanggil?', a: 'Jujur', d: ['Bohong', 'Sombong', 'Dengki'] },
+    { t: 8, q: 'Sifat menunaikan janji dan boleh dipercayai?', a: 'Amanah', d: ['Khianat', 'Dusta', 'Riak'] },
+    { t: 8, q: 'Apabila berjanji, kita wajib?', a: 'Menunaikan janji', d: ['Melupakan', 'Mengingkari', 'Mengelak'] },
+    { t: 8, q: 'Sifat yang dibenci Allah?', a: 'Sombong', d: ['Sabar', 'Pemurah', 'Jujur'] },
+    { t: 8, q: 'Memberi sedekah kepada orang miskin adalah perbuatan?', a: 'Terpuji', d: ['Terkeji', 'Sia-sia', 'Membuang masa'] },
+    { t: 8, q: 'Hormat kepada guru kerana guru?', a: 'Mengajar ilmu', d: ['Memberi gula-gula', 'Memberi wang', 'Membenarkan main'] }
+  ];
+
+  function buildAgama() {
+    const selected = shuffle([...AGAMA_BANK]).slice(0, 10);
     return selected.map(item => ({
       text: `<span class="word-problem">${item.q}</span>`,
       answer: item.a,
