@@ -483,15 +483,22 @@
       time: 15,
       generate() {
         const qs = [];
-        // 7 soalan sifir 2-9
-        while (qs.length < 7) {
+        // 5 soalan sifir 2-9
+        while (qs.length < 5) {
           const a = randInt(2, 9), b = randInt(2, 9);
           qs.push({ text: `${a} × ${b}`, answer: a * b });
         }
         // 3 soalan bonus 11-12
-        while (qs.length < 10) {
+        while (qs.length < 8) {
           const a = randInt(11, 12), b = randInt(2, 9);
           qs.push({ text: `${a} × ${b}`, answer: a * b });
+        }
+        // 2 soalan susah: 3 kali darab (cth 2 × 4 × 7)
+        while (qs.length < 10) {
+          const a = randInt(2, 4);
+          const b = randInt(2, 5);
+          const c = randInt(3, 8);
+          qs.push({ text: `${a} × ${b} × ${c}`, answer: a * b * c });
         }
         return shuffle(qs);
       }
