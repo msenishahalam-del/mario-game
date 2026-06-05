@@ -455,7 +455,26 @@
     tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english']
   };
   const PASS_SCORE = 7;
-  const completedSets = new Set();  // resets every page load (no localStorage)
+  const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
+
+  function loadCompletedSets() {
+    try {
+      const raw = localStorage.getItem(COMPLETED_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      // buang key yang tak wujud lagi (cth topik dipadam selepas update)
+      const valid = new Set(Object.values(SET_GROUPS).flat());
+      return new Set(arr.filter(k => valid.has(k)));
+    } catch { return new Set(); }
+  }
+
+  function saveCompletedSets() {
+    try {
+      localStorage.setItem(COMPLETED_KEY, JSON.stringify([...completedSets]));
+    } catch {}
+  }
+
+  const completedSets = loadCompletedSets();
 
   function getCurrentGroup(setKey) {
     for (const [group, keys] of Object.entries(SET_GROUPS)) {
@@ -1465,6 +1484,7 @@
         SET_GROUPS[group].forEach(k => completedSets.delete(k));
         groupReset = true;
       }
+      saveCompletedSets();  // simpan keadaan ke localStorage supaya kekal lepas refresh
     }
 
     const msg = document.getElementById('completionMsg');
