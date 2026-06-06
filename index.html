@@ -552,7 +552,8 @@
       time: 20,
       generate() {
         const qs = [];
-        while (qs.length < 10) {
+        // 7 soalan satu operasi (a + b atau a − b)
+        while (qs.length < 7) {
           if (Math.random() < 0.5) {
             const a = randInt(0, 9), b = randInt(0, 9);
             qs.push({ text: `${a} + ${b}`, answer: a + b });
@@ -561,6 +562,18 @@
             if (b > a) [a, b] = [b, a];   // pastikan jawapan tak negatif
             qs.push({ text: `${a} − ${b}`, answer: a - b });
           }
+        }
+        // 3 soalan susah sikit: 2 operasi (cth 2 + 5 + 7, 9 − 3 + 4)
+        let safety = 0;
+        while (qs.length < 10 && safety++ < 100) {
+          const a = randInt(1, 9), b = randInt(1, 9), c = randInt(1, 9);
+          const op1 = Math.random() < 0.5 ? '+' : '−';
+          const op2 = Math.random() < 0.5 ? '+' : '−';
+          let mid = op1 === '+' ? a + b : a - b;
+          if (mid < 0) continue;
+          let ans = op2 === '+' ? mid + c : mid - c;
+          if (ans < 0) continue;
+          qs.push({ text: `${a} ${op1} ${b} ${op2} ${c}`, answer: ans });
         }
         return shuffle(qs);
       }
