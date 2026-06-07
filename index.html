@@ -369,7 +369,7 @@
   <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
     🎯 Bundar
-    <span class="set-sub">Bundar puluh &amp; ratus terdekat · pilih A/B/C/D · 15 saat</span>
+    <span class="set-sub">Bundar puluh · ratus · ribu terdekat · A/B/C/D · 15 saat</span>
   </button>
   <br>
   <button class="big" data-set="pecahan" onclick="startQuiz('pecahan')" style="background: linear-gradient(135deg, #4facfe, #00c4cc);">
@@ -582,29 +582,8 @@
       generate() {
         const qs = [];
         while (qs.length < 10) {
-          const toHundred = Math.random() < 0.5;  // 50% ratus, 50% puluh
-          if (toHundred) {
-            // Bundar kepada RATUS terdekat
-            const n = randInt(110, 990);
-            if (n % 100 === 0) continue;  // skip already-rounded
-            const correct = Math.round(n / 100) * 100;
-            const candidates = new Set([correct]);
-            const toTen = Math.round(n / 10) * 10;  // common mistake: bundar puluh
-            if (toTen !== correct) candidates.add(toTen);
-            candidates.add(correct + 100);
-            if (correct >= 200) candidates.add(correct - 100);
-            candidates.add(correct + 200);
-            const choices = [...candidates].slice(0, 4);
-            while (choices.length < 4) {
-              const r = Math.round(randInt(Math.max(100, correct - 200), correct + 200) / 100) * 100;
-              if (!choices.includes(r) && r > 0) choices.push(r);
-            }
-            qs.push({
-              text: `Bundarkan ${n} kepada ratus terdekat`,
-              answer: correct,
-              choices: shuffle(choices)
-            });
-          } else {
+          const mode = randInt(0, 2);  // 0=puluh, 1=ratus, 2=ribu
+          if (mode === 0) {
             // Bundar kepada PULUH terdekat
             const useThreeDigit = Math.random() < 0.4;
             const n = useThreeDigit ? randInt(105, 995) : randInt(11, 99);
@@ -620,11 +599,41 @@
               const r = Math.round(randInt(Math.max(10, correct - 30), correct + 30) / 10) * 10;
               if (!choices.includes(r) && r > 0) choices.push(r);
             }
-            qs.push({
-              text: `Bundarkan ${n} kepada puluh terdekat`,
-              answer: correct,
-              choices: shuffle(choices)
-            });
+            qs.push({ text: `Bundarkan ${n} kepada puluh terdekat`, answer: correct, choices: shuffle(choices) });
+          } else if (mode === 1) {
+            // Bundar kepada RATUS terdekat
+            const n = randInt(110, 990);
+            if (n % 100 === 0) continue;
+            const correct = Math.round(n / 100) * 100;
+            const candidates = new Set([correct]);
+            const toTen = Math.round(n / 10) * 10;  // silap biasa: bundar puluh
+            if (toTen !== correct) candidates.add(toTen);
+            candidates.add(correct + 100);
+            if (correct >= 200) candidates.add(correct - 100);
+            candidates.add(correct + 200);
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const r = Math.round(randInt(Math.max(100, correct - 200), correct + 200) / 100) * 100;
+              if (!choices.includes(r) && r > 0) choices.push(r);
+            }
+            qs.push({ text: `Bundarkan ${n} kepada ratus terdekat`, answer: correct, choices: shuffle(choices) });
+          } else {
+            // Bundar kepada RIBU terdekat
+            const n = randInt(1100, 9900);
+            if (n % 1000 === 0) continue;
+            const correct = Math.round(n / 1000) * 1000;
+            const candidates = new Set([correct]);
+            const toHundred = Math.round(n / 100) * 100;  // silap biasa: bundar ratus
+            if (toHundred !== correct) candidates.add(toHundred);
+            candidates.add(correct + 1000);
+            if (correct >= 2000) candidates.add(correct - 1000);
+            candidates.add(correct + 2000);
+            const choices = [...candidates].slice(0, 4);
+            while (choices.length < 4) {
+              const r = Math.round(randInt(Math.max(1000, correct - 2000), correct + 2000) / 1000) * 1000;
+              if (!choices.includes(r) && r > 0) choices.push(r);
+            }
+            qs.push({ text: `Bundarkan ${n} kepada ribu terdekat`, answer: correct, choices: shuffle(choices) });
           }
         }
         return qs;
