@@ -197,18 +197,6 @@
     opacity: 0.9;
     margin-top: 6px;
   }
-  #versionStamp {
-    position: fixed;
-    bottom: 6px;
-    right: 8px;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    letter-spacing: 0.5px;
-    z-index: 9999;
-    pointer-events: none;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-  }
   button.big.locked {
     opacity: 0.55;
     cursor: not-allowed !important;
@@ -300,11 +288,22 @@
   #adminBtn:hover { color: #fff; background: rgba(0,0,0,0.4); }
 
   .hidden { display: none; }
+
+  .version-tag {
+    position: fixed;
+    bottom: 6px;
+    right: 10px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    font-family: monospace;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    z-index: 1;
+  }
 </style>
 </head>
 <body>
 
-<div id="versionStamp">v2026-06-07 19:43</div>
 <div id="adminBtn" onclick="adminAccess()">🔧 Admin</div>
 
 <div id="welcomeScreen" class="screen">
@@ -393,6 +392,11 @@
     <span class="set-sub">Badan Manusia · Daya · A/B/C/D · 20 saat</span>
   </button>
   <br>
+  <button class="big" data-set="agama" onclick="startQuiz('agama')" style="background: linear-gradient(135deg, #0f9b6e, #044a32);">
+    🕌 Pendidikan Islam
+    <span class="set-sub">Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -411,6 +415,8 @@
   <div class="feedback" id="feedback"></div>
   <button onclick="submitAnswer()" id="submitBtn">JAWAB ✓</button>
 </div>
+
+<div class="version-tag" id="versionTag"></div>
 
 <div id="resultScreen" class="screen hidden">
   <h1>🎉 Tahniah!</h1>
@@ -444,11 +450,30 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama'],
     tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
-  const completedSets = new Set();  // resets every page load (no localStorage)
+  const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
+
+  function loadCompletedSets() {
+    try {
+      const raw = localStorage.getItem(COMPLETED_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      // buang key yang tak wujud lagi (cth topik dipadam selepas update)
+      const valid = new Set(Object.values(SET_GROUPS).flat());
+      return new Set(arr.filter(k => valid.has(k)));
+    } catch { return new Set(); }
+  }
+
+  function saveCompletedSets() {
+    try {
+      localStorage.setItem(COMPLETED_KEY, JSON.stringify([...completedSets]));
+    } catch {}
+  }
+
+  const completedSets = loadCompletedSets();
 
   function getCurrentGroup(setKey) {
     for (const [group, keys] of Object.entries(SET_GROUPS)) {
@@ -481,15 +506,22 @@
       time: 15,
       generate() {
         const qs = [];
-        // 7 soalan sifir 2-9
-        while (qs.length < 7) {
+        // 5 soalan sifir 2-9
+        while (qs.length < 5) {
           const a = randInt(2, 9), b = randInt(2, 9);
           qs.push({ text: `${a} × ${b}`, answer: a * b });
         }
         // 3 soalan bonus 11-12
-        while (qs.length < 10) {
+        while (qs.length < 8) {
           const a = randInt(11, 12), b = randInt(2, 9);
           qs.push({ text: `${a} × ${b}`, answer: a * b });
+        }
+        // 2 soalan susah: 3 kali darab (cth 2 × 4 × 7)
+        while (qs.length < 10) {
+          const a = randInt(2, 4);
+          const b = randInt(2, 5);
+          const c = randInt(3, 8);
+          qs.push({ text: `${a} × ${b} × ${c}`, answer: a * b * c });
         }
         return shuffle(qs);
       }
@@ -519,7 +551,8 @@
       time: 20,
       generate() {
         const qs = [];
-        while (qs.length < 10) {
+        // 7 soalan satu operasi (a + b atau a − b)
+        while (qs.length < 7) {
           if (Math.random() < 0.5) {
             const a = randInt(0, 9), b = randInt(0, 9);
             qs.push({ text: `${a} + ${b}`, answer: a + b });
@@ -528,6 +561,18 @@
             if (b > a) [a, b] = [b, a];   // pastikan jawapan tak negatif
             qs.push({ text: `${a} − ${b}`, answer: a - b });
           }
+        }
+        // 3 soalan susah sikit: 2 operasi (cth 2 + 5 + 7, 9 − 3 + 4)
+        let safety = 0;
+        while (qs.length < 10 && safety++ < 100) {
+          const a = randInt(1, 9), b = randInt(1, 9), c = randInt(1, 9);
+          const op1 = Math.random() < 0.5 ? '+' : '−';
+          const op2 = Math.random() < 0.5 ? '+' : '−';
+          let mid = op1 === '+' ? a + b : a - b;
+          if (mid < 0) continue;
+          let ans = op2 === '+' ? mid + c : mid - c;
+          if (ans < 0) continue;
+          qs.push({ text: `${a} ${op1} ${b} ${op2} ${c}`, answer: ans });
         }
         return shuffle(qs);
       }
@@ -586,67 +631,142 @@
       }
     },
     pecahan: {
-      time: 15,
+      time: 18,
       generate() {
-        const qs = [];
-        const reducedBases = [[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,6],[5,6]];
-        while (qs.length < 10) {
-          if (Math.random() < 0.5) {
-            // PERMUDAHKAN (simplify) — cth 4/6 → 2/3
-            const [sa, sb] = reducedBases[Math.floor(Math.random() * reducedBases.length)];
-            const k = randInt(2, 3);
-            const na = sa * k, nb = sb * k;
-            const correct = `${sa}/${sb}`;
-
-            const candidates = new Set([correct]);
-            candidates.add(`${na}/${nb}`);          // tak permudahkan langsung
-            candidates.add(`${sb}/${sa}`);          // terbalik
-            if (sa + 1 <= sb) candidates.add(`${sa + 1}/${sb}`);
-            const other = reducedBases[Math.floor(Math.random() * reducedBases.length)];
-            candidates.add(`${other[0]}/${other[1]}`);
-
-            const choices = [...candidates].slice(0, 4);
-            while (choices.length < 4) {
-              const ra = randInt(1, 5), rb = randInt(ra + 1, 6);
-              const c = `${ra}/${rb}`;
-              if (!choices.includes(c)) choices.push(c);
-            }
-            qs.push({ text: `Permudahkan ${na}/${nb}`, answer: correct, choices: shuffle(choices) });
+        // 1) Tambah / tolak (penyebut sama) — benarkan pecahan tak wajar kecil
+        function genAddSub() {
+          const denom = randInt(3, 10);
+          let a = randInt(1, denom);
+          let b = randInt(1, denom);
+          const isAdd = Math.random() < 0.5;
+          let text, ansNum;
+          if (isAdd) {
+            if (a + b > denom + 2) return null;  // tak wajar dibenarkan, tapi kecil
+            text = `${a}/${denom} + ${b}/${denom}`;
+            ansNum = a + b;
           } else {
-            // TAMBAH / TOLAK penyebut sama
-            const denom = randInt(3, 10);
-            let a = randInt(1, denom);
-            let b = randInt(1, denom);
-            const isAdd = Math.random() < 0.5;
-            let text, ansNum;
-            if (isAdd) {
-              if (a + b > denom) continue;
-              text = `${a}/${denom} + ${b}/${denom}`;
-              ansNum = a + b;
-            } else {
-              if (b > a) [a, b] = [b, a];
-              if (a === b) continue;
-              text = `${a}/${denom} − ${b}/${denom}`;
-              ansNum = a - b;
-            }
-            const correct = `${ansNum}/${denom}`;
-
-            const candidates = new Set([correct]);
-            if (isAdd) candidates.add(`${a + b}/${denom * 2}`);
-            else candidates.add(`${ansNum}/${denom * 2}`);
-            if (isAdd && Math.abs(a - b) !== ansNum) candidates.add(`${Math.abs(a - b)}/${denom}`);
-            if (!isAdd && a + b <= denom) candidates.add(`${a + b}/${denom}`);
-            if (ansNum + 1 <= denom) candidates.add(`${ansNum + 1}/${denom}`);
-            if (ansNum - 1 >= 1) candidates.add(`${ansNum - 1}/${denom}`);
-            candidates.add(`${a}/${denom}`);
-
-            const choices = [...candidates].slice(0, 4);
-            while (choices.length < 4) {
-              const r = `${randInt(1, denom)}/${denom}`;
-              if (!choices.includes(r)) choices.push(r);
-            }
-            qs.push({ text, answer: correct, choices: shuffle(choices) });
+            if (b > a) [a, b] = [b, a];
+            if (a === b) return null;
+            text = `${a}/${denom} − ${b}/${denom}`;
+            ansNum = a - b;
           }
+          const correct = `${ansNum}/${denom}`;
+          const cands = new Set([correct]);
+          if (isAdd) cands.add(`${a + b}/${denom * 2}`);
+          else cands.add(`${ansNum}/${denom * 2}`);
+          if (ansNum + 1 <= denom + 2) cands.add(`${ansNum + 1}/${denom}`);
+          if (ansNum - 1 >= 1) cands.add(`${ansNum - 1}/${denom}`);
+          cands.add(`${a}/${denom}`);
+          const choices = [...cands].slice(0, 4);
+          while (choices.length < 4) {
+            const r = `${randInt(1, denom + 1)}/${denom}`;
+            if (!choices.includes(r)) choices.push(r);
+          }
+          return { text, answer: correct, choices: shuffle(choices) };
+        }
+
+        // 2) Pecahan setara: 1/2 = ?/6
+        function genSetara() {
+          const denom = randInt(2, 5);
+          const num = randInt(1, denom - 1);
+          const mult = randInt(2, 4);
+          const newDenom = denom * mult;
+          if (newDenom > 12) return null;
+          const correctNum = num * mult;
+          const text = `${num}/${denom} = ?/${newDenom}`;
+          const cands = new Set([String(correctNum)]);
+          cands.add(String(num));                                   // lupa darab
+          cands.add(String(mult));                                  // tulis pengganda
+          if (correctNum + 1 < newDenom) cands.add(String(correctNum + 1));
+          if (correctNum - 1 >= 1) cands.add(String(correctNum - 1));
+          while (cands.size < 4) cands.add(String(randInt(1, newDenom - 1)));
+          const choices = [...cands].slice(0, 4);
+          return { text, answer: String(correctNum), choices: shuffle(choices) };
+        }
+
+        // 3) Banding pecahan — penyebut sama: mana paling besar/kecil
+        function genBandingDenom() {
+          const denom = randInt(4, 10);
+          const nums = new Set();
+          while (nums.size < 4) nums.add(randInt(1, denom));
+          const arr = [...nums];
+          const choices = arr.map(n => `${n}/${denom}`);
+          const askBesar = Math.random() < 0.5;
+          const target = askBesar ? Math.max(...arr) : Math.min(...arr);
+          return {
+            text: askBesar ? 'Mana paling besar?' : 'Mana paling kecil?',
+            answer: `${target}/${denom}`,
+            choices: shuffle(choices)
+          };
+        }
+
+        // 4) Banding pecahan — pengangka sama: penyebut kecil = pecahan besar
+        function genBandingNum() {
+          const num = randInt(1, 3);
+          const denoms = new Set();
+          while (denoms.size < 4) denoms.add(randInt(num + 1, 10));
+          const arr = [...denoms];
+          const choices = arr.map(d => `${num}/${d}`);
+          const askBesar = Math.random() < 0.5;
+          const target = askBesar ? Math.min(...arr) : Math.max(...arr);
+          return {
+            text: askBesar ? 'Mana paling besar?' : 'Mana paling kecil?',
+            answer: `${num}/${target}`,
+            choices: shuffle(choices)
+          };
+        }
+
+        // 5) Permudahkan pecahan: 4/8 → 1/2
+        function genMudahkan() {
+          const pairs = [[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5]];
+          const [a, b] = pairs[Math.floor(Math.random() * pairs.length)];
+          const k = randInt(2, 3);
+          const num = a * k, denom = b * k;
+          if (denom > 12) return null;
+          const correct = `${a}/${b}`;
+          const cands = new Set([correct]);
+          cands.add(`${num}/${denom}`);                             // tak permudahkan
+          if (k === 3 && b * 2 <= 12) cands.add(`${a*2}/${b*2}`);  // separa
+          if (a + 1 < b) cands.add(`${a+1}/${b}`);
+          if (a > 1) cands.add(`${a-1}/${b}`);
+          while (cands.size < 4) {
+            const d = randInt(2, 6);
+            const n = randInt(1, d - 1);
+            cands.add(`${n}/${d}`);
+          }
+          const choices = [...cands].slice(0, 4);
+          return { text: `Permudahkan ${num}/${denom}`, answer: correct, choices: shuffle(choices) };
+        }
+
+        // 6) Pecahan daripada kumpulan: 1/3 daripada 12 = 4
+        function genKumpulan() {
+          const denom = randInt(2, 5);
+          const num = randInt(1, denom - 1);
+          const mult = randInt(2, 5);
+          const total = denom * mult;
+          if (total > 20) return null;
+          const correct = num * mult;
+          const cands = new Set([String(correct)]);
+          cands.add(String(mult));                                  // lupa darab pengangka
+          cands.add(String(total - correct));
+          cands.add(String(correct + mult));
+          if (correct > 1) cands.add(String(correct - 1));
+          while (cands.size < 4) cands.add(String(randInt(1, total)));
+          const choices = [...cands].slice(0, 4);
+          return {
+            text: `${num}/${denom} daripada ${total} = ?`,
+            answer: String(correct),
+            choices: shuffle(choices)
+          };
+        }
+
+        const gens = [genAddSub, genSetara, genBandingDenom, genBandingNum, genMudahkan, genKumpulan];
+        const qs = [];
+        let safety = 0;
+        while (qs.length < 10 && safety++ < 200) {
+          const g = gens[Math.floor(Math.random() * gens.length)];
+          const q = g();
+          if (q) qs.push(q);
         }
         return qs;
       }
@@ -654,51 +774,119 @@
     sains1: { time: 20, generate() { return buildSains([1, 2, 3]); } },  // Pancaindera, Tumbuhan, Haiwan
     sains2: { time: 20, generate() { return buildSains([4, 5, 6]); } },  // Cahaya/Bunyi, Bahan, Cuaca/Angkasa
     sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
+    agama: { time: 20, generate() { return buildAgama(); } },            // Pendidikan Islam Tahun 3 (KSSR)
     ejaan: {
       time: 20,
       generate() {
         const words = [
-          { emoji: '🪨', partial: 'BA', correct: 'TU' },  // BATU
-          { emoji: '👕', partial: 'BA', correct: 'JU' },  // BAJU
-          { emoji: '📚', partial: 'BU', correct: 'KU' },  // BUKU
-          { emoji: '⚽', partial: 'BO', correct: 'LA' },  // BOLA
-          { emoji: '🐟', partial: 'IK', correct: 'AN' },  // IKAN
-          { emoji: '🍎', partial: 'EP', correct: 'AL' },  // EPAL
-          { emoji: '👁️', partial: 'MA', correct: 'TA' },  // MATA
-          { emoji: '🦶', partial: 'KA', correct: 'KI' },  // KAKI
-          { emoji: '🥛', partial: 'SU', correct: 'SU' },  // SUSU
-          { emoji: '🍚', partial: 'NA', correct: 'SI' },  // NASI
-          { emoji: '🍞', partial: 'RO', correct: 'TI' },  // ROTI
-          { emoji: '🎩', partial: 'TO', correct: 'PI' },  // TOPI
-          { emoji: '🦷', partial: 'GI', correct: 'GI' },  // GIGI
-          { emoji: '😀', partial: 'MU', correct: 'KA' },  // MUKA
-          { emoji: '🐒', partial: 'KE', correct: 'RA' },  // KERA
-          { emoji: '🐴', partial: 'KU', correct: 'DA' },  // KUDA
-          { emoji: '🦆', partial: 'IT', correct: 'IK' },  // ITIK
-          { emoji: '🍃', partial: 'DA', correct: 'UN' },  // DAUN
-          { emoji: '🧀', partial: 'KE', correct: 'JU' },  // KEJU
-          { emoji: '🪑', partial: 'ME', correct: 'JA' },  // MEJA
-          { emoji: '🎲', partial: 'DA', correct: 'DU' },  // DADU
-          { emoji: '☝️', partial: 'JA', correct: 'RI' },  // JARI
-          { emoji: '🚛', partial: 'LO', correct: 'RI' },  // LORI
-          { emoji: '👶', partial: 'BA', correct: 'YI' },  // BAYI
-          { emoji: '🤴', partial: 'RA', correct: 'JA' },  // RAJA
-          { emoji: '🔩', partial: 'PA', correct: 'KU' },  // PAKU
-          { emoji: '🪢', partial: 'TA', correct: 'LI' },  // TALI
-          { emoji: '☕', partial: 'KO', correct: 'PI' },  // KOPI
-          { emoji: '🧹', partial: 'SA', correct: 'PU' },  // SAPU
-          { emoji: '🍬', partial: 'GU', correct: 'LA' },  // GULA
-          { emoji: '🥄', partial: 'SU', correct: 'DU' },  // SUDU
-          { emoji: '🛞', partial: 'RO', correct: 'DA' },  // RODA
-          { emoji: '🏃', partial: 'LA', correct: 'RI' },  // LARI
-          { emoji: '🦌', partial: 'RU', correct: 'SA' }   // RUSA
+          // ── 2 suku terbuka (KV-KV)
+          { emoji: '🪨', parts: ['BA','TU'] },         // BATU
+          { emoji: '👕', parts: ['BA','JU'] },         // BAJU
+          { emoji: '📚', parts: ['BU','KU'] },         // BUKU
+          { emoji: '⚽', parts: ['BO','LA'] },         // BOLA
+          { emoji: '👁️', parts: ['MA','TA'] },         // MATA
+          { emoji: '🦶', parts: ['KA','KI'] },         // KAKI
+          { emoji: '🥛', parts: ['SU','SU'] },         // SUSU
+          { emoji: '🍚', parts: ['NA','SI'] },         // NASI
+          { emoji: '🍞', parts: ['RO','TI'] },         // ROTI
+          { emoji: '🎩', parts: ['TO','PI'] },         // TOPI
+          { emoji: '🦷', parts: ['GI','GI'] },         // GIGI
+          { emoji: '😀', parts: ['MU','KA'] },         // MUKA
+          { emoji: '🐒', parts: ['KE','RA'] },         // KERA
+          { emoji: '🐴', parts: ['KU','DA'] },         // KUDA
+          { emoji: '🧀', parts: ['KE','JU'] },         // KEJU
+          { emoji: '🪑', parts: ['ME','JA'] },         // MEJA
+          // ── V-KVK / diftong
+          { emoji: '🐟', parts: ['I','KAN'] },         // IKAN
+          { emoji: '🍎', parts: ['E','PAL'] },         // EPAL
+          { emoji: '🦆', parts: ['I','TIK'] },         // ITIK
+          { emoji: '🐔', parts: ['A','YAM'] },         // AYAM
+          { emoji: '🐰', parts: ['AR','NAB'] },        // ARNAB
+          { emoji: '🍃', parts: ['DA','UN'] },         // DAUN
+          { emoji: '🔪', parts: ['PI','SAU'] },        // PISAU
+          // ── KV-KVK (suku 2 tertutup)
+          { emoji: '🌀', parts: ['KI','PAS'] },        // KIPAS
+          { emoji: '👟', parts: ['KA','SUT'] },        // KASUT
+          { emoji: '🏠', parts: ['RU','MAH'] },        // RUMAH
+          { emoji: '🚢', parts: ['KA','PAL'] },        // KAPAL
+          { emoji: '☕', parts: ['CA','WAN'] },        // CAWAN
+          { emoji: '🥚', parts: ['TE','LUR'] },        // TELUR
+          { emoji: '🧺', parts: ['BA','KUL'] },        // BAKUL
+          { emoji: '🥬', parts: ['SA','YUR'] },        // SAYUR
+          { emoji: '🐭', parts: ['TI','KUS'] },        // TIKUS
+          { emoji: '🍌', parts: ['PI','SANG'] },       // PISANG
+          { emoji: '🐱', parts: ['KU','CING'] },       // KUCING
+          { emoji: '🦜', parts: ['BU','RUNG'] },       // BURUNG
+          { emoji: '🥩', parts: ['DA','GING'] },       // DAGING
+          { emoji: '🐘', parts: ['GA','JAH'] },        // GAJAH
+          // ── KVK-KV (suku 1 tertutup)
+          { emoji: '💡', parts: ['LAM','PU'] },        // LAMPU
+          { emoji: '🔑', parts: ['KUN','CI'] },        // KUNCI
+          { emoji: '🚪', parts: ['PIN','TU'] },        // PINTU
+          { emoji: '🐄', parts: ['LEM','BU'] },        // LEMBU
+          { emoji: '🥭', parts: ['MANG','GA'] },       // MANGGA
+          // ── KVK-KVK
+          { emoji: '🛏', parts: ['BAN','TAL'] },       // BANTAL
+          { emoji: '🥔', parts: ['KEN','TANG'] },      // KENTANG
+          { emoji: '🍽', parts: ['PING','GAN'] },      // PINGGAN
+          // ── 3 suku kata
+          { emoji: '🚗', parts: ['KE','RE','TA'] },    // KERETA
+          { emoji: '🚩', parts: ['BEN','DE','RA'] },   // BENDERA
+          { emoji: '🥥', parts: ['KE','LA','PA'] },    // KELAPA
+          { emoji: '🧈', parts: ['MEN','TE','GA'] },   // MENTEGA
+          { emoji: '💺', parts: ['KE','RU','SI'] },    // KERUSI
+          { emoji: '📞', parts: ['TE','LE','FON'] },   // TELEFON
+          { emoji: '🐅', parts: ['HA','RI','MAU'] },   // HARIMAU
+          { emoji: '👔', parts: ['KE','ME','JA'] },    // KEMEJA
+          { emoji: '🏫', parts: ['SE','KO','LAH'] }    // SEKOLAH
         ];
+
+        // Jana suku kata yang bunyi seakan — tukar satu huruf sahaja
+        function similar(syl) {
+          const cons = ['B','C','D','G','H','J','K','L','M','N','P','R','S','T','W','Y'];
+          const vowels = ['A','I','U','E','O'];
+          const finals = ['N','M','K','T','P','L','R','S','H'];
+          const out = new Set();
+          const endsNG = syl.endsWith('NG');
+          // tukar konsonan awal
+          if (!vowels.includes(syl[0])) {
+            for (const c of cons) if (c !== syl[0]) out.add(c + syl.slice(1));
+          }
+          // tukar vokal
+          for (let i = 0; i < syl.length; i++) {
+            if (vowels.includes(syl[i])) {
+              for (const v of vowels) if (v !== syl[i]) out.add(syl.slice(0,i) + v + syl.slice(i+1));
+            }
+          }
+          // tukar konsonan akhir
+          if (endsNG) {
+            const stem = syl.slice(0, -2);
+            for (const f of finals) out.add(stem + f);
+          } else if (!vowels.includes(syl[syl.length-1])) {
+            const stem = syl.slice(0, -1);
+            for (const f of finals) if (f !== syl[syl.length-1]) out.add(stem + f);
+            out.add(stem + 'NG');
+          }
+          out.delete(syl);
+          return [...out];
+        }
+
         const selected = shuffle([...words]).slice(0, 10);
-        return selected.map(w => ({
-          text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${w.partial}__</span>`,
-          answer: w.correct,
-          inputMode: 'text'   // anak taip sendiri suku kata yang hilang
-        }));
+        return selected.map(w => {
+          const correct = w.parts[w.parts.length - 1];
+          const partial = w.parts.slice(0, -1).join('-');
+          const sims = shuffle(similar(correct));
+          const choices = new Set([correct]);
+          for (const s of sims) {
+            if (choices.size >= 4) break;
+            choices.add(s);
+          }
+          return {
+            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${partial}-__</span>`,
+            answer: correct,
+            choices: shuffle([...choices])
+          };
+        });
       }
     },
     duit: {
@@ -1027,6 +1215,99 @@
     }));
   }
 
+  // ===== BANK SOALAN PENDIDIKAN ISLAM (Tahun 3 KSSR) =====
+  // Topik: 1=Rukun Iman/Islam · 2=Malaikat · 3=Akidah/Allah · 4=Solat · 5=Sirah Rasulullah ·
+  //        6=Al-Quran · 7=Adab · 8=Akhlak
+  const AGAMA_BANK = [
+    // Topik 1 — Rukun Iman & Rukun Islam
+    { t: 1, q: 'Berapa Rukun Iman?', a: '6', d: ['4', '5', '7'] },
+    { t: 1, q: 'Berapa Rukun Islam?', a: '5', d: ['3', '4', '6'] },
+    { t: 1, q: 'Rukun Islam yang pertama?', a: 'Mengucap dua kalimah syahadah', d: ['Mengerjakan solat', 'Mengeluarkan zakat', 'Berpuasa di bulan Ramadan'] },
+    { t: 1, q: 'Rukun Iman yang pertama?', a: 'Beriman kepada Allah', d: ['Beriman kepada Malaikat', 'Beriman kepada Rasul', 'Beriman kepada Hari Akhirat'] },
+    { t: 1, q: 'Rukun Islam yang kedua?', a: 'Mengerjakan solat', d: ['Mengeluarkan zakat', 'Berpuasa', 'Menunaikan haji'] },
+    { t: 1, q: 'Rukun Iman beriman kepada Kitab adalah yang ke?', a: 'Ketiga', d: ['Pertama', 'Kedua', 'Keempat'] },
+    { t: 1, q: 'Menunaikan haji termasuk dalam?', a: 'Rukun Islam', d: ['Rukun Iman', 'Rukun Solat', 'Rukun Wuduk'] },
+
+    // Topik 2 — Malaikat
+    { t: 2, q: 'Malaikat yang menyampaikan wahyu kepada para Rasul?', a: 'Jibrail', d: ['Mikail', 'Israfil', 'Izrail'] },
+    { t: 2, q: 'Malaikat yang mencabut nyawa?', a: 'Izrail', d: ['Jibrail', 'Munkar', 'Nakir'] },
+    { t: 2, q: 'Malaikat yang meniup sangkakala?', a: 'Israfil', d: ['Jibrail', 'Izrail', 'Mikail'] },
+    { t: 2, q: 'Malaikat yang menurunkan hujan dan rezeki?', a: 'Mikail', d: ['Jibrail', 'Israfil', 'Munkar'] },
+    { t: 2, q: 'Dua Malaikat yang menyoal manusia di dalam kubur?', a: 'Munkar dan Nakir', d: ['Jibrail dan Mikail', 'Israfil dan Izrail', 'Raqib dan Atid'] },
+    { t: 2, q: 'Malaikat yang mencatat amal baik dan buruk?', a: 'Raqib dan Atid', d: ['Munkar dan Nakir', 'Malik dan Ridwan', 'Jibrail dan Mikail'] },
+    { t: 2, q: 'Malaikat penjaga pintu syurga?', a: 'Ridwan', d: ['Malik', 'Israfil', 'Jibrail'] },
+    { t: 2, q: 'Malaikat diciptakan daripada?', a: 'Cahaya (Nur)', d: ['Tanah', 'Api', 'Air'] },
+
+    // Topik 3 — Akidah & Sifat Allah
+    { t: 3, q: 'Siapa Pencipta alam semesta?', a: 'Allah SWT', d: ['Manusia', 'Malaikat', 'Nabi'] },
+    { t: 3, q: 'Allah Maha?', a: 'Esa', d: ['Dua', 'Tiga', 'Banyak'] },
+    { t: 3, q: 'Berapa bilangan sifat wajib bagi Allah?', a: '20', d: ['10', '15', '99'] },
+    { t: 3, q: 'Berapa bilangan Asma\'ul Husna (nama-nama indah Allah)?', a: '99', d: ['20', '25', '100'] },
+    { t: 3, q: 'Manusia diciptakan oleh?', a: 'Allah SWT', d: ['Nabi Adam', 'Malaikat', 'Diri sendiri'] },
+
+    // Topik 4 — Solat
+    { t: 4, q: 'Berapa kali solat fardu sehari semalam?', a: '5 kali', d: ['3 kali', '4 kali', '6 kali'] },
+    { t: 4, q: 'Berapa rakaat solat Subuh?', a: '2 rakaat', d: ['3 rakaat', '4 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Zuhur?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Asar?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Maghrib?', a: '3 rakaat', d: ['2 rakaat', '4 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Berapa rakaat solat Isyak?', a: '4 rakaat', d: ['2 rakaat', '3 rakaat', '5 rakaat'] },
+    { t: 4, q: 'Sebelum solat kita wajib?', a: 'Mengambil wuduk', d: ['Makan dulu', 'Tidur dulu', 'Bercakap-cakap'] },
+    { t: 4, q: 'Arah kiblat orang Islam menghala ke?', a: 'Kaabah di Mekah', d: ['Madinah', 'Baitulmuqaddis', 'Masjid Nabawi'] },
+    { t: 4, q: 'Berapa kali kita basuh muka semasa wuduk?', a: '3 kali', d: ['1 kali', '2 kali', '4 kali'] },
+    { t: 4, q: 'Apakah yang membatalkan wuduk?', a: 'Buang air kecil/besar', d: ['Makan nasi', 'Bercakap', 'Berjalan'] },
+    { t: 4, q: 'Solat yang dikerjakan pada waktu pagi?', a: 'Subuh', d: ['Zuhur', 'Asar', 'Maghrib'] },
+
+    // Topik 5 — Sirah Rasulullah SAW
+    { t: 5, q: 'Nabi Muhammad SAW dilahirkan di kota?', a: 'Makkah', d: ['Madinah', 'Yaman', 'Mesir'] },
+    { t: 5, q: 'Tahun kelahiran Nabi Muhammad SAW dikenali sebagai?', a: 'Tahun Gajah', d: ['Tahun Hijrah', 'Tahun Naga', 'Tahun Kuda'] },
+    { t: 5, q: 'Nama bapa Nabi Muhammad SAW?', a: 'Abdullah', d: ['Abu Talib', 'Abdul Muttalib', 'Hamzah'] },
+    { t: 5, q: 'Nama ibu Nabi Muhammad SAW?', a: 'Aminah', d: ['Khadijah', 'Fatimah', 'Halimah'] },
+    { t: 5, q: 'Nama datuk Nabi Muhammad SAW?', a: 'Abdul Muttalib', d: ['Abdullah', 'Abu Talib', 'Hashim'] },
+    { t: 5, q: 'Nabi Muhammad SAW dilantik menjadi Rasul pada umur?', a: '40 tahun', d: ['25 tahun', '30 tahun', '50 tahun'] },
+    { t: 5, q: 'Nabi Muhammad SAW menerima wahyu pertama di?', a: 'Gua Hira\'', d: ['Gua Thur', 'Masjidil Haram', 'Madinah'] },
+    { t: 5, q: 'Nabi terakhir yang diutuskan Allah?', a: 'Nabi Muhammad SAW', d: ['Nabi Isa AS', 'Nabi Musa AS', 'Nabi Ibrahim AS'] },
+    { t: 5, q: 'Nabi Muhammad SAW berhijrah dari Makkah ke?', a: 'Madinah', d: ['Mesir', 'Yaman', 'Baghdad'] },
+    { t: 5, q: 'Isteri pertama Nabi Muhammad SAW?', a: 'Khadijah', d: ['Aishah', 'Fatimah', 'Aminah'] },
+
+    // Topik 6 — Al-Quran
+    { t: 6, q: 'Kitab suci umat Islam?', a: 'Al-Quran', d: ['Taurat', 'Zabur', 'Injil'] },
+    { t: 6, q: 'Surah pertama dalam Al-Quran?', a: 'Al-Fatihah', d: ['An-Nas', 'Al-Ikhlas', 'Al-Baqarah'] },
+    { t: 6, q: 'Berapa ayat dalam Surah Al-Fatihah?', a: '7 ayat', d: ['5 ayat', '6 ayat', '10 ayat'] },
+    { t: 6, q: 'Surah terakhir dalam Al-Quran?', a: 'An-Nas', d: ['Al-Fatihah', 'Al-Ikhlas', 'Al-Falaq'] },
+    { t: 6, q: 'Berapa jumlah surah dalam Al-Quran?', a: '114', d: ['100', '110', '120'] },
+    { t: 6, q: 'Al-Quran diturunkan dalam bahasa?', a: 'Arab', d: ['Melayu', 'Inggeris', 'Urdu'] },
+
+    // Topik 7 — Adab
+    { t: 7, q: 'Sebelum makan kita ucapkan?', a: 'Bismillah', d: ['Alhamdulillah', 'Subhanallah', 'Astaghfirullah'] },
+    { t: 7, q: 'Selepas makan kita ucapkan?', a: 'Alhamdulillah', d: ['Bismillah', 'Insya-Allah', 'Astaghfirullah'] },
+    { t: 7, q: 'Kita makan dan minum menggunakan tangan?', a: 'Kanan', d: ['Kiri', 'Kedua-dua tangan', 'Suka hati'] },
+    { t: 7, q: 'Apabila kita bersin kita ucapkan?', a: 'Alhamdulillah', d: ['Bismillah', 'Subhanallah', 'Astaghfirullah'] },
+    { t: 7, q: 'Apabila mendengar orang bersin (ucap Alhamdulillah), kita balas?', a: 'Yarhamukallah', d: ['Bismillah', 'Subhanallah', 'Insya-Allah'] },
+    { t: 7, q: 'Masuk masjid mendahulukan kaki?', a: 'Kanan', d: ['Kiri', 'Mana-mana', 'Kedua-dua serentak'] },
+    { t: 7, q: 'Masuk tandas mendahulukan kaki?', a: 'Kiri', d: ['Kanan', 'Mana-mana', 'Kedua-dua serentak'] },
+    { t: 7, q: 'Sebelum tidur kita digalakkan membaca?', a: 'Doa tidur', d: ['Lagu', 'Cerita hantu', 'Tiada apa-apa'] },
+    { t: 7, q: 'Adab terhadap ibu bapa?', a: 'Hormat dan taat', d: ['Marah dan membantah', 'Berbohong', 'Tidak menghiraukan'] },
+    { t: 7, q: 'Adab di dalam masjid?', a: 'Bercakap perlahan', d: ['Berlari', 'Bermain', 'Bergaduh'] },
+
+    // Topik 8 — Akhlak
+    { t: 8, q: 'Sifat sentiasa bercakap benar dipanggil?', a: 'Jujur', d: ['Bohong', 'Sombong', 'Dengki'] },
+    { t: 8, q: 'Sifat menunaikan janji dan boleh dipercayai?', a: 'Amanah', d: ['Khianat', 'Dusta', 'Riak'] },
+    { t: 8, q: 'Apabila berjanji, kita wajib?', a: 'Menunaikan janji', d: ['Melupakan', 'Mengingkari', 'Mengelak'] },
+    { t: 8, q: 'Sifat yang dibenci Allah?', a: 'Sombong', d: ['Sabar', 'Pemurah', 'Jujur'] },
+    { t: 8, q: 'Memberi sedekah kepada orang miskin adalah perbuatan?', a: 'Terpuji', d: ['Terkeji', 'Sia-sia', 'Membuang masa'] },
+    { t: 8, q: 'Hormat kepada guru kerana guru?', a: 'Mengajar ilmu', d: ['Memberi gula-gula', 'Memberi wang', 'Membenarkan main'] }
+  ];
+
+  function buildAgama() {
+    const selected = shuffle([...AGAMA_BANK]).slice(0, 10);
+    return selected.map(item => ({
+      text: `<span class="word-problem">${item.q}</span>`,
+      answer: item.a,
+      choices: shuffle([item.a, ...item.d])
+    }));
+  }
+
   function showDarjah3Menu() {
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('darjah3Screen').classList.remove('hidden');
@@ -1288,6 +1569,7 @@
         SET_GROUPS[group].forEach(k => completedSets.delete(k));
         groupReset = true;
       }
+      saveCompletedSets();  // simpan keadaan ke localStorage supaya kekal lepas refresh
     }
 
     const msg = document.getElementById('completionMsg');
@@ -1340,6 +1622,15 @@
       alert('❌ Password salah!');
     }
   }
+
+  // Version tag (boot time server = waktu deploy)
+  fetch('/api/version', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('versionTag');
+      if (el && d.version) el.textContent = d.version;
+    })
+    .catch(() => {});
 </script>
 
 </body>

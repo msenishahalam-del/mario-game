@@ -7,6 +7,15 @@ const { URL } = require('url');
 const PORT = process.env.PORT || 5501;
 const ROOT = __dirname;
 const GSHEET_URL = 'https://script.google.com/macros/s/AKfycbxYmCknF6nHT3fElPjSt86BxWaiHO6QhYgTGLr1tp7G72pZFtHO5evYWDpPovJLr6eP/exec';
+const BOOT_TIME = new Date();  // proksi untuk masa deploy (Railway restart pada setiap push)
+
+function buildVersion() {
+  const opts = { timeZone: 'Asia/Kuala_Lumpur' };
+  const date = BOOT_TIME.toLocaleDateString('en-CA', opts);
+  const time = BOOT_TIME.toLocaleTimeString('en-GB', { ...opts, hour12: false, hour: '2-digit', minute: '2-digit' });
+  return `V${date} ${time}`;
+}
+const VERSION = buildVersion();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -98,6 +107,11 @@ http.createServer(async (req, res) => {
     console.log(`[NEW SCORE] ${entry.name}: ${entry.score}`);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ success: true, entry }));
+  }
+
+  if (req.method === 'GET' && urlPath === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    return res.end(JSON.stringify({ version: VERSION }));
   }
 
   if (req.method === 'GET' && urlPath === '/api/leaderboard') {
