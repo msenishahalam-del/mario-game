@@ -73,6 +73,13 @@
     font-weight: bold;
     color: #5a3a00;
   }
+  .emoji-row {
+    display: block;
+    font-size: 44px;
+    line-height: 1.25;
+    margin-top: 10px;
+    word-break: break-word;
+  }
   #answerInput.text-input {
     text-transform: uppercase;
     letter-spacing: 0.15em;
@@ -297,7 +304,7 @@
 </head>
 <body>
 
-<div id="versionStamp">v2026-06-01 23:50</div>
+<div id="versionStamp">v2026-06-07 19:43</div>
 <div id="adminBtn" onclick="adminAccess()">🔧 Admin</div>
 
 <div id="welcomeScreen" class="screen">
@@ -338,6 +345,11 @@
   <button class="big" data-set="english" onclick="startQuiz('english')" style="background: linear-gradient(135deg, #fa709a, #fee140);">
     🇬🇧 English
     <span class="set-sub">Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="dino" onclick="startQuiz('dino')" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+    🦖 Dinosaur
+    <span class="set-sub">Count &amp; fun facts (English) · A/B/C/D · 20 saat</span>
   </button>
   <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
@@ -433,7 +445,7 @@
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3'],
-    tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english']
+    tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
   const completedSets = new Set();  // resets every page load (no localStorage)
@@ -801,6 +813,79 @@
           answer: item.a,
           choices: shuffle([item.a, ...item.d])
         }));
+      }
+    },
+    dino: {
+      time: 20,
+      generate() {
+        const facts = [
+          { q: 'What does a T-Rex 🦖 eat?', a: 'Meat', d: ['Leaves', 'Fruit', 'Cake'] },
+          { q: 'Long-neck dinosaurs 🦕 eat?', a: 'Plants', d: ['Meat', 'Rocks', 'Fish'] },
+          { q: 'Baby dinosaurs hatch from?', a: 'Eggs', d: ['Flowers', 'Trees', 'Rocks'] },
+          { q: 'When did dinosaurs live?', a: 'Long ago', d: ['Today', 'Tomorrow', 'Now'] },
+          { q: 'Which dinosaur can fly?', a: 'Pterodactyl', d: ['T-Rex', 'Triceratops', 'Stegosaurus'] },
+          { q: 'Which dinosaur has three horns?', a: 'Triceratops', d: ['T-Rex', 'Raptor', 'Pterodactyl'] },
+          { q: 'A big dinosaur makes a loud?', a: 'Roar', d: ['Meow', 'Moo', 'Quack'] },
+          { q: 'A T-Rex has very small?', a: 'Arms', d: ['Eyes', 'Teeth', 'Legs'] },
+          { q: 'Many dinosaurs had a long?', a: 'Tail', d: ['Wing', 'Ear', 'Beard'] },
+          { q: 'Stegosaurus has plates on its?', a: 'Back', d: ['Nose', 'Eye', 'Foot'] },
+          { q: 'Where do we find dinosaur bones 🦴?', a: 'In the ground', d: ['In the sky', 'In space', 'On a cloud'] },
+          { q: 'Are dinosaurs alive today?', a: 'No', d: ['Yes', 'Maybe', 'Sometimes'] },
+          { q: 'A meat-eating dinosaur has sharp?', a: 'Teeth', d: ['Hair', 'Wings', 'Shoes'] },
+          { q: 'Dinosaurs lived on?', a: 'Land', d: ['The moon', 'A cloud', 'A boat'] }
+        ];
+        const pick = arr => arr[randInt(0, arr.length - 1)];
+        const numChoices = (ans) => {
+          const set = new Set([ans]);
+          for (const o of [1,-1,2,-2,3,-3]) { if (ans+o >= 0) set.add(ans+o); if (set.size >= 4) break; }
+          const arr = [...set].slice(0, 4);
+          while (arr.length < 4) { const r = Math.max(0, ans + randInt(-5, 5)); if (!arr.includes(r)) arr.push(r); }
+          return shuffle(arr.map(String));
+        };
+        const E = () => Math.random() < 0.5 ? '🦖' : '🦕';
+        const qs = [];
+        while (qs.length < 10) {
+          if (Math.random() < 0.5) {
+            // ── MATH (lebih mencabar) ──
+            const mode = randInt(0, 5);
+            if (mode === 0) {
+              // count besar (visual)
+              const e = E(), n = randInt(7, 12);
+              qs.push({ text: `<span class="word-problem">How many dinosaurs?<span class="emoji-row">${e.repeat(n)}</span></span>`,
+                answer: String(n), choices: numChoices(n) });
+            } else if (mode === 1) {
+              // tambah cerita (besar)
+              const a = randInt(5, 10), b = randInt(4, 9);
+              qs.push({ text: `<span class="word-problem">A T-Rex 🦖 ate ${a} fish, then ${b} more. How many fish in all?</span>`,
+                answer: String(a+b), choices: numChoices(a+b) });
+            } else if (mode === 2) {
+              // tolak cerita (besar)
+              const a = randInt(11, 19), b = randInt(3, a-3);
+              qs.push({ text: `<span class="word-problem">There were ${a} eggs 🥚. ${b} hatched. How many eggs are left?</span>`,
+                answer: String(a-b), choices: numChoices(a-b) });
+            } else if (mode === 3) {
+              // kumpulan (early multiply)
+              const g = randInt(2, 4), per = randInt(3, 5);
+              qs.push({ text: `<span class="word-problem">${g} nests, each has ${per} eggs 🥚. How many eggs in total?</span>`,
+                answer: String(g*per), choices: numChoices(g*per) });
+            } else if (mode === 4) {
+              // missing addend
+              const a = randInt(3, 9), t = a + randInt(3, 8);
+              qs.push({ text: `<span class="word-problem">A dino has ${a} spikes. It wants ${t}. How many more spikes does it need?</span>`,
+                answer: String(t-a), choices: numChoices(t-a) });
+            } else {
+              // compare (how many more)
+              let a = randInt(6, 14), b = randInt(2, a-2);
+              qs.push({ text: `<span class="word-problem">There are ${a} 🦖 and ${b} 🦕. How many more 🦖 than 🦕?</span>`,
+                answer: String(a-b), choices: numChoices(a-b) });
+            }
+          } else {
+            // ── FACT ──
+            const f = pick(facts);
+            qs.push({ text: `<span class="word-problem">${f.q}</span>`, answer: f.a, choices: shuffle([f.a, ...f.d]) });
+          }
+        }
+        return qs;
       }
     }
   };
