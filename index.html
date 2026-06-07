@@ -398,6 +398,11 @@
     <span class="set-sub">Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat</span>
   </button>
   <br>
+  <button class="big" data-set="cariX" onclick="startQuiz('cariX')" style="background: linear-gradient(135deg, #ff9a44, #e83e8c);">
+    ❓ Cari X
+    <span class="set-sub">Nombor yang hilang · X + 5 = 7 · key in jawapan · 18 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -451,7 +456,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX'],
     tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english']
   };
   const PASS_SCORE = 7;
@@ -776,6 +781,40 @@
     sains2: { time: 20, generate() { return buildSains([4, 5, 6]); } },  // Cahaya/Bunyi, Bahan, Cuaca/Angkasa
     sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
     agama: { time: 20, generate() { return buildAgama(); } },            // Pendidikan Islam Tahun 3 (KSSR)
+    cariX: {
+      time: 18,
+      generate() {
+        const qs = [];
+        // 4 variasi: X+a=b, a+X=b, X−a=b, a−X=b
+        const variants = [
+          () => {
+            const a = randInt(1, 15);
+            const x = randInt(1, 15);
+            return { text: `X + ${a} = ${a + x}`, answer: x };
+          },
+          () => {
+            const a = randInt(1, 15);
+            const x = randInt(1, 15);
+            return { text: `${a} + X = ${a + x}`, answer: x };
+          },
+          () => {
+            const a = randInt(1, 12);
+            const b = randInt(1, 15);
+            return { text: `X − ${a} = ${b}`, answer: a + b };
+          },
+          () => {
+            const x = randInt(1, 12);
+            const b = randInt(1, 12);
+            return { text: `${x + b} − X = ${b}`, answer: x };
+          }
+        ];
+        while (qs.length < 10) {
+          const v = variants[Math.floor(Math.random() * variants.length)];
+          qs.push(v());
+        }
+        return shuffle(qs);
+      }
+    },
     ejaan: {
       time: 20,
       generate() {
