@@ -109,7 +109,13 @@
     levelClear() {
       [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'square', 0.1), i * 110));
     },
-    enemyShoot() { tone(300, 0.05, 'sawtooth', 0.03, 200); }
+    enemyShoot() { tone(300, 0.05, 'sawtooth', 0.03, 200); },
+    thunder() {
+      // Rumble: low noise + descending tone
+      noiseBurst(0.4, 0.18);
+      tone(80, 0.5, 'sawtooth', 0.12, 40);
+      setTimeout(() => noiseBurst(0.3, 0.1), 80);
+    }
   };
 
   // ============================================================
@@ -151,6 +157,10 @@
   let bgOffset = 0;
   let stars = [];             // for level 3 starfield
   let fireworks = [];         // for victory screen
+  let lightningHazards = [];  // for level 4 storm: vertical lightning strikes
+  let nextLightning = 3000;
+  let cloudFlash = 0;         // brief whole-screen lightning flash
+  let snowflakes = [];        // for level 5 arctic
 
   let player = null;
   const eBullets = [];
@@ -185,6 +195,20 @@
     boss = null;
   }
 
+  function makeSnow() {
+    snowflakes = [];
+    for (let i = 0; i < 90; i++) {
+      snowflakes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vy: 0.05 + Math.random() * 0.12,
+        vx: (Math.random() - 0.5) * 0.04,
+        size: 1 + Math.random() * 2,
+        sway: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
   function makeStars() {
     stars = [];
     for (let i = 0; i < 80; i++) {
@@ -211,13 +235,16 @@
     spawnInterval = 900;
     bgOffset = 0;
     levelStartFlash = 1500;
+    lightningHazards.length = 0;
+    nextLightning = 3000;
+    snowflakes.length = 0;
     state = 'playing';
     makeStars();
   }
 
   function startNextLevel() {
     level++;
-    if (level > 3) {
+    if (level > 5) {
       state = 'victory';
       fireworks = [];
       return;
@@ -228,10 +255,14 @@
     player.invuln = 1500;
     waveTimer = 0;
     bossSpawned = false;
-    bossSpawnAt = level === 3 ? 28000 : 25000;
+    bossSpawnAt = level === 5 ? 32000 : level >= 3 ? 28000 : 25000;
     lastSpawn = 0;
-    spawnInterval = level === 1 ? 900 : level === 2 ? 750 : 650;
+    spawnInterval = level === 1 ? 900 : level === 2 ? 750 : level === 3 ? 650 : level === 4 ? 600 : 550;
     levelStartFlash = 1500;
+    lightningHazards.length = 0;
+    nextLightning = 3000;
+    snowflakes.length = 0;
+    if (level === 5) makeSnow();
     state = 'playing';
   }
 
@@ -391,9 +422,19 @@
       const r = Math.random();
       const t = r < 0.5 ? 'kamikaze' : r < 0.85 ? 'fighter' : 'chopper';
       e = makeEnemy(t, x, -30);
-    } else {
+    } else if (level === 3) {
       const r = Math.random();
       const t = r < 0.45 ? 'elite' : r < 0.85 ? 'fighter' : 'cruiser';
+      e = makeEnemy(t, x, -30);
+    } else if (level === 4) {
+      // Storm: laju + agresif, banyak kamikaze + fighter, sikit elite
+      const r = Math.random();
+      const t = r < 0.45 ? 'kamikaze' : r < 0.8 ? 'fighter' : 'elite';
+      e = makeEnemy(t, x, -30);
+    } else {
+      // Arctic: berat + dingin, banyak cruiser & elite
+      const r = Math.random();
+      const t = r < 0.4 ? 'elite' : r < 0.75 ? 'cruiser' : r < 0.92 ? 'fighter' : 'chopper';
       e = makeEnemy(t, x, -30);
     }
     enemies.push(e);
@@ -883,11 +924,23 @@
         hp: 80, maxHp: 80, t: 0, shootTimer: 1800, phase: 'enter',
         w: 130, h: 60, points: 2500
       };
-    } else {
+    } else if (level === 3) {
       boss = {
         type: 'mothership', x: W / 2, y: -100, vx: 0.05, vy: 0.05,
         hp: 110, maxHp: 110, t: 0, shootTimer: 1200, phase: 'enter',
         w: 180, h: 90, points: 4000
+      };
+    } else if (level === 4) {
+      boss = {
+        type: 'stormcarrier', x: W / 2, y: -80, vx: 0.14, vy: 0.07,
+        hp: 130, maxHp: 130, t: 0, shootTimer: 1500, phase: 'enter',
+        w: 170, h: 80, points: 6000
+      };
+    } else {
+      boss = {
+        type: 'icedreadnought', x: W / 2, y: -110, vx: 0.08, vy: 0.06,
+        hp: 160, maxHp: 160, t: 0, shootTimer: 1500, phase: 'enter',
+        w: 180, h: 110, points: 9000, enraged: false
       };
     }
   }
@@ -951,6 +1004,78 @@
             eBullets.push({ x: boss.x, y: boss.y + 40, vx: dx / d * 0.36, vy: dy / d * 0.36, r: 6, dmg: 15, kind: 'e' });
           }
           boss.shootTimer = 750;
+        }
+      } else if (boss.type === 'stormcarrier') {
+        // L4 Storm Carrier — terbang lebar, peluru kilat dari dua sayap
+        boss.x += boss.vx * dt;
+        if (boss.x < boss.w / 2 + 10 || boss.x > W - boss.w / 2 - 10) boss.vx *= -1;
+        boss.y = 110 + Math.sin(boss.t * 0.0012) * 10;
+        if (boss.shootTimer <= 0) {
+          SFX.enemyShoot();
+          // dua salvo dari sayap kiri & kanan
+          for (const wx of [-70, 70]) {
+            eBullets.push({ x: boss.x + wx, y: boss.y + 20, vx: 0, vy: 0.35, r: 5, dmg: 12, kind: 'e' });
+          }
+          // setiap 2 salvo, lepas spread aim ke player
+          if (Math.floor(boss.t / 1500) % 2 === 0 && player) {
+            const dx = player.x - boss.x, dy = player.y - boss.y;
+            const d = Math.hypot(dx, dy) || 1;
+            const sp = 0.32;
+            for (const a of [-0.25, 0, 0.25]) {
+              const baseA = Math.atan2(dy, dx);
+              const ang = baseA + a;
+              eBullets.push({ x: boss.x, y: boss.y + 30, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: 5, dmg: 12, kind: 'e' });
+            }
+          }
+          boss.shootTimer = 850;
+        }
+      } else if (boss.type === 'icedreadnought') {
+        // L5 Ice Dreadnought — multi-fasa (>50% normal, ≤50% berang)
+        const hpPct = boss.hp / boss.maxHp;
+        const enraged = hpPct <= 0.5;
+        if (enraged && !boss.enraged) {
+          boss.enraged = true;
+          SFX.bossDefeat();   // mini-fanfare bila masuk fasa 2
+          screenShake = 20;
+        }
+        // Pergerakan lebih lincah bila enraged
+        boss.x += boss.vx * dt * (enraged ? 1.5 : 1);
+        if (boss.x < boss.w / 2 + 10 || boss.x > W - boss.w / 2 - 10) boss.vx *= -1;
+        boss.y = 130 + Math.sin(boss.t * 0.0015) * 12;
+        if (boss.shootTimer <= 0) {
+          SFX.enemyShoot();
+          if (!enraged) {
+            // Fasa 1: cannon ais — 3 peluru perlahan tapi besar
+            for (const ox of [-50, 0, 50]) {
+              eBullets.push({ x: boss.x + ox, y: boss.y + 40, vx: 0, vy: 0.28, r: 6, dmg: 12, kind: 'e' });
+            }
+            // dan satu tembakan terus ke player
+            if (player) {
+              const dx = player.x - boss.x, dy = player.y - boss.y;
+              const d = Math.hypot(dx, dy) || 1;
+              eBullets.push({ x: boss.x, y: boss.y + 40, vx: dx / d * 0.32, vy: dy / d * 0.32, r: 6, dmg: 13, kind: 'e' });
+            }
+            boss.shootTimer = 1100;
+          } else {
+            // Fasa 2: ais shard ledakan 8-arah + targeted volley
+            const offset = boss.t * 0.0015;
+            for (let i = 0; i < 8; i++) {
+              const a = (i / 8) * Math.PI * 2 + offset;
+              const sp = 0.28;
+              eBullets.push({ x: boss.x, y: boss.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 5, dmg: 12, kind: 'e' });
+            }
+            // dan 3 peluru tepat sasar
+            if (player) {
+              const dx = player.x - boss.x, dy = player.y - boss.y;
+              const d = Math.hypot(dx, dy) || 1;
+              const baseA = Math.atan2(dy, dx);
+              for (const a of [-0.2, 0, 0.2]) {
+                const ang = baseA + a;
+                eBullets.push({ x: boss.x, y: boss.y + 50, vx: Math.cos(ang) * 0.4, vy: Math.sin(ang) * 0.4, r: 5, dmg: 14, kind: 'e' });
+              }
+            }
+            boss.shootTimer = 700;
+          }
         }
       }
     }
@@ -1203,6 +1328,189 @@
       ctx.beginPath();
       ctx.arc(0, 8, 5, 0, Math.PI * 2);
       ctx.fill();
+    } else if (boss.type === 'stormcarrier') {
+      // ── L4 Storm Carrier: kapal udara raksasa, sayap lebar, percikan kilat
+      const g = ctx.createLinearGradient(0, -30, 0, 30);
+      g.addColorStop(0, '#3a4055');
+      g.addColorStop(0.5, '#5a6580');
+      g.addColorStop(1, '#1a2030');
+      ctx.fillStyle = g;
+      // Body utama (lozenge / diamond memanjang)
+      ctx.beginPath();
+      ctx.moveTo(0, 38);             // nose ke bawah
+      ctx.lineTo(50, 18);
+      ctx.lineTo(85, 0);             // sayap kanan
+      ctx.lineTo(50, -10);
+      ctx.lineTo(20, -38);           // ekor
+      ctx.lineTo(-20, -38);
+      ctx.lineTo(-50, -10);
+      ctx.lineTo(-85, 0);            // sayap kiri
+      ctx.lineTo(-50, 18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#1a1a2a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Garis tengah (chassis)
+      ctx.strokeStyle = '#aaccff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -30); ctx.lineTo(0, 30);
+      ctx.stroke();
+      // Cockpit canopy bawah
+      ctx.fillStyle = '#88ccff';
+      ctx.beginPath();
+      ctx.ellipse(0, 20, 8, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a5577';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Sayap pod (gun mount kiri & kanan)
+      ctx.fillStyle = '#222';
+      ctx.fillRect(-90, -4, 14, 8);
+      ctx.fillRect(76, -4, 14, 8);
+      // Lampu kilat di hujung sayap (flicker)
+      const flick = Math.floor(boss.t / 120) % 2 === 0;
+      ctx.fillStyle = flick ? '#aaeeff' : '#5577aa';
+      ctx.beginPath(); ctx.arc(-85, 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(85, 0, 4, 0, Math.PI * 2); ctx.fill();
+      if (flick) {
+        ctx.shadowColor = '#aaeeff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(-85, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(85, 0, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      // 4 propeller besar di sudut (animated)
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1.5;
+      const prot = boss.t * 0.05;
+      [[-55, -18], [55, -18], [-55, 18], [55, 18]].forEach(([px, py]) => {
+        ctx.beginPath();
+        ctx.arc(px, py, 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(80,80,100,0.4)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(px - 10 * Math.cos(prot), py - 10 * Math.sin(prot));
+        ctx.lineTo(px + 10 * Math.cos(prot), py + 10 * Math.sin(prot));
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(px - 10 * Math.sin(prot), py + 10 * Math.cos(prot));
+        ctx.lineTo(px + 10 * Math.sin(prot), py - 10 * Math.cos(prot));
+        ctx.stroke();
+      });
+      // Sparkle effect (electric arcs sekitar body)
+      if (Math.random() < 0.4) {
+        ctx.strokeStyle = `rgba(170, 230, 255, ${0.5 + Math.random() * 0.5})`;
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          const sx = (Math.random() - 0.5) * 100;
+          const sy = (Math.random() - 0.5) * 50;
+          ctx.moveTo(sx, sy);
+          ctx.lineTo(sx + (Math.random() - 0.5) * 20, sy + (Math.random() - 0.5) * 14);
+          ctx.stroke();
+        }
+      }
+    } else if (boss.type === 'icedreadnought') {
+      // ── L5 Ice Dreadnought: kapal perang ais besar, multi-fasa
+      const enraged = boss.enraged;
+      const hullColor1 = enraged ? '#ff5577' : '#aaccff';   // bila berang, merah-pink (overheating ais)
+      const hullColor2 = enraged ? '#7a2236' : '#4a6a8a';
+      const hullColor3 = enraged ? '#3a0a18' : '#1a3050';
+
+      // Body utama (kapal panjang)
+      const g = ctx.createLinearGradient(0, -55, 0, 55);
+      g.addColorStop(0, hullColor1);
+      g.addColorStop(0.5, hullColor2);
+      g.addColorStop(1, hullColor3);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(-30, -55);
+      ctx.lineTo(30, -55);
+      ctx.lineTo(60, -30);
+      ctx.lineTo(80, 0);
+      ctx.lineTo(60, 40);
+      ctx.lineTo(0, 55);          // nose ke bawah (hadapan kapal)
+      ctx.lineTo(-60, 40);
+      ctx.lineTo(-80, 0);
+      ctx.lineTo(-60, -30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = enraged ? '#ffaabb' : '#cce4ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Lapisan ais (ice cracks pattern)
+      ctx.strokeStyle = enraged ? '#ffcccc' : '#e0f0ff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-50, -20); ctx.lineTo(-20, 0); ctx.lineTo(-40, 20);
+      ctx.moveTo(50, -20); ctx.lineTo(20, 0); ctx.lineTo(40, 20);
+      ctx.moveTo(-10, -40); ctx.lineTo(10, -20);
+      ctx.stroke();
+
+      // Cannon utama di hadapan (nose)
+      ctx.fillStyle = '#0a1a2a';
+      ctx.fillRect(-8, 40, 16, 18);
+      ctx.fillStyle = enraged ? '#ff8888' : '#88ccff';
+      ctx.fillRect(-3, 48, 6, 12);
+      // Bersinar bila enraged
+      if (enraged) {
+        ctx.shadowColor = '#ff5577';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 55, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // 4 turret samping
+      const turretPositions = [[-50, 10], [50, 10], [-40, -20], [40, -20]];
+      for (const [tx, ty] of turretPositions) {
+        ctx.fillStyle = '#1a2a3a';
+        ctx.beginPath();
+        ctx.arc(tx, ty, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#6a8aaa';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Turret barrel (point toward bottom = ke arah player)
+        ctx.fillStyle = '#0a1a2a';
+        ctx.fillRect(tx - 1.5, ty, 3, 8);
+      }
+
+      // Command tower / bridge atas (rear)
+      ctx.fillStyle = enraged ? '#aa3050' : '#3a5577';
+      ctx.fillRect(-15, -50, 30, 20);
+      ctx.strokeStyle = '#cce4ff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-15, -50, 30, 20);
+      // Window strip
+      ctx.fillStyle = '#ffd24d';
+      for (let i = -2; i <= 2; i++) ctx.fillRect(i * 5 - 1, -42, 3, 2);
+
+      // Engine exhaust (rear) — biru ais / merah bila enraged
+      const exhaustColor = enraged ? '#ff6699' : '#aaeeff';
+      ctx.fillStyle = exhaustColor;
+      ctx.fillRect(-20, -55, 6, 6);
+      ctx.fillRect(14, -55, 6, 6);
+      ctx.shadowColor = exhaustColor;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(-17, -58, 3, 0, Math.PI * 2);
+      ctx.arc(17, -58, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Tanda fasa: lampu kelip bahaya bila enraged
+      if (enraged && Math.floor(boss.t / 200) % 2 === 0) {
+        ctx.fillStyle = '#ff2244';
+        ctx.beginPath();
+        ctx.arc(-65, 5, 3, 0, Math.PI * 2);
+        ctx.arc(65, 5, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.restore();
 
@@ -1340,6 +1648,90 @@
       p.vy += 0.0002 * dt;
       p.life -= dt;
       if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // ── L4 Storm: lightning hazard yang menyambar dari atas (alam, bukan musuh)
+  function updateLightning(dt) {
+    if (level !== 4) return;
+    nextLightning -= dt;
+    if (nextLightning <= 0) {
+      // Spawn 1-2 bolts at random x
+      const count = 1 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < count; i++) {
+        lightningHazards.push({
+          x: 40 + Math.random() * (W - 80),
+          t: 0,
+          life: 700,
+          // pre-compute jagged path so it looks consistent (re-jitter every few frames for animation)
+          path: null,
+          pathTimer: 0
+        });
+      }
+      cloudFlash = 1;
+      SFX.thunder();
+      nextLightning = 2200 + Math.random() * 2500;
+    }
+    for (let i = lightningHazards.length - 1; i >= 0; i--) {
+      const h = lightningHazards[i];
+      h.t += dt;
+      h.pathTimer -= dt;
+      if (!h.path || h.pathTimer <= 0) {
+        h.path = [];
+        let x = h.x, y = 0;
+        while (y < H) {
+          h.path.push([x, y]);
+          y += 18 + Math.random() * 24;
+          x = h.x + (Math.random() - 0.5) * 28;
+        }
+        h.pathTimer = 60;
+      }
+      if (h.t > h.life) lightningHazards.splice(i, 1);
+    }
+    // Damage check — strike is dangerous between t=120..360 (mid of lifetime)
+    if (player && player.invuln <= 0) {
+      for (const h of lightningHazards) {
+        if (h.t > 120 && h.t < 360) {
+          // Hit if player is within ±14 px of bolt center
+          if (Math.abs(player.x - h.x) < 14 && player.y > 30) {
+            player.health -= 25;
+            player.flashTimer = 250;
+            spawnExplosion(player.x, player.y, '#bbeeff', 16);
+            // Move bolt away to avoid re-hit
+            h.t = 400;
+            if (player.health <= 0) { loseLife(); break; }
+          }
+        }
+      }
+    }
+  }
+
+  function drawLightning() {
+    if (level !== 4 || !lightningHazards.length) return;
+    for (const h of lightningHazards) {
+      let alpha = 1;
+      if (h.t < 80) alpha = h.t / 80;          // fade in
+      else if (h.t > 360) alpha = Math.max(0, (h.life - h.t) / (h.life - 360));
+      alpha = Math.max(0, Math.min(1, alpha));
+      // Glow outer
+      ctx.strokeStyle = `rgba(170, 220, 255, ${alpha * 0.4})`;
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < h.path.length; i++) {
+        const [px, py] = h.path[i];
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      // Bright core
+      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i < h.path.length; i++) {
+        const [px, py] = h.path[i];
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
     }
   }
 
@@ -1598,10 +1990,141 @@
     }
   }
 
+  function drawBackgroundLevel4() {
+    // Storm — dark base + scrolling cloud layers + occasional bright flash overlay
+    const baseG = ctx.createLinearGradient(0, 0, 0, H);
+    baseG.addColorStop(0, '#0a0a1a');
+    baseG.addColorStop(0.5, '#1a1828');
+    baseG.addColorStop(1, '#08081a');
+    ctx.fillStyle = baseG;
+    ctx.fillRect(0, 0, W, H);
+
+    // Dark cloud layers (3 parallax depths)
+    const off1 = (bgOffset * 0.3) % 180;
+    ctx.fillStyle = 'rgba(40, 38, 60, 0.55)';
+    for (let band = -1; band <= Math.ceil(H / 180) + 1; band++) {
+      const baseY = band * 180 + off1;
+      // Cloud "puffs"
+      for (let i = 0; i < 5; i++) {
+        const cx = (i * 90 + (band * 47)) % W;
+        const cy = baseY + ((i * 17) % 80);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 50, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    const off2 = (bgOffset * 0.7) % 140;
+    ctx.fillStyle = 'rgba(70, 65, 95, 0.45)';
+    for (let band = -1; band <= Math.ceil(H / 140) + 1; band++) {
+      const baseY = band * 140 + off2;
+      for (let i = 0; i < 4; i++) {
+        const cx = ((i * 110 + band * 33) % (W + 100)) - 50;
+        const cy = baseY + ((i * 23) % 60);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 60, 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Raindrop streaks (foreground)
+    ctx.strokeStyle = 'rgba(170, 200, 230, 0.18)';
+    ctx.lineWidth = 1;
+    const off3 = (bgOffset * 2.5) % 30;
+    for (let y = -off3; y < H; y += 30) {
+      for (let x = (y * 7) % 50; x < W; x += 70) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 3, y + 12);
+        ctx.stroke();
+      }
+    }
+    // Lightning flash overlay (whole screen brief flash)
+    if (cloudFlash > 0) {
+      ctx.fillStyle = `rgba(220, 230, 255, ${cloudFlash * 0.4})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  function drawBackgroundLevel5() {
+    // Arctic — icy blue gradient + glacier silhouettes + falling snow
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a3a55');
+    g.addColorStop(0.5, '#3a6a8a');
+    g.addColorStop(1, '#88ccdd');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Glacier walls (jagged ice formations on sides)
+    const off1 = (bgOffset * 0.4) % 130;
+    ctx.fillStyle = '#cce4ff';
+    for (let band = -1; band <= Math.ceil(H / 130) + 1; band++) {
+      const baseY = band * 130 + off1;
+      // Left jagged
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      ctx.lineTo(40, baseY + 30);
+      ctx.lineTo(20, baseY + 70);
+      ctx.lineTo(50, baseY + 110);
+      ctx.lineTo(0, baseY + 130);
+      ctx.closePath();
+      ctx.fill();
+      // Right jagged
+      ctx.beginPath();
+      ctx.moveTo(W, baseY);
+      ctx.lineTo(W - 50, baseY + 35);
+      ctx.lineTo(W - 30, baseY + 75);
+      ctx.lineTo(W - 60, baseY + 115);
+      ctx.lineTo(W, baseY + 130);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Inner ice highlights
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+    for (let band = -1; band <= Math.ceil(H / 130) + 1; band++) {
+      const baseY = band * 130 + off1;
+      ctx.beginPath();
+      ctx.moveTo(15, baseY + 10);
+      ctx.lineTo(30, baseY + 40);
+      ctx.lineTo(15, baseY + 50);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(W - 15, baseY + 20);
+      ctx.lineTo(W - 35, baseY + 50);
+      ctx.lineTo(W - 15, baseY + 60);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Frozen ground details
+    ctx.fillStyle = 'rgba(200, 230, 255, 0.25)';
+    const off2 = (bgOffset * 0.9) % 80;
+    for (let band = -1; band <= Math.ceil(H / 80) + 1; band++) {
+      const baseY = band * 80 + off2;
+      for (let i = 0; i < 3; i++) {
+        const rx = 90 + ((i * 97 + band * 41) % (W - 180));
+        ctx.fillRect(rx, baseY + 30, 18, 4);
+      }
+    }
+    // Snowflakes (animated)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    for (const sf of snowflakes) {
+      sf.x += sf.vx * 16 + Math.sin(sf.sway) * 0.3;
+      sf.y += sf.vy * 16;
+      sf.sway += 0.02;
+      if (sf.y > H) { sf.y = -5; sf.x = Math.random() * W; }
+      if (sf.x < 0) sf.x = W;
+      if (sf.x > W) sf.x = 0;
+      ctx.beginPath();
+      ctx.arc(sf.x, sf.y, sf.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawBackground() {
     if (level === 1) drawBackgroundLevel1();
     else if (level === 2) drawBackgroundLevel2();
-    else drawBackgroundLevel3();
+    else if (level === 3) drawBackgroundLevel3();
+    else if (level === 4) drawBackgroundLevel4();
+    else drawBackgroundLevel5();
   }
 
   // ============================================================
@@ -1668,7 +2191,7 @@
       ctx.fillText('LEVEL ' + level, W / 2, H / 2 - 14);
       ctx.fillStyle = 'rgba(0, 229, 255, ' + a + ')';
       ctx.font = 'bold 14px Courier New';
-      const names = ['CITY & COASTAL HARBOR', 'DESERT CANYON', 'EDGE OF SPACE'];
+      const names = ['CITY & COASTAL HARBOR', 'DESERT CANYON', 'EDGE OF SPACE', 'THUNDERSTORM', 'ARCTIC GLACIER'];
       ctx.fillText(names[level - 1], W / 2, H / 2 + 16);
     }
   }
@@ -1710,7 +2233,7 @@
 
     ctx.fillStyle = '#ffaaff';
     ctx.font = '12px Courier New';
-    ctx.fillText('3 LEVELS  |  3 BOSSES  |  3 LIVES', W / 2, 440);
+    ctx.fillText('5 LEVELS  |  5 BOSSES  |  3 LIVES', W / 2, 440);
 
     ctx.fillStyle = '#ffeebb';
     ctx.font = 'italic 13px Courier New';
@@ -1868,6 +2391,7 @@
     bgOffset += dt * 0.06;
     if (levelStartFlash > 0) levelStartFlash -= dt;
     if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 0.04);
+    if (cloudFlash > 0) cloudFlash = Math.max(0, cloudFlash - dt * 0.005);
 
     if (state === 'playing') {
       waveTimer += dt;
@@ -1877,6 +2401,7 @@
       updateBullets(dt);
       updatePowerups(dt);
       updateParticles(dt);
+      updateLightning(dt);
       checkCollisions();
 
       if (!bossSpawned && waveTimer >= bossSpawnAt) {
@@ -1915,6 +2440,7 @@
       drawBullets();
       drawPlayer();
       drawParticles();
+      drawLightning();
       drawHUD();
       if (state === 'transition') drawTransitionScreen();
     } else if (state === 'gameover') {
