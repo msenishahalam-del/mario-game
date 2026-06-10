@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Hang Tuah — Pahlawan Melaka</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  body { display: flex; align-items: center; justify-content: center; }
+  #backBtn {
+    position: fixed; top: 10px; left: 10px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #ffd24d;
+    padding: 6px 14px;
+    border: 2px solid #ffd24d;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 2px;
+    z-index: 999;
+  }
+  #backBtn:hover { background: #ffd24d; color: #000; }
+  canvas {
+    display: block;
+    background: #000;
+    image-rendering: pixelated;
+    max-width: 100vw;
+    max-height: 100vh;
+    box-shadow: 0 0 30px rgba(255, 210, 77, 0.5);
+    border: 2px solid #ffd24d;
+  }
+</style>
+</head>
+<body>
+
+<a id="backBtn" href="/arcade.html">◀ HUB</a>
+<canvas id="game" width="900" height="540"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const GROUND_Y = 480;       // permukaan tanah standard
+
+  // ============================================================
+  // AUDIO (Web Audio API)
+  // ============================================================
+  let actx = null;
+  function ensureAudio() {
+    if (actx) return;
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { actx = null; }
+  }
+  function tone(freq, dur, type = 'square', vol = 0.07, freqEnd = null) {
+    if (!actx) return;
+    const t0 = actx.currentTime;
+    const osc = actx.createOscillator();
+    const g = actx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (freqEnd !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(actx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+  }
+  function noiseBurst(dur, vol = 0.1) {
+    if (!actx) return;
+    const t0 = actx.currentTime;
+    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource();
+    const g = actx.createGain();
+    src.buffer = buf;
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(g).connect(actx.destination);
+    src.start(t0);
+  }
+  const SFX = {
+    jump:    () => tone(300, 0.12, 'square', 0.05, 600),
+    slash:   () => { noiseBurst(0.06, 0.06); tone(900, 0.08, 'sawtooth', 0.04, 300); },
+    throw:   () => tone(500, 0.1, 'square', 0.04, 800),
+    hitEnemy:() => { tone(220, 0.1, 'square', 0.08, 100); noiseBurst(0.08, 0.08); },
+    enemyDie:() => { noiseBurst(0.15, 0.1); tone(160, 0.2, 'sawtooth', 0.08, 60); },
+    hurt:    () => tone(140, 0.3, 'sawtooth', 0.12, 60),
+    coin:    () => { tone(988, 0.06, 'square', 0.05); setTimeout(() => tone(1319, 0.12, 'square', 0.05), 60); },
+    ketupat: () => { [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'sine', 0.07), i * 70)); },
+    batu:    () => tone(660, 0.08, 'square', 0.05),
+    clear:   () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'square', 0.09), i * 110)); },
+    bossHit: () => { tone(180, 0.15, 'sawtooth', 0.1, 80); noiseBurst(0.1, 0.1); },
+    bossRoar:() => { tone(90, 0.6, 'sawtooth', 0.14, 50); noiseBurst(0.3, 0.12); },
+    victory: () => { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'square', 0.1), i * 130)); }
+  };
+
+  // ============================================================
+  // INPUT
+  // ============================================================
+  const keys = Object.create(null);
+  const BLOCKED = new Set(['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyZ', 'KeyX']);
+  window.addEventListener('keydown', e => {
+    ensureAudio();
+    if (BLOCKED.has(e.code)) e.preventDefault();
+    if (!keys[e.code]) {
+      keys[e.code] = true;
+      onKeyPress(e.code);
+    }
+  });
+  window.addEventListener('keyup', e => { keys[e.code] = false; });
+  function held(...codes) { return codes.some(c => keys[c]); }
+
+  function onKeyPress(code) {
+    if (state === 'start' && code === 'Enter') { storyIndex = 0; state = 'story'; }
+    else if (state === 'story' && code === 'Enter') beginLevel(storyIndex);
+    else if (state === 'clear' && code === 'Enter') { storyIndex = levelIndex + 1; state = 'story'; }
+    else if (state === 'victory' && (code === 'Enter' || code === 'KeyR')) state = 'start';
+    else if (state === 'gameover' && (code === 'Enter' || code === 'KeyR')) state = 'start';
+    else if (state === 'playing') {
+      if (code === 'KeyZ') tryAttack();
+      else if (code === 'KeyX') tryThrow();
+      else if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') tryJump();
+    }
+  }
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let state = 'start';     // start | story | playing | clear | gameover | victory
+  let storyIndex = 0;
+  let levelIndex = 0;
+  let score = 0;
+  let lives = 3;
+  let camX = 0;
+  let screenShake = 0;
+  let levelFlash = 0;
+  let bgT = 0;
+
+  const player = {
+    x: 100, y: GROUND_Y, w: 26, h: 46,
+    vx: 0, vy: 0,
+    facing: 1,
+    grounded: false,
+    health: 100, maxHealth: 100,
+    invuln: 0,
+    attackTimer: 0,        // > 0 sedang menetak
+    throwCooldown: 0,
+    stones: 5, maxStones: 9,
+    animT: 0,
+    lastSafeX: 100
+  };
+
+  const stones = [];       // peluru batu player
+  const knives = [];       // pisau lanun pelempar / parang boss
+  const particles = [];
+  let enemies = [];
+  let items = [];
+  let platforms = [];
+  let boss = null;
+  let bossArenaX = 0;
+  let levelLength = 3600;
+  let gateX = 0;           // pintu tamat (L1, L2)
+
+  // Physics
+  const GRAV = 0.0024;
+  const MOVE = 0.3;
+  const JUMP_V = -0.78;
+
+  // ============================================================
+  // CERITA
+  // ============================================================
+  const STORIES = [
+    {
+      title: 'BABAK 1 — KAMPUNG DUYONG',
+      lines: [
+        'Melaka, tahun 1456.',
+        'Lanun ganas menyerang Kampung Duyong!',
+        'Mereka mencuri KERIS TAMING SARI dari istana',
+        'dan melarikan diri...',
+        '',
+        'Seorang pemuda berani bernama HANG TUAH bangkit.',
+        'Usir lanun dari kampung!'
+      ]
+    },
+    {
+      title: 'BABAK 2 — HUTAN BELANTARA',
+      lines: [
+        'Lanun melarikan diri ke dalam hutan tebal.',
+        '',
+        'Hutan penuh bahaya — babi hutan liar,',
+        'ular berbisa, dan lanun bersembunyi',
+        'di sebalik pokok...',
+        '',
+        'Tuah mengejar tanpa rasa gentar!'
+      ]
+    },
+    {
+      title: 'BABAK 3 — KUBU LANUN',
+      lines: [
+        'Di hujung hutan, tersergam kubu lanun.',
+        '',
+        'Di dalamnya menunggu KETUA LANUN GARANG,',
+        'dengan Taming Sari di tangannya!',
+        '',
+        'Kalahkan dia. Rampas kembali keris sakti.',
+        'Maruah Melaka di tanganmu, Tuah!'
+      ]
+    }
+  ];
+
+  const LEVEL_NAMES = ['KAMPUNG DUYONG', 'HUTAN BELANTARA', 'KUBU LANUN'];
+
+  // ============================================================
+  // LEVEL DATA — helper
+  // ============================================================
+  function gr(x, w) { return { x, y: GROUND_Y, w, h: 60, ground: true }; }
+  function pf(x, y, w) { return { x, y, w, h: 14 }; }
+  function en(type, x, opts = {}) { return Object.assign({ type, x }, opts); }
+  function it(type, x, y) { return { type, x, y }; }
+  function coinRow(x, y, n, gap = 36) {
+    const arr = [];
+    for (let i = 0; i < n; i++) arr.push(it('coin', x + i * gap, y));
+    return arr;
+  }
+
+  function buildLevel(i) {
+    platforms = [];
+    enemies = [];
+    items = [];
+    boss = null;
+    stones.length = 0;
+    knives.length = 0;
+    particles.length = 0;
+
+    if (i === 0) {
+      // ── BABAK 1: KAMPUNG DUYONG ──
+      levelLength = 3600;
+      gateX = 3480;
+      bossArenaX = 0;
+      platforms.push(
+        gr(0, 940), gr(1020, 700), gr(1800, 820), gr(2700, 900),
+        // kotak/peti & bumbung rumah
+        pf(380, 400, 90), pf(560, 340, 90),
+        pf(1100, 400, 110), pf(1290, 330, 90),
+        pf(1900, 400, 100), pf(2080, 330, 100), pf(2260, 400, 90),
+        pf(2900, 390, 110), pf(3120, 320, 110)
+      );
+      enemies.push(
+        en('lanun', 500, { min: 380, max: 760 }),
+        en('lanun', 1250, { min: 1060, max: 1500 }),
+        en('pelempar', 1650, {}),
+        en('lanun', 2100, { min: 1900, max: 2350 }),
+        en('babi', 2900, { min: 2740, max: 3300 }),
+        en('lanun', 3250, { min: 3050, max: 3420 })
+      );
+      items.push(
+        ...coinRow(300, 440, 4),
+        ...coinRow(395, 360, 3), ...coinRow(575, 300, 3),
+        it('batu', 700, 450), it('ketupat', 900, 450),
+        ...coinRow(1110, 360, 3), ...coinRow(1300, 290, 3),
+        it('batu', 1550, 450),
+        ...coinRow(1910, 360, 3), ...coinRow(2090, 290, 3), ...coinRow(2270, 360, 3),
+        it('ketupat', 2500, 450), it('batu', 2620, 450),
+        ...coinRow(2910, 350, 3), ...coinRow(3130, 280, 3),
+        it('batu', 3400, 450)
+      );
+    } else if (i === 1) {
+      // ── BABAK 2: HUTAN BELANTARA ──
+      levelLength = 3800;
+      gateX = 3680;
+      bossArenaX = 0;
+      platforms.push(
+        gr(0, 700), gr(790, 560), gr(1440, 640), gr(2170, 560), gr(2820, 980),
+        // dahan pokok
+        pf(300, 390, 100), pf(480, 320, 90),
+        pf(850, 380, 100), pf(1030, 310, 90), pf(1210, 380, 80),
+        pf(1500, 400, 90), pf(1680, 330, 100), pf(1860, 400, 80),
+        pf(2250, 380, 90), pf(2430, 310, 100),
+        pf(2900, 390, 100), pf(3080, 320, 100), pf(3260, 390, 100)
+      );
+      enemies.push(
+        en('ular', 400, { min: 250, max: 620 }),
+        en('lanun', 900, { min: 800, max: 1240 }),
+        en('babi', 1600, { min: 1460, max: 2000 }),
+        en('pelempar', 1750, {}),
+        en('ular', 2300, { min: 2180, max: 2640 }),
+        en('lanun', 2500, { min: 2350, max: 2680 }),
+        en('babi', 3000, { min: 2860, max: 3400 }),
+        en('pelempar', 3300, {}),
+        en('lanun', 3500, { min: 3320, max: 3640 })
+      );
+      items.push(
+        ...coinRow(310, 350, 3), ...coinRow(490, 280, 3),
+        it('batu', 650, 450), it('ketupat', 740, 450),
+        ...coinRow(860, 340, 3), ...coinRow(1040, 270, 3), ...coinRow(1220, 340, 2),
+        it('batu', 1390, 450),
+        ...coinRow(1510, 360, 3), ...coinRow(1690, 290, 3),
+        it('ketupat', 2100, 450),
+        ...coinRow(2260, 340, 3), ...coinRow(2440, 270, 3),
+        it('batu', 2750, 450),
+        ...coinRow(2910, 350, 3), ...coinRow(3090, 280, 3), ...coinRow(3270, 350, 3),
+        it('ketupat', 3550, 450), it('batu', 3600, 450)
+      );
+    } else {
+      // ── BABAK 3: KUBU LANUN (BOSS) ──
+      levelLength = 2700;
+      gateX = -1;            // tiada gate — kalahkan boss
+      bossArenaX = 1950;
+      platforms.push(
+        gr(0, 760), gr(840, 560), gr(1480, 1220),
+        // tembok kubu & menara
+        pf(300, 390, 100), pf(480, 320, 90),
+        pf(900, 380, 110), pf(1090, 310, 90),
+        pf(1550, 400, 90), pf(1730, 330, 90)
+      );
+      enemies.push(
+        en('pengawal', 400, { min: 300, max: 700 }),
+        en('pelempar', 650, {}),
+        en('pengawal', 1000, { min: 860, max: 1340 }),
+        en('babi', 1200, { min: 880, max: 1380 }),
+        en('pengawal', 1600, { min: 1500, max: 1880 }),
+        en('pelempar', 1800, {})
+      );
+      items.push(
+        ...coinRow(310, 350, 3), ...coinRow(490, 280, 3),
+        it('batu', 600, 450), it('ketupat', 770, 450),
+        ...coinRow(910, 340, 3), ...coinRow(1100, 270, 3),
+        it('batu', 1400, 450), it('ketupat', 1450, 450),
+        ...coinRow(1560, 360, 3), ...coinRow(1740, 290, 3),
+        it('batu', 1900, 450)
+      );
+      boss = {
+        x: 2350, y: GROUND_Y, w: 60, h: 90,
+        vx: 0, vy: 0, facing: -1,
+        hp: 24, maxHp: 24,
+        grounded: true,
+        active: false,
+        enraged: false,
+        jumpTimer: 2600, throwTimer: 3400,
+        hitFlash: 0, t: 0
+      };
+    }
+
+    // Init enemy runtime fields
+    enemies = enemies.map(e => initEnemy(e));
+  }
+
+  function initEnemy(e) {
+    const base = {
+      x: e.x, y: GROUND_Y, vx: 0, vy: 0, t: Math.random() * 1000,
+      facing: -1, hitFlash: 0, attackCooldown: 0,
+      min: e.min !== undefined ? e.min : e.x - 150,
+      max: e.max !== undefined ? e.max : e.x + 150,
+      dir: Math.random() < 0.5 ? -1 : 1,
+      type: e.type, dead: false
+    };
+    if (e.type === 'lanun')    Object.assign(base, { w: 28, h: 44, hp: 2, speed: 0.08, dmg: 15, points: 100 });
+    if (e.type === 'pengawal') Object.assign(base, { w: 30, h: 46, hp: 4, speed: 0.11, dmg: 18, points: 200 });
+    if (e.type === 'pelempar') Object.assign(base, { w: 28, h: 44, hp: 2, speed: 0, dmg: 0, points: 150, throwTimer: 1500 + Math.random() * 800 });
+    if (e.type === 'babi')     Object.assign(base, { w: 42, h: 30, hp: 3, speed: 0.05, chargeSpeed: 0.34, dmg: 20, points: 120, charging: false });
+    if (e.type === 'ular')     Object.assign(base, { w: 40, h: 16, hp: 1, speed: 0.06, dmg: 12, points: 80 });
+    return base;
+  }
+
+  function beginLevel(i) {
+    levelIndex = i;
+    buildLevel(i);
+    player.x = 100;
+    player.y = GROUND_Y;
+    player.vx = 0; player.vy = 0;
+    player.health = player.maxHealth;
+    player.invuln = 1500;
+    player.stones = Math.max(player.stones, 5);
+    player.lastSafeX = 100;
+    camX = 0;
+    levelFlash = 1800;
+    state = 'playing';
+  }
+
+  // ============================================================
+  // PLAYER ACTIONS
+  // ============================================================
+  function tryJump() {
+    if (player.grounded) {
+      player.vy = JUMP_V;
+      player.grounded = false;
+      SFX.jump();
+    }
+  }
+  function tryAttack() {
+    if (player.attackTimer <= 0) {
+      player.attackTimer = 380;
+      SFX.slash();
+    }
+  }
+  function tryThrow() {
+    if (player.throwCooldown <= 0 && player.stones > 0) {
+      player.stones--;
+      player.throwCooldown = 450;
+      stones.push({
+        x: player.x + player.facing * 20,
+        y: player.y - player.h + 14,
+        vx: player.facing * 0.55,
+        vy: -0.18,
+        r: 5
+      });
+      SFX.throw();
+    }
+  }
+
+  // ============================================================
+  // UPDATE — PLAYER
+  // ============================================================
+  function updatePlayer(dt) {
+    if (player.invuln > 0) player.invuln -= dt;
+    if (player.attackTimer > 0) player.attackTimer -= dt;
+    if (player.throwCooldown > 0) player.throwCooldown -= dt;
+    player.animT += dt;
+
+    // Gerak kiri/kanan
+    let move = 0;
+    if (held('ArrowLeft', 'KeyA')) move = -1;
+    if (held('ArrowRight', 'KeyD')) move = 1;
+    if (move !== 0) player.facing = move;
+    player.vx = move * MOVE;
+
+    // Graviti
+    player.vy += GRAV * dt;
+    if (player.vy > 1.1) player.vy = 1.1;
+
+    // Gerakan + collision platform
+    player.x += player.vx * dt;
+    // Had kiri dan boss arena lock
+    const minX = (boss && boss.active) ? bossArenaX + 20 : 20;
+    if (player.x < minX) player.x = minX;
+    if (player.x > levelLength - 20) player.x = levelLength - 20;
+
+    player.y += player.vy * dt;
+    player.grounded = false;
+    for (const p of platforms) {
+      // Mendarat dari atas sahaja
+      if (player.vy >= 0 &&
+          player.x + player.w / 2 > p.x && player.x - player.w / 2 < p.x + p.w &&
+          player.y >= p.y && player.y - player.vy * dt <= p.y + 6) {
+        player.y = p.y;
+        player.vy = 0;
+        player.grounded = true;
+      }
+    }
+    if (player.grounded) player.lastSafeX = player.x;
+
+    // Jatuh dalam gaung
+    if (player.y > H + 60) {
+      damagePlayer(25, 0);
+      player.x = player.lastSafeX;
+      player.y = GROUND_Y - 100;
+      player.vy = 0;
+    }
+
+    // Serangan keris — hitbox
+    if (player.attackTimer > 160 && player.attackTimer < 320) {
+      const hx = player.x + player.facing * 28;
+      const hy = player.y - player.h / 2;
+      for (const e of enemies) {
+        if (e.dead || e.hitFlash > 0) continue;
+        if (Math.abs(e.x - hx) < (e.w / 2 + 20) && Math.abs((e.y - e.h / 2) - hy) < 40) {
+          hurtEnemy(e, 1, player.facing);
+        }
+      }
+      if (boss && boss.active && boss.hitFlash <= 0) {
+        if (Math.abs(boss.x - hx) < (boss.w / 2 + 22) && Math.abs((boss.y - boss.h / 2) - hy) < 60) {
+          hurtBoss(1);
+        }
+      }
+    }
+
+    // Pintu tamat level
+    if (gateX > 0 && player.x > gateX) {
+      score += 500;
+      SFX.clear();
+      state = 'clear';
+    }
+  }
+
+  function damagePlayer(amount, knockDir) {
+    if (player.invuln > 0) return;
+    player.health -= amount;
+    player.invuln = 1200;
+    player.vx = knockDir * 0.3;
+    player.vy = -0.3;
+    SFX.hurt();
+    spawnParticles(player.x, player.y - 20, '#ffcc55', 10);
+    if (player.health <= 0) {
+      lives--;
+      if (lives <= 0) {
+        state = 'gameover';
+      } else {
+        // Restart level
+        beginLevel(levelIndex);
+      }
+    }
+  }
+
+  // ============================================================
+  // UPDATE — MUSUH
+  // ============================================================
+  function hurtEnemy(e, dmg, dir) {
+    e.hp -= dmg;
+    e.hitFlash = 200;
+    e.x += dir * 14;
+    SFX.hitEnemy();
+    spawnParticles(e.x, e.y - e.h / 2, '#ff8844', 6);
+    if (e.hp <= 0) {
+      e.dead = true;
+      score += e.points;
+      SFX.enemyDie();
+      spawnParticles(e.x, e.y - e.h / 2, '#ffd24d', 14);
+      // Drop batu kadang-kadang
+      if (Math.random() < 0.3) items.push({ type: 'batu', x: e.x, y: e.y - 20 });
+    }
+  }
+
+  function updateEnemies(dt) {
+    for (const e of enemies) {
+      if (e.dead) continue;
+      e.t += dt;
+      if (e.hitFlash > 0) e.hitFlash -= dt;
+      if (e.attackCooldown > 0) e.attackCooldown -= dt;
+      // Hanya aktif dekat skrin
+      if (e.x < camX - 150 || e.x > camX + W + 150) continue;
+
+      if (e.type === 'lanun' || e.type === 'pengawal') {
+        // Patrol; kejar bila player dekat
+        const dist = player.x - e.x;
+        if (Math.abs(dist) < 240 && Math.abs(player.y - e.y) < 60) {
+          e.dir = Math.sign(dist) || 1;
+          e.x += e.dir * e.speed * 1.4 * dt;
+        } else {
+          e.x += e.dir * e.speed * dt;
+          if (e.x < e.min) { e.x = e.min; e.dir = 1; }
+          if (e.x > e.max) { e.x = e.max; e.dir = -1; }
+        }
+        e.facing = e.dir;
+      } else if (e.type === 'pelempar') {
+        // Diam, baling pisau bila player dalam jarak
+        e.facing = Math.sign(player.x - e.x) || -1;
+        e.throwTimer -= dt;
+        if (e.throwTimer <= 0 && Math.abs(player.x - e.x) < 520) {
+          const dx = player.x - e.x;
+          knives.push({
+            x: e.x + e.facing * 16,
+            y: e.y - e.h + 16,
+            vx: Math.sign(dx) * 0.34,
+            vy: -0.22 - Math.min(0.15, Math.abs(dx) / 4000),
+            r: 5, dmg: 12
+          });
+          e.throwTimer = 2000 + Math.random() * 700;
+          SFX.throw();
+        }
+      } else if (e.type === 'babi') {
+        // Charge bila player sebaris
+        const dist = player.x - e.x;
+        if (!e.charging && Math.abs(dist) < 300 && Math.abs(player.y - e.y) < 40) {
+          e.charging = true;
+          e.dir = Math.sign(dist) || 1;
+        }
+        if (e.charging) {
+          e.x += e.dir * e.chargeSpeed * dt;
+          if (e.x < e.min || e.x > e.max) {
+            e.charging = false;
+            e.x = Math.max(e.min, Math.min(e.max, e.x));
+          }
+        } else {
+          e.x += e.dir * e.speed * dt;
+          if (e.x < e.min) { e.x = e.min; e.dir = 1; }
+          if (e.x > e.max) { e.x = e.max; e.dir = -1; }
+        }
+        e.facing = e.dir;
+      } else if (e.type === 'ular') {
+        e.x += e.dir * e.speed * dt;
+        if (e.x < e.min) { e.x = e.min; e.dir = 1; }
+        if (e.x > e.max) { e.x = e.max; e.dir = -1; }
+        e.facing = e.dir;
+      }
+
+      // Sentuhan dengan player
+      if (player.invuln <= 0 && e.attackCooldown <= 0) {
+        if (Math.abs(e.x - player.x) < (e.w + player.w) / 2 - 4 &&
+            Math.abs((e.y - e.h / 2) - (player.y - player.h / 2)) < (e.h + player.h) / 2 - 6) {
+          damagePlayer(e.dmg, Math.sign(player.x - e.x) || 1);
+          e.attackCooldown = 800;
+        }
+      }
+    }
+    enemies = enemies.filter(e => !e.dead);
+  }
+
+  // ============================================================
+  // UPDATE — BOSS (Ketua Lanun Garang)
+  // ============================================================
+  function hurtBoss(dmg) {
+    boss.hp -= dmg;
+    boss.hitFlash = 220;
+    SFX.bossHit();
+    spawnParticles(boss.x, boss.y - boss.h / 2, '#ff6644', 8);
+    if (!boss.enraged && boss.hp <= boss.maxHp / 2) {
+      boss.enraged = true;
+      SFX.bossRoar();
+      screenShake = 18;
+    }
+    if (boss.hp <= 0) {
+      score += 2000;
+      spawnParticles(boss.x, boss.y - boss.h / 2, '#ffd24d', 40);
+      spawnParticles(boss.x, boss.y - boss.h / 2, '#ff8844', 30);
+      SFX.victory();
+      boss = null;
+      setTimeout(() => { state = 'victory'; }, 800);
+    }
+  }
+
+  function updateBoss(dt) {
+    if (!boss) return;
+    boss.t += dt;
+    if (boss.hitFlash > 0) boss.hitFlash -= dt;
+
+    // Aktif bila player masuk arena
+    if (!boss.active) {
+      if (player.x > bossArenaX) {
+        boss.active = true;
+        SFX.bossRoar();
+        screenShake = 14;
+      }
+      return;
+    }
+
+    const speed = boss.enraged ? 0.115 : 0.07;
+    const dx = player.x - boss.x;
+    boss.facing = Math.sign(dx) || -1;
+
+    // Graviti boss
+    boss.vy += GRAV * dt;
+    boss.y += boss.vy * dt;
+    if (boss.y >= GROUND_Y) {
+      if (!boss.grounded && boss.vy > 0.4) {
+        // Mendarat lepas lompat — hentakan!
+        screenShake = 12;
+        noiseBurst(0.2, 0.12);
+        // Shockwave pisau kiri kanan
+        knives.push({ x: boss.x - 30, y: GROUND_Y - 10, vx: -0.4, vy: -0.1, r: 5, dmg: 15 });
+        knives.push({ x: boss.x + 30, y: GROUND_Y - 10, vx: 0.4, vy: -0.1, r: 5, dmg: 15 });
+      }
+      boss.y = GROUND_Y;
+      boss.vy = 0;
+      boss.grounded = true;
+    }
+
+    // Jalan ke arah player
+    if (boss.grounded && Math.abs(dx) > 50) {
+      boss.x += boss.facing * speed * dt;
+    }
+
+    // Lompat hentak
+    boss.jumpTimer -= dt;
+    if (boss.jumpTimer <= 0 && boss.grounded) {
+      boss.vy = -0.68;
+      boss.grounded = false;
+      boss.jumpTimer = boss.enraged ? 2000 : 2800;
+    }
+
+    // Baling parang 3-arah
+    boss.throwTimer -= dt;
+    if (boss.throwTimer <= 0) {
+      for (const a of [-0.3, 0, 0.3]) {
+        knives.push({
+          x: boss.x + boss.facing * 30,
+          y: boss.y - boss.h + 24,
+          vx: boss.facing * 0.36 * Math.cos(a),
+          vy: -0.15 + a * 0.4,
+          r: 6, dmg: 15
+        });
+      }
+      SFX.throw();
+      boss.throwTimer = boss.enraged ? 2200 : 3200;
+    }
+
+    // Sentuhan boss
+    if (player.invuln <= 0) {
+      if (Math.abs(boss.x - player.x) < (boss.w + player.w) / 2 &&
+          Math.abs((boss.y - boss.h / 2) - (player.y - player.h / 2)) < (boss.h + player.h) / 2) {
+        damagePlayer(20, Math.sign(player.x - boss.x) || 1);
+      }
+    }
+  }
+
+  // ============================================================
+  // UPDATE — PROJEKTIL & ITEM
+  // ============================================================
+  function updateProjectiles(dt) {
+    // Batu player
+    for (let i = stones.length - 1; i >= 0; i--) {
+      const s = stones[i];
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      s.vy += GRAV * 0.8 * dt;
+      let hit = false;
+      for (const e of enemies) {
+        if (e.dead) continue;
+        if (Math.abs(s.x - e.x) < e.w / 2 + s.r && Math.abs(s.y - (e.y - e.h / 2)) < e.h / 2 + s.r) {
+          hurtEnemy(e, 1, Math.sign(s.vx) || 1);
+          hit = true;
+          break;
+        }
+      }
+      if (!hit && boss && boss.active && boss.hitFlash <= 0) {
+        if (Math.abs(s.x - boss.x) < boss.w / 2 + s.r && Math.abs(s.y - (boss.y - boss.h / 2)) < boss.h / 2 + s.r) {
+          hurtBoss(1);
+          hit = true;
+        }
+      }
+      if (hit || s.y > GROUND_Y + 10 || s.x < camX - 50 || s.x > camX + W + 50) {
+        if (!hit && s.y > GROUND_Y) spawnParticles(s.x, GROUND_Y - 4, '#aaa', 4);
+        stones.splice(i, 1);
+      }
+    }
+    // Pisau musuh
+    for (let i = knives.length - 1; i >= 0; i--) {
+      const k = knives[i];
+      k.x += k.vx * dt;
+      k.y += k.vy * dt;
+      k.vy += GRAV * 0.7 * dt;
+      if (player.invuln <= 0 &&
+          Math.abs(k.x - player.x) < player.w / 2 + k.r &&
+          Math.abs(k.y - (player.y - player.h / 2)) < player.h / 2 + k.r) {
+        damagePlayer(k.dmg, Math.sign(k.vx) || 1);
+        knives.splice(i, 1);
+        continue;
+      }
+      if (k.y > GROUND_Y + 10 || k.x < camX - 80 || k.x > camX + W + 80) knives.splice(i, 1);
+    }
+  }
+
+  function updateItems(dt) {
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (Math.abs(item.x - player.x) < 24 && Math.abs(item.y - (player.y - player.h / 2)) < 38) {
+        if (item.type === 'coin') {
+          score += 10;
+          SFX.coin();
+          spawnParticles(item.x, item.y, '#ffd24d', 5);
+        } else if (item.type === 'ketupat') {
+          player.health = Math.min(player.maxHealth, player.health + 30);
+          SFX.ketupat();
+          spawnParticles(item.x, item.y, '#88ff88', 8);
+        } else if (item.type === 'batu') {
+          player.stones = Math.min(player.maxStones, player.stones + 3);
+          SFX.batu();
+          spawnParticles(item.x, item.y, '#cccccc', 5);
+        }
+        items.splice(i, 1);
+      }
+    }
+  }
+
+  // ============================================================
+  // PARTICLES
+  // ============================================================
+  function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 0.06 + Math.random() * 0.2;
+      particles.push({
+        x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.1,
+        life: 350 + Math.random() * 250, maxLife: 600,
+        color, size: 2 + Math.random() * 2.5
+      });
+    }
+  }
+  function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 0.0005 * dt;
+      p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // ============================================================
+  // RENDER — LATAR PER TEMA
+  // ============================================================
+  function drawBackground() {
+    bgT += 1;
+    if (levelIndex === 0) {
+      // KAMPUNG — langit pagi, laut, rumah kampung, pokok kelapa
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#7ec8e8');
+      g.addColorStop(0.6, '#bde4f0');
+      g.addColorStop(1, '#e8d8a8');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // Matahari
+      ctx.fillStyle = '#fff3b0';
+      ctx.beginPath();
+      ctx.arc(W - 130, 90, 42, 0, Math.PI * 2);
+      ctx.fill();
+      // Awan
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (let i = 0; i < 4; i++) {
+        const cx = ((i * 260 - camX * 0.1) % (W + 200) + W + 200) % (W + 200) - 100;
+        const cy = 60 + (i % 2) * 45;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 55, 17, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 35, cy - 9, 38, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Laut belakang
+      ctx.fillStyle = '#5aa8d8';
+      ctx.fillRect(0, 300, W, 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      for (let x = 0; x < W; x += 60) {
+        ctx.fillRect((x - bgT * 0.3 % 60 + 60) % W, 310 + (x % 3) * 12, 26, 2);
+      }
+      // Rumah kampung (parallax)
+      for (let i = 0; i < 5; i++) {
+        const hx = ((i * 420 - camX * 0.35) % (levelLength * 0.35 + W) + W * 2) % (W + 400) - 200;
+        drawKampungHouse(hx, 360);
+      }
+      // Pokok kelapa (parallax dekat)
+      for (let i = 0; i < 6; i++) {
+        const px = ((i * 340 + 120 - camX * 0.55) % (W + 300) + W + 300) % (W + 300) - 150;
+        drawCoconutTree(px, GROUND_Y, 0.8 + (i % 3) * 0.12);
+      }
+    } else if (levelIndex === 1) {
+      // HUTAN — hijau gelap berlapis
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#2a5a2a');
+      g.addColorStop(0.5, '#3a7a3a');
+      g.addColorStop(1, '#1a3a1a');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // Sinaran matahari menembusi
+      ctx.fillStyle = 'rgba(255, 255, 180, 0.08)';
+      for (let i = 0; i < 4; i++) {
+        const lx = ((i * 300 - camX * 0.2) % (W + 200) + W + 200) % (W + 200) - 100;
+        ctx.beginPath();
+        ctx.moveTo(lx, 0);
+        ctx.lineTo(lx + 100, 0);
+        ctx.lineTo(lx + 30, H);
+        ctx.lineTo(lx - 70, H);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Pokok besar belakang (parallax jauh)
+      ctx.fillStyle = '#1a3a1a';
+      for (let i = 0; i < 7; i++) {
+        const tx = ((i * 260 - camX * 0.3) % (W + 240) + W + 240) % (W + 240) - 120;
+        ctx.fillRect(tx, 100, 34, 380);
+        ctx.beginPath();
+        ctx.arc(tx + 17, 110, 70, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Pokok depan (parallax dekat)
+      ctx.fillStyle = '#0f2a0f';
+      for (let i = 0; i < 5; i++) {
+        const tx = ((i * 380 + 90 - camX * 0.6) % (W + 300) + W + 300) % (W + 300) - 150;
+        ctx.fillRect(tx, 60, 42, 420);
+        ctx.beginPath();
+        ctx.arc(tx + 21, 80, 85, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Akar gantung
+      ctx.strokeStyle = 'rgba(60, 100, 50, 0.6)';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 8; i++) {
+        const vx = ((i * 200 + 60 - camX * 0.7) % (W + 200) + W + 200) % (W + 200) - 100;
+        const sway = Math.sin(bgT * 0.01 + i) * 8;
+        ctx.beginPath();
+        ctx.moveTo(vx, 0);
+        ctx.quadraticCurveTo(vx + sway, 80, vx + sway * 1.5, 150 + (i % 3) * 40);
+        ctx.stroke();
+      }
+    } else {
+      // KUBU LANUN — malam, bulan, obor
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#0a0a2a');
+      g.addColorStop(0.6, '#1a1a3a');
+      g.addColorStop(1, '#0a0a1a');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      // Bulan
+      ctx.fillStyle = '#f0ead0';
+      ctx.beginPath();
+      ctx.arc(W - 150, 80, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(240, 234, 208, 0.15)';
+      ctx.beginPath();
+      ctx.arc(W - 150, 80, 55, 0, Math.PI * 2);
+      ctx.fill();
+      // Bintang
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      for (let i = 0; i < 40; i++) {
+        ctx.fillRect((i * 53) % W, (i * 37) % 250, 2, 2);
+      }
+      // Tembok kubu belakang (parallax)
+      ctx.fillStyle = '#241810';
+      for (let i = 0; i < 4; i++) {
+        const wx = ((i * 460 - camX * 0.35) % (W + 400) + W + 400) % (W + 400) - 200;
+        ctx.fillRect(wx, 250, 280, 230);
+        // Battlements
+        for (let b = 0; b < 6; b++) ctx.fillRect(wx + b * 48, 232, 28, 20);
+        // Menara
+        ctx.fillRect(wx + 230, 170, 50, 310);
+        ctx.beginPath();
+        ctx.moveTo(wx + 222, 170);
+        ctx.lineTo(wx + 255, 130);
+        ctx.lineTo(wx + 288, 170);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Obor (api animasi)
+      for (let i = 0; i < 5; i++) {
+        const tx = ((i * 350 + 100 - camX * 0.6) % (W + 300) + W + 300) % (W + 300) - 150;
+        ctx.fillStyle = '#553311';
+        ctx.fillRect(tx - 3, 350, 6, 50);
+        const flick = Math.sin(bgT * 0.1 + i * 2) * 4;
+        const fg = ctx.createRadialGradient(tx, 340, 2, tx, 340, 22);
+        fg.addColorStop(0, '#ffe9a0');
+        fg.addColorStop(0.5, '#ff9933');
+        fg.addColorStop(1, 'rgba(255, 80, 0, 0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.ellipse(tx + flick * 0.3, 338, 11, 17 + flick, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawKampungHouse(x, y) {
+    // Rumah kampung atas tiang
+    ctx.fillStyle = '#7a5a30';
+    // Tiang
+    ctx.fillRect(x + 8, y + 60, 8, 60);
+    ctx.fillRect(x + 104, y + 60, 8, 60);
+    ctx.fillRect(x + 56, y + 60, 8, 60);
+    // Badan rumah
+    ctx.fillStyle = '#9a7440';
+    ctx.fillRect(x, y, 120, 64);
+    // Bumbung
+    ctx.fillStyle = '#5a3a1a';
+    ctx.beginPath();
+    ctx.moveTo(x - 14, y);
+    ctx.lineTo(x + 60, y - 42);
+    ctx.lineTo(x + 134, y);
+    ctx.closePath();
+    ctx.fill();
+    // Tingkap
+    ctx.fillStyle = '#3a2a10';
+    ctx.fillRect(x + 16, y + 16, 22, 26);
+    ctx.fillRect(x + 80, y + 16, 22, 26);
+  }
+
+  function drawCoconutTree(x, groundY, scale) {
+    ctx.save();
+    ctx.translate(x, groundY);
+    ctx.scale(scale, scale);
+    // Batang melengkung
+    ctx.strokeStyle = '#8a6a40';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(15, -90, 38, -160);
+    ctx.stroke();
+    // Daun
+    ctx.strokeStyle = '#2a7a2a';
+    ctx.lineWidth = 7;
+    for (const a of [-2.6, -2.0, -1.2, -0.5, 0.2, 0.8]) {
+      ctx.beginPath();
+      ctx.moveTo(38, -160);
+      ctx.quadraticCurveTo(38 + Math.cos(a) * 40, -160 + Math.sin(a) * 30 - 18, 38 + Math.cos(a) * 72, -160 + Math.sin(a) * 52);
+      ctx.stroke();
+    }
+    // Kelapa
+    ctx.fillStyle = '#5a4a20';
+    ctx.beginPath();
+    ctx.arc(32, -150, 7, 0, Math.PI * 2);
+    ctx.arc(45, -148, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ============================================================
+  // RENDER — PLATFORM & OBJEK
+  // ============================================================
+  function drawPlatforms() {
+    for (const p of platforms) {
+      const sx = p.x - camX;
+      if (sx + p.w < -50 || sx > W + 50) continue;
+      if (p.ground) {
+        // Tanah
+        let topColor, soilColor;
+        if (levelIndex === 0) { topColor = '#6aaa3a'; soilColor = '#8a6a40'; }
+        else if (levelIndex === 1) { topColor = '#3a7a2a'; soilColor = '#4a3a20'; }
+        else { topColor = '#555560'; soilColor = '#33333a'; }
+        ctx.fillStyle = soilColor;
+        ctx.fillRect(sx, p.y, p.w, p.h);
+        ctx.fillStyle = topColor;
+        ctx.fillRect(sx, p.y, p.w, 10);
+        // Tekstur
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        for (let tx = 0; tx < p.w; tx += 46) {
+          ctx.fillRect(sx + tx + 8, p.y + 22, 18, 5);
+          ctx.fillRect(sx + tx + 26, p.y + 40, 14, 5);
+        }
+      } else {
+        // Platform terapung — gaya ikut tema
+        if (levelIndex === 0) {
+          // Peti kayu / bumbung
+          ctx.fillStyle = '#9a7440';
+          ctx.fillRect(sx, p.y, p.w, p.h);
+          ctx.strokeStyle = '#5a3a1a';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(sx, p.y, p.w, p.h);
+          ctx.beginPath();
+          ctx.moveTo(sx, p.y + 7); ctx.lineTo(sx + p.w, p.y + 7);
+          ctx.stroke();
+        } else if (levelIndex === 1) {
+          // Dahan pokok
+          ctx.fillStyle = '#6a4a20';
+          ctx.fillRect(sx, p.y, p.w, p.h);
+          ctx.fillStyle = '#3a8a2a';
+          ctx.fillRect(sx - 4, p.y - 5, p.w + 8, 8);
+        } else {
+          // Batu kubu
+          ctx.fillStyle = '#4a4a55';
+          ctx.fillRect(sx, p.y, p.w, p.h);
+          ctx.strokeStyle = '#2a2a33';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(sx, p.y, p.w, p.h);
+          ctx.beginPath();
+          ctx.moveTo(sx + p.w / 2, p.y); ctx.lineTo(sx + p.w / 2, p.y + p.h);
+          ctx.stroke();
+        }
+      }
+    }
+    // Pintu gerbang tamat (L1, L2)
+    if (gateX > 0) {
+      const gx = gateX - camX;
+      if (gx > -100 && gx < W + 100) {
+        ctx.fillStyle = '#7a5a30';
+        ctx.fillRect(gx - 8, GROUND_Y - 110, 12, 110);
+        ctx.fillRect(gx + 52, GROUND_Y - 110, 12, 110);
+        ctx.fillStyle = '#5a3a1a';
+        ctx.beginPath();
+        ctx.moveTo(gx - 20, GROUND_Y - 110);
+        ctx.lineTo(gx + 28, GROUND_Y - 150);
+        ctx.lineTo(gx + 76, GROUND_Y - 110);
+        ctx.closePath();
+        ctx.fill();
+        // Bendera Melaka (merah-putih ringkas)
+        const wave = Math.sin(bgT * 0.05) * 4;
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.moveTo(gx + 28, GROUND_Y - 150);
+        ctx.lineTo(gx + 70 + wave, GROUND_Y - 142);
+        ctx.lineTo(gx + 28, GROUND_Y - 132);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 210, 77, 0.85)';
+        ctx.font = 'bold 11px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('KELUAR →', gx + 28, GROUND_Y - 160);
+      }
+    }
+  }
+
+  function drawItems() {
+    for (const item of items) {
+      const sx = item.x - camX;
+      if (sx < -30 || sx > W + 30) continue;
+      const bob = Math.sin(bgT * 0.05 + item.x * 0.01) * 4;
+      if (item.type === 'coin') {
+        const g = ctx.createRadialGradient(sx - 2, item.y + bob - 2, 1, sx, item.y + bob, 9);
+        g.addColorStop(0, '#fff8d0');
+        g.addColorStop(0.5, '#ffd24d');
+        g.addColorStop(1, '#aa7700');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(sx, item.y + bob, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7a5500';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else if (item.type === 'ketupat') {
+        ctx.save();
+        ctx.translate(sx, item.y + bob);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = '#e8d8a0';
+        ctx.fillRect(-9, -9, 18, 18);
+        ctx.strokeStyle = '#3a8a2a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-9, -9, 18, 18);
+        ctx.beginPath();
+        ctx.moveTo(-9, -3); ctx.lineTo(9, -3);
+        ctx.moveTo(-9, 3); ctx.lineTo(9, 3);
+        ctx.moveTo(-3, -9); ctx.lineTo(-3, 9);
+        ctx.moveTo(3, -9); ctx.lineTo(3, 9);
+        ctx.stroke();
+        ctx.restore();
+      } else if (item.type === 'batu') {
+        ctx.fillStyle = '#999';
+        ctx.beginPath();
+        ctx.arc(sx - 4, item.y + bob, 6, 0, Math.PI * 2);
+        ctx.arc(sx + 4, item.y + bob + 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#bbb';
+        ctx.beginPath();
+        ctx.arc(sx - 5, item.y + bob - 2, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // ============================================================
+  // RENDER — WATAK
+  // ============================================================
+  function drawPlayer() {
+    const blink = player.invuln > 0 && Math.floor(player.invuln / 90) % 2 === 0;
+    if (blink) return;
+    const sx = player.x - camX;
+    const sy = player.y;
+    const f = player.facing;
+    const running = Math.abs(player.vx) > 0.01 && player.grounded;
+    const legSwing = running ? Math.sin(player.animT * 0.025) * 8 : 0;
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(f, 1);
+
+    // Kaki (seluar hitam)
+    ctx.strokeStyle = '#1a1a2a';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-4, -22);
+    ctx.lineTo(-6 - legSwing * 0.5, -2);
+    ctx.moveTo(4, -22);
+    ctx.lineTo(6 + legSwing * 0.5, -2);
+    ctx.stroke();
+
+    // Badan — Baju Melayu ungu gelap
+    const bodyG = ctx.createLinearGradient(-12, -46, 12, -20);
+    bodyG.addColorStop(0, '#4a2a7a');
+    bodyG.addColorStop(1, '#2a1a4a');
+    ctx.fillStyle = bodyG;
+    ctx.beginPath();
+    ctx.moveTo(-11, -42);
+    ctx.lineTo(11, -42);
+    ctx.lineTo(13, -20);
+    ctx.lineTo(-13, -20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Samping songket (kain emas di pinggang)
+    ctx.fillStyle = '#caa530';
+    ctx.fillRect(-13, -24, 26, 8);
+    ctx.fillStyle = '#8a6a10';
+    for (let i = -10; i < 12; i += 6) ctx.fillRect(i, -23, 2, 6);
+
+    // Lengan
+    ctx.strokeStyle = '#4a2a7a';
+    ctx.lineWidth = 6;
+    const armAngle = player.attackTimer > 160 && player.attackTimer < 320 ? -0.8 : 0.4;
+    ctx.beginPath();
+    ctx.moveTo(8, -38);
+    ctx.lineTo(8 + Math.cos(armAngle) * 14, -38 + Math.sin(armAngle) * 14);
+    ctx.stroke();
+    // Lengan belakang
+    ctx.beginPath();
+    ctx.moveTo(-8, -38);
+    ctx.lineTo(-12, -28);
+    ctx.stroke();
+
+    // KERIS (bilah berliku) — semasa menetak
+    if (player.attackTimer > 0) {
+      const prog = 1 - player.attackTimer / 380;
+      const slashA = -1.4 + prog * 2.2;
+      ctx.save();
+      ctx.translate(8 + Math.cos(armAngle) * 14, -38 + Math.sin(armAngle) * 14);
+      ctx.rotate(slashA);
+      // Hulu keris
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(-2, -4, 5, 8);
+      // Bilah berliku
+      ctx.strokeStyle = '#d8d8e8';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(3, 0);
+      ctx.quadraticCurveTo(10, -4, 16, 0);
+      ctx.quadraticCurveTo(22, 4, 30, -2);
+      ctx.stroke();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(4, -1);
+      ctx.quadraticCurveTo(10, -5, 16, -1);
+      ctx.stroke();
+      ctx.restore();
+      // Kesan tetakan (arc)
+      if (player.attackTimer > 160 && player.attackTimer < 320) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(14, -34, 26, -1.1 + prog * 1.5, -0.4 + prog * 1.5);
+        ctx.stroke();
+      }
+    } else {
+      // Keris tersisip di pinggang
+      ctx.strokeStyle = '#d8d8e8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-6, -22);
+      ctx.lineTo(-14, -14);
+      ctx.stroke();
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(-8, -24, 4, 5);
+    }
+
+    // Kepala
+    ctx.fillStyle = '#b07840';
+    ctx.beginPath();
+    ctx.arc(0, -50, 9, 0, Math.PI * 2);
+    ctx.fill();
+    // Mata
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(3, -52, 2.5, 3);
+
+    // TANJAK (tengkolok merah) — ikon Hang Tuah
+    ctx.fillStyle = '#b02020';
+    ctx.beginPath();
+    ctx.moveTo(-10, -54);
+    ctx.lineTo(10, -54);
+    ctx.lineTo(8, -62);
+    ctx.lineTo(2, -58);
+    ctx.lineTo(-2, -68);   // puncak lipatan tanjak
+    ctx.lineTo(-7, -58);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#7a1010';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Corak emas tanjak
+    ctx.fillStyle = '#ffd24d';
+    ctx.fillRect(-6, -57, 12, 2);
+
+    ctx.restore();
+  }
+
+  function drawEnemy(e) {
+    const sx = e.x - camX;
+    if (sx < -80 || sx > W + 80) return;
+    const sy = e.y;
+    const flash = e.hitFlash > 0;
+    const legSwing = Math.sin(e.t * 0.02) * 6;
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(e.facing, 1);
+
+    if (e.type === 'lanun' || e.type === 'pengawal') {
+      const isElite = e.type === 'pengawal';
+      // Kaki
+      ctx.strokeStyle = flash ? '#fff' : '#2a2a2a';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-4, -20); ctx.lineTo(-5 - legSwing * 0.5, -2);
+      ctx.moveTo(4, -20); ctx.lineTo(5 + legSwing * 0.5, -2);
+      ctx.stroke();
+      // Badan — vest lanun
+      ctx.fillStyle = flash ? '#fff' : (isElite ? '#6a1a1a' : '#3a5a3a');
+      ctx.beginPath();
+      ctx.moveTo(-11, -40);
+      ctx.lineTo(11, -40);
+      ctx.lineTo(13, -18);
+      ctx.lineTo(-13, -18);
+      ctx.closePath();
+      ctx.fill();
+      // Dada terdedah
+      ctx.fillStyle = flash ? '#eee' : '#9a6a3a';
+      ctx.fillRect(-4, -38, 8, 14);
+      // Tali pinggang
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(-13, -22, 26, 5);
+      // Parang di tangan
+      ctx.strokeStyle = flash ? '#fff' : '#b8b8c8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(10, -32);
+      ctx.quadraticCurveTo(20, -34, 26, -26);
+      ctx.stroke();
+      // Kepala
+      ctx.fillStyle = flash ? '#fff' : '#9a6a3a';
+      ctx.beginPath();
+      ctx.arc(0, -48, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Bandana
+      ctx.fillStyle = flash ? '#eee' : (isElite ? '#1a1a1a' : '#b02020');
+      ctx.beginPath();
+      ctx.arc(0, -50, 8.5, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(-8.5, -51, 17, 3);
+      // Ekor bandana
+      ctx.fillRect(-12, -50, 5, 8);
+      // Mata garang
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(2, -49, 3, 2.5);
+    } else if (e.type === 'pelempar') {
+      // Lanun pelempar — selendang biru, pisau di tangan
+      ctx.strokeStyle = flash ? '#fff' : '#2a2a2a';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-4, -20); ctx.lineTo(-5, -2);
+      ctx.moveTo(4, -20); ctx.lineTo(5, -2);
+      ctx.stroke();
+      ctx.fillStyle = flash ? '#fff' : '#2a3a6a';
+      ctx.beginPath();
+      ctx.moveTo(-11, -40); ctx.lineTo(11, -40);
+      ctx.lineTo(13, -18); ctx.lineTo(-13, -18);
+      ctx.closePath();
+      ctx.fill();
+      // Tangan angkat pisau
+      ctx.strokeStyle = flash ? '#fff' : '#9a6a3a';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(8, -38);
+      ctx.lineTo(14, -48);
+      ctx.stroke();
+      ctx.fillStyle = '#c8c8d8';
+      ctx.beginPath();
+      ctx.moveTo(14, -52);
+      ctx.lineTo(18, -46);
+      ctx.lineTo(12, -47);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = flash ? '#fff' : '#9a6a3a';
+      ctx.beginPath();
+      ctx.arc(0, -48, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = flash ? '#eee' : '#3a6aaa';
+      ctx.beginPath();
+      ctx.arc(0, -50, 8.5, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(2, -49, 3, 2.5);
+    } else if (e.type === 'babi') {
+      // Babi hutan
+      ctx.fillStyle = flash ? '#fff' : '#5a4030';
+      ctx.beginPath();
+      ctx.ellipse(0, -15, 21, 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Kepala
+      ctx.beginPath();
+      ctx.ellipse(16, -13, 11, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Taring
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(24, -10);
+      ctx.quadraticCurveTo(29, -13, 28, -18);
+      ctx.stroke();
+      // Mata merah
+      ctx.fillStyle = e.charging ? '#ff2020' : '#3a1a0a';
+      ctx.beginPath();
+      ctx.arc(19, -17, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Kaki
+      ctx.strokeStyle = flash ? '#eee' : '#3a2a18';
+      ctx.lineWidth = 4;
+      const trot = Math.sin(e.t * (e.charging ? 0.05 : 0.02)) * 5;
+      ctx.beginPath();
+      ctx.moveTo(-12, -6); ctx.lineTo(-12 - trot, 0);
+      ctx.moveTo(-2, -6); ctx.lineTo(-2 + trot, 0);
+      ctx.moveTo(8, -6); ctx.lineTo(8 - trot, 0);
+      ctx.moveTo(15, -6); ctx.lineTo(15 + trot, 0);
+      ctx.stroke();
+      // Bulu tengkuk
+      ctx.strokeStyle = flash ? '#fff' : '#2a1a0a';
+      ctx.lineWidth = 2;
+      for (let i = -8; i < 8; i += 4) {
+        ctx.beginPath();
+        ctx.moveTo(i, -26);
+        ctx.lineTo(i - 2, -30);
+        ctx.stroke();
+      }
+    } else if (e.type === 'ular') {
+      // Ular sawa hijau
+      const wig = Math.sin(e.t * 0.015);
+      ctx.strokeStyle = flash ? '#fff' : '#3a8a2a';
+      ctx.lineWidth = 9;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-20, -6 + wig * 3);
+      ctx.quadraticCurveTo(-8, -12 - wig * 3, 2, -6 + wig * 2);
+      ctx.quadraticCurveTo(10, -2 - wig * 2, 18, -7);
+      ctx.stroke();
+      // Kepala
+      ctx.fillStyle = flash ? '#fff' : '#2a7a1a';
+      ctx.beginPath();
+      ctx.ellipse(20, -8, 7, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Mata
+      ctx.fillStyle = '#ffd24d';
+      ctx.beginPath();
+      ctx.arc(23, -10, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      // Lidah
+      ctx.strokeStyle = '#ff4444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(27, -8);
+      ctx.lineTo(31, -8);
+      ctx.moveTo(31, -8); ctx.lineTo(33, -10);
+      ctx.moveTo(31, -8); ctx.lineTo(33, -6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawBoss() {
+    if (!boss) return;
+    const sx = boss.x - camX;
+    if (sx < -150 || sx > W + 150) return;
+    const flash = boss.hitFlash > 0;
+    const legSwing = Math.sin(boss.t * 0.015) * 6;
+
+    ctx.save();
+    ctx.translate(sx, boss.y);
+    ctx.scale(boss.facing, 1);
+
+    // Kaki besar
+    ctx.strokeStyle = flash ? '#fff' : '#1a1a1a';
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-10, -38); ctx.lineTo(-13 - legSwing, -2);
+    ctx.moveTo(10, -38); ctx.lineTo(13 + legSwing, -2);
+    ctx.stroke();
+
+    // Badan gergasi
+    const bodyColor = flash ? '#fff' : (boss.enraged ? '#7a1a1a' : '#4a2a1a');
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(-24, -82);
+    ctx.lineTo(24, -82);
+    ctx.lineTo(28, -34);
+    ctx.lineTo(-28, -34);
+    ctx.closePath();
+    ctx.fill();
+    // Dada
+    ctx.fillStyle = flash ? '#eee' : '#9a6a3a';
+    ctx.fillRect(-10, -76, 20, 26);
+    // Parut X di dada
+    ctx.strokeStyle = '#6a3a1a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-6, -72); ctx.lineTo(6, -60);
+    ctx.moveTo(6, -72); ctx.lineTo(-6, -60);
+    ctx.stroke();
+    // Tali pinggang tengkorak
+    ctx.fillStyle = '#5a3a1a';
+    ctx.fillRect(-28, -42, 56, 8);
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath();
+    ctx.arc(0, -38, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-2.5, -39, 2, 2);
+    ctx.fillRect(0.5, -39, 2, 2);
+
+    // Lengan besar dengan parang gergasi
+    ctx.strokeStyle = bodyColor;
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(20, -74);
+    ctx.lineTo(34, -58);
+    ctx.stroke();
+    // Parang besar
+    ctx.fillStyle = flash ? '#fff' : '#b8b8c8';
+    ctx.beginPath();
+    ctx.moveTo(34, -62);
+    ctx.quadraticCurveTo(56, -70, 64, -52);
+    ctx.lineTo(56, -48);
+    ctx.quadraticCurveTo(46, -56, 36, -54);
+    ctx.closePath();
+    ctx.fill();
+    // TAMING SARI tersisip di pinggang (berkilau!)
+    const glow = (Math.sin(boss.t * 0.005) + 1) * 0.5;
+    ctx.save();
+    ctx.shadowColor = '#ffd24d';
+    ctx.shadowBlur = 8 + glow * 10;
+    ctx.strokeStyle = '#ffe080';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-20, -40);
+    ctx.quadraticCurveTo(-28, -32, -34, -26);
+    ctx.stroke();
+    ctx.fillStyle = '#aa7700';
+    ctx.fillRect(-22, -44, 6, 7);
+    ctx.restore();
+
+    // Kepala
+    ctx.fillStyle = flash ? '#fff' : '#9a6a3a';
+    ctx.beginPath();
+    ctx.arc(0, -94, 14, 0, Math.PI * 2);
+    ctx.fill();
+    // Bandana hitam tengkorak
+    ctx.fillStyle = flash ? '#eee' : '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(0, -97, 14, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(-14, -98, 28, 4);
+    ctx.fillRect(-20, -96, 7, 12);
+    // Mata bersinar merah bila enraged
+    ctx.fillStyle = boss.enraged ? '#ff2020' : '#1a1a1a';
+    ctx.fillRect(4, -96, 4, 4);
+    if (boss.enraged) {
+      ctx.shadowColor = '#ff2020';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(4, -96, 4, 4);
+      ctx.shadowBlur = 0;
+    }
+    // Janggut
+    ctx.fillStyle = flash ? '#ddd' : '#2a1a0a';
+    ctx.beginPath();
+    ctx.moveTo(-8, -86);
+    ctx.lineTo(8, -86);
+    ctx.lineTo(4, -74);
+    ctx.lineTo(-4, -74);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    // HP bar boss
+    if (boss.active) {
+      const barW = W - 200;
+      const pct = Math.max(0, boss.hp / boss.maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(98, 38, barW + 4, 14);
+      ctx.fillStyle = '#330000';
+      ctx.fillRect(100, 40, barW, 10);
+      const grad = ctx.createLinearGradient(100, 0, 100 + barW, 0);
+      grad.addColorStop(0, boss.enraged ? '#ff2020' : '#cc4444');
+      grad.addColorStop(1, '#ff8800');
+      ctx.fillStyle = grad;
+      ctx.fillRect(100, 40, barW * pct, 10);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('☠ KETUA LANUN GARANG ☠', W / 2, 32);
+    }
+  }
+
+  function drawProjectiles() {
+    // Batu
+    for (const s of stones) {
+      const sx = s.x - camX;
+      ctx.fillStyle = '#999';
+      ctx.beginPath();
+      ctx.arc(sx, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#bbb';
+      ctx.beginPath();
+      ctx.arc(sx - 1.5, s.y - 1.5, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Pisau
+    for (const k of knives) {
+      const sx = k.x - camX;
+      ctx.save();
+      ctx.translate(sx, k.y);
+      ctx.rotate(Math.atan2(k.vy, k.vx));
+      ctx.fillStyle = '#c8c8d8';
+      ctx.beginPath();
+      ctx.moveTo(8, 0);
+      ctx.lineTo(-4, -3);
+      ctx.lineTo(-4, 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(-8, -2, 5, 4);
+      ctx.restore();
+    }
+  }
+
+  function drawParticles() {
+    for (const p of particles) {
+      const a = Math.max(0, Math.min(1, p.life / p.maxLife));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x - camX, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ============================================================
+  // HUD
+  // ============================================================
+  function drawHUD() {
+    // Strip atas
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, W, 26);
+    // Health bar
+    ctx.fillStyle = '#330000';
+    ctx.fillRect(10, 7, 150, 12);
+    const hpPct = Math.max(0, player.health / player.maxHealth);
+    const hpG = ctx.createLinearGradient(10, 0, 160, 0);
+    hpG.addColorStop(0, '#ff3344');
+    hpG.addColorStop(1, '#44ff66');
+    ctx.fillStyle = hpG;
+    ctx.fillRect(10, 7, 150 * hpPct, 12);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, 7, 150, 12);
+    // Nyawa
+    ctx.fillStyle = '#ff6688';
+    ctx.font = 'bold 13px Courier New';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    let hearts = '';
+    for (let i = 0; i < lives; i++) hearts += '♥ ';
+    ctx.fillText(hearts.trim(), 172, 7);
+    // Skor
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffd24d';
+    ctx.fillText('SKOR ' + String(score).padStart(6, '0'), W / 2, 7);
+    // Batu
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#cccccc';
+    ctx.fillText('🪨 ' + player.stones, W - 110, 7);
+    // Level
+    ctx.fillStyle = '#88ddff';
+    ctx.fillText(LEVEL_NAMES[levelIndex], W - 10, 7);
+
+    // Banner mula level
+    if (levelFlash > 0) {
+      const a = Math.min(1, levelFlash / 1800);
+      ctx.fillStyle = `rgba(0, 0, 0, ${a * 0.6})`;
+      ctx.fillRect(0, H / 2 - 46, W, 92);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = `rgba(255, 210, 77, ${a})`;
+      ctx.font = 'bold 28px Courier New';
+      ctx.fillText('BABAK ' + (levelIndex + 1), W / 2, H / 2 - 14);
+      ctx.fillStyle = `rgba(136, 221, 255, ${a})`;
+      ctx.font = 'bold 15px Courier New';
+      ctx.fillText(LEVEL_NAMES[levelIndex], W / 2, H / 2 + 16);
+    }
+  }
+
+  // ============================================================
+  // SKRIN
+  // ============================================================
+  function drawStartScreen() {
+    // Latar kampung statik
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a1a3a');
+    g.addColorStop(0.6, '#3a2a5a');
+    g.addColorStop(1, '#1a0a2a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // Bulan + bintang
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (let i = 0; i < 60; i++) ctx.fillRect((i * 73) % W, (i * 47) % 300, 2, 2);
+    ctx.fillStyle = '#f0ead0';
+    ctx.beginPath();
+    ctx.arc(W - 140, 90, 38, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Siluet pokok kelapa
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    drawCoconutTree(100, 500, 1.1);
+    drawCoconutTree(W - 90, 500, 0.9);
+    ctx.restore();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const glow = (Math.sin(performance.now() * 0.004) + 1) * 0.5;
+    ctx.fillStyle = '#ffd24d';
+    ctx.shadowColor = '#ffd24d';
+    ctx.shadowBlur = 16 + glow * 20;
+    ctx.font = 'bold 52px Courier New';
+    ctx.fillText('HANG TUAH', W / 2, 120);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#cc2222';
+    ctx.font = 'bold 17px Courier New';
+    ctx.fillText('⚔ PAHLAWAN MELAKA ⚔', W / 2, 165);
+
+    ctx.fillStyle = '#cceeff';
+    ctx.font = '14px Courier New';
+    ctx.fillText('← → / A D  =  Gerak', W / 2, 250);
+    ctx.fillText('↑ / W / SPACE  =  Lompat', W / 2, 275);
+    ctx.fillText('Z  =  Tetak Keris', W / 2, 300);
+    ctx.fillText('X  =  Baling Batu', W / 2, 325);
+
+    ctx.fillStyle = '#88ff88';
+    ctx.font = '13px Courier New';
+    ctx.fillText('Kutip 🟡 emas · 🍙 ketupat (HP) · 🪨 batu', W / 2, 380);
+
+    ctx.fillStyle = '#ffaaff';
+    ctx.font = 'bold 13px Courier New';
+    ctx.fillText('3 BABAK · LAWAN KETUA LANUN · RAMPAS TAMING SARI', W / 2, 415);
+
+    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 20px Courier New';
+      ctx.fillText('TEKAN ENTER UNTUK MULA', W / 2, 480);
+    }
+  }
+
+  function drawStoryScreen() {
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(0, 0, W, H);
+    // Bingkai corak songket
+    ctx.strokeStyle = '#caa530';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(40, 40, W - 80, H - 80);
+    ctx.strokeStyle = 'rgba(202, 165, 48, 0.4)';
+    ctx.strokeRect(48, 48, W - 96, H - 96);
+    // Corak bucu
+    ctx.fillStyle = '#caa530';
+    for (const [cx, cy] of [[40, 40], [W - 40, 40], [40, H - 40], [W - 40, H - 40]]) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const story = STORIES[storyIndex];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd24d';
+    ctx.shadowColor = '#ffd24d';
+    ctx.shadowBlur = 10;
+    ctx.font = 'bold 24px Courier New';
+    ctx.fillText(story.title, W / 2, 110);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#e8e0d0';
+    ctx.font = '16px Courier New';
+    story.lines.forEach((line, i) => {
+      ctx.fillText(line, W / 2, 180 + i * 30);
+    });
+
+    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillText('TEKAN ENTER...', W / 2, H - 80);
+    }
+  }
+
+  function drawClearScreen() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd24d';
+    ctx.shadowColor = '#ffd24d';
+    ctx.shadowBlur = 16;
+    ctx.font = 'bold 30px Courier New';
+    ctx.fillText('BABAK ' + (levelIndex + 1) + ' SELESAI!', W / 2, H / 2 - 40);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '15px Courier New';
+    ctx.fillText('SKOR: ' + score, W / 2, H / 2 + 5);
+    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillText('TEKAN ENTER UNTUK BABAK SETERUSNYA', W / 2, H / 2 + 70);
+    }
+  }
+
+  function drawGameOverScreen() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ff3344';
+    ctx.shadowColor = '#ff3344';
+    ctx.shadowBlur = 18;
+    ctx.font = 'bold 36px Courier New';
+    ctx.fillText('TUAH TUMPAS...', W / 2, H / 2 - 50);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '15px Courier New';
+    ctx.fillText('SKOR AKHIR: ' + score, W / 2, H / 2);
+    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 17px Courier New';
+      ctx.fillText("TEKAN 'R' UNTUK CUBA LAGI", W / 2, H / 2 + 60);
+    }
+  }
+
+  let victoryFireworks = [];
+  function drawVictoryScreen() {
+    ctx.fillStyle = 'rgba(10, 10, 30, 0.85)';
+    ctx.fillRect(0, 0, W, H);
+    // Bunga api
+    if (Math.random() < 0.08) {
+      const fx = 80 + Math.random() * (W - 160);
+      const fy = 60 + Math.random() * (H * 0.45);
+      const colors = ['#ffd24d', '#ff66bb', '#66ffaa', '#66bbff', '#ff8844'];
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * Math.PI * 2;
+        const sp = 0.12 + Math.random() * 0.15;
+        victoryFireworks.push({ x: fx, y: fy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 900, maxLife: 900, color: c });
+      }
+    }
+    for (let i = victoryFireworks.length - 1; i >= 0; i--) {
+      const p = victoryFireworks[i];
+      p.x += p.vx * 16; p.y += p.vy * 16; p.vy += 0.004;
+      p.life -= 16;
+      if (p.life <= 0) { victoryFireworks.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life / p.maxLife;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd24d';
+    ctx.shadowColor = '#ffd24d';
+    ctx.shadowBlur = 22;
+    ctx.font = 'bold 32px Courier New';
+    ctx.fillText('TAMING SARI KEMBALI!', W / 2, H / 2 - 90);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Courier New';
+    ctx.fillText('Sultan melantik Hang Tuah sebagai', W / 2, H / 2 - 35);
+    ctx.fillStyle = '#cc2222';
+    ctx.font = 'bold 24px Courier New';
+    ctx.fillText('⚔ LAKSAMANA MELAKA ⚔', W / 2, H / 2 + 5);
+    ctx.fillStyle = '#88ddff';
+    ctx.font = 'italic 15px Courier New';
+    ctx.fillText('"Takkan Melayu Hilang Di Dunia!"', W / 2, H / 2 + 50);
+    ctx.fillStyle = '#ffd24d';
+    ctx.font = 'bold 15px Courier New';
+    ctx.fillText('SKOR AKHIR: ' + score, W / 2, H / 2 + 95);
+    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
+    if (blinkOn) {
+      ctx.fillStyle = '#00ff88';
+      ctx.font = '14px Courier New';
+      ctx.fillText('Tekan ENTER untuk menu utama', W / 2, H - 50);
+    }
+  }
+
+  // ============================================================
+  // MAIN LOOP
+  // ============================================================
+  let lastT = 0;
+  function loop(t) {
+    if (!lastT) lastT = t;
+    const dt = Math.min(40, t - lastT);
+    lastT = t;
+
+    if (state === 'playing') {
+      updatePlayer(dt);
+      updateEnemies(dt);
+      updateBoss(dt);
+      updateProjectiles(dt);
+      updateItems(dt);
+      updateParticles(dt);
+      if (levelFlash > 0) levelFlash -= dt;
+      if (screenShake > 0) screenShake = Math.max(0, screenShake - dt * 0.04);
+      // Kamera ikut player
+      const targetCam = Math.max(0, Math.min(levelLength - W, player.x - W * 0.4));
+      camX += (targetCam - camX) * 0.12;
+    }
+
+    ctx.save();
+    if (screenShake > 0 && state === 'playing') {
+      ctx.translate((Math.random() - 0.5) * screenShake * 0.6, (Math.random() - 0.5) * screenShake * 0.6);
+    }
+
+    if (state === 'start') {
+      drawStartScreen();
+    } else if (state === 'story') {
+      drawStoryScreen();
+    } else {
+      drawBackground();
+      drawPlatforms();
+      drawItems();
+      for (const e of enemies) drawEnemy(e);
+      drawBoss();
+      drawProjectiles();
+      drawPlayer();
+      drawParticles();
+      drawHUD();
+      if (state === 'clear') drawClearScreen();
+      else if (state === 'gameover') drawGameOverScreen();
+      else if (state === 'victory') drawVictoryScreen();
+    }
+
+    ctx.restore();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<script src="/reward-timer.js"></script>
+</body>
+</html>
