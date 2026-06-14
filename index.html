@@ -402,6 +402,11 @@
     <span class="set-sub">Nombor yang hilang · X + 5 = 7 · key in jawapan · 18 saat</span>
   </button>
   <br>
+  <button class="big" data-set="darabBahagi" onclick="startQuiz('darabBahagi')" style="background: linear-gradient(135deg, #5fdcef, #2a8a9f);">
+    ✖️➗ Darab & Bahagi
+    <span class="set-sub">2 operasi · 3 × 6 ÷ 2 · key in jawapan · 18 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -455,7 +460,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi'],
     tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -820,6 +825,48 @@
         while (qs.length < 10) {
           const v = variants[Math.floor(Math.random() * variants.length)];
           qs.push(v());
+        }
+        return shuffle(qs);
+      }
+    },
+    darabBahagi: {
+      time: 18,
+      generate() {
+        const qs = [];
+        // 2 variasi: a × b ÷ c  dan  a ÷ b × c
+        // Pastikan jawapan & nilai pertengahan adalah integer positif
+        const variants = [
+          // a × b ÷ c (kira kiri ke kanan: darab dulu, kemudian bahagi)
+          () => {
+            const c = randInt(2, 6);
+            const result = randInt(2, 9);
+            const product = result * c;
+            // Cari pasangan a, b di mana a × b = product, kedua-dua 2-9
+            const factors = [];
+            for (let a = 2; a <= 9; a++) {
+              if (product % a === 0) {
+                const b = product / a;
+                if (b >= 2 && b <= 9) factors.push([a, b]);
+              }
+            }
+            if (factors.length === 0) return null;
+            const [a, b] = factors[Math.floor(Math.random() * factors.length)];
+            return { text: `${a} × ${b} ÷ ${c}`, answer: result };
+          },
+          // a ÷ b × c (bahagi dulu, kemudian darab)
+          () => {
+            const b = randInt(2, 6);
+            const mid = randInt(2, 9);
+            const a = b * mid;
+            const c = randInt(2, 6);
+            return { text: `${a} ÷ ${b} × ${c}`, answer: mid * c };
+          }
+        ];
+        let safety = 0;
+        while (qs.length < 10 && safety++ < 100) {
+          const v = variants[Math.floor(Math.random() * variants.length)];
+          const q = v();
+          if (q) qs.push(q);
         }
         return shuffle(qs);
       }
