@@ -251,6 +251,18 @@
   }
   .choice-btn:hover:not(:disabled) { transform: translateX(6px); }
   .choice-btn:disabled { cursor: default; opacity: 0.85; }
+  .choice-btn.choice-jawi {
+    font-family: 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+    font-size: 2em;
+    direction: rtl;
+    text-align: right;
+    padding-right: 24px;
+  }
+  .choice-btn.choice-jawi .choice-letter {
+    direction: ltr;
+    font-family: 'Courier New', monospace;
+    font-size: 0.55em;
+  }
   .choice-btn.choice-correct {
     background: linear-gradient(135deg, #b9f6ca, #69f0ae);
     color: #1b5e20;
@@ -334,6 +346,11 @@
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
     🔤 Ejaan BM
     <span class="set-sub">Tengok gambar · taip suku kata yang hilang · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="jawi" onclick="startQuiz('jawi')" style="background: linear-gradient(135deg, #2d6a4f, #95d5b2);">
+    ج Jawi
+    <span class="set-sub">Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat</span>
   </button>
   <br>
   <button class="big" data-set="duit" onclick="startQuiz('duit')" style="background: linear-gradient(135deg, #84fab0, #8fd3f4);">
@@ -461,7 +478,7 @@
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi'],
-    tahun6:  ['tambahtolak', 'ejaan', 'duit', 'english', 'dino']
+    tahun6:  ['tambahtolak', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
   const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
@@ -985,6 +1002,59 @@
         });
       }
     },
+    jawi: {
+      time: 22,
+      generate() {
+        // Setiap entry ada: emoji, romi (suku kata Roman), jawi (suku kata Jawi padanan)
+        // Soalan: tunjuk emoji + suku kata Roman + blank → pilih suku kata Jawi yang betul
+        const words = [
+          { emoji: '🪨', romi: ['BA','TU'],  jawi: ['با','تو'] },   // BATU
+          { emoji: '👕', romi: ['BA','JU'],  jawi: ['با','جو'] },   // BAJU
+          { emoji: '📚', romi: ['BU','KU'],  jawi: ['بو','کو'] },   // BUKU
+          { emoji: '⚽', romi: ['BO','LA'],  jawi: ['بو','لا'] },   // BOLA
+          { emoji: '👁️', romi: ['MA','TA'],  jawi: ['ما','تا'] },   // MATA
+          { emoji: '🦶', romi: ['KA','KI'],  jawi: ['کا','کي'] },   // KAKI
+          { emoji: '🥛', romi: ['SU','SU'],  jawi: ['سو','سو'] },   // SUSU
+          { emoji: '🍚', romi: ['NA','SI'],  jawi: ['نا','سي'] },   // NASI
+          { emoji: '🍞', romi: ['RO','TI'],  jawi: ['رو','تي'] },   // ROTI
+          { emoji: '🎩', romi: ['TO','PI'],  jawi: ['تو','ڤي'] },   // TOPI
+          { emoji: '🦷', romi: ['GI','GI'],  jawi: ['ݢي','ݢي'] },   // GIGI
+          { emoji: '😀', romi: ['MU','KA'],  jawi: ['مو','کا'] },   // MUKA
+          { emoji: '🐴', romi: ['KU','DA'],  jawi: ['کو','دا'] },   // KUDA
+          { emoji: '🧀', romi: ['KE','JU'],  jawi: ['کي','جو'] },   // KEJU
+          { emoji: '🪑', romi: ['ME','JA'],  jawi: ['مي','جا'] },   // MEJA
+          { emoji: '🎲', romi: ['DA','DU'],  jawi: ['دا','دو'] },   // DADU
+          { emoji: '☝️', romi: ['JA','RI'],  jawi: ['جا','ري'] },   // JARI
+          { emoji: '🚛', romi: ['LO','RI'],  jawi: ['لو','ري'] },   // LORI
+          { emoji: '🔩', romi: ['PA','KU'],  jawi: ['ڤا','کو'] },   // PAKU
+          { emoji: '🪢', romi: ['TA','LI'],  jawi: ['تا','لي'] },   // TALI
+          { emoji: '☕', romi: ['KO','PI'],  jawi: ['کو','ڤي'] },   // KOPI
+          { emoji: '🧹', romi: ['SA','PU'],  jawi: ['سا','ڤو'] },   // SAPU
+          { emoji: '🍬', romi: ['GU','LA'],  jawi: ['ݢو','لا'] },   // GULA
+          { emoji: '🥄', romi: ['SU','DU'],  jawi: ['سو','دو'] },   // SUDU
+          { emoji: '🏃', romi: ['LA','RI'],  jawi: ['لا','ري'] }    // LARI
+        ];
+
+        // Kumpul semua suku kata Jawi terakhir untuk pool distractor
+        const allLast = [...new Set(words.map(w => w.jawi[w.jawi.length - 1]))];
+
+        const selected = shuffle([...words]).slice(0, 10);
+        return selected.map(w => {
+          const correctJawi = w.jawi[w.jawi.length - 1];
+          const partialRomi = w.romi.slice(0, -1).join('-');
+          // Distractor: 3 suku kata Jawi rawak yang BUKAN correctJawi
+          const others = allLast.filter(j => j !== correctJawi);
+          const distractors = shuffle(others).slice(0, 3);
+          const choices = shuffle([correctJawi, ...distractors]);
+          return {
+            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${partialRomi}-__</span><span style="display:block;font-size:13px;color:#88ddff;margin-top:6px;letter-spacing:1px">Pilih suku kata Jawi:</span>`,
+            answer: correctJawi,
+            choices: choices,
+            jawiQuestion: true   // tanda untuk style besar kemudian
+          };
+        });
+      }
+    },
     duit: {
       time: 20,
       generate() {
@@ -1473,6 +1543,7 @@
       q.choices.forEach((c, i) => {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
+        if (q.jawiQuestion) btn.classList.add('choice-jawi');
         btn.dataset.value = String(c);
         btn.innerHTML = `<span class="choice-letter">${letters[i]}</span>${c}`;
         btn.addEventListener('click', () => submitChoice(String(c)));
