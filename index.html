@@ -73,6 +73,50 @@
     font-weight: bold;
     color: #5a3a00;
   }
+  .pantun-text {
+    display: block;
+    font-size: 0.34em;
+    line-height: 1.55;
+    font-style: italic;
+    color: #4a2410;
+    background: rgba(255, 240, 200, 0.55);
+    padding: 14px 18px;
+    border-left: 4px solid #b94e2f;
+    border-radius: 6px;
+    margin: 0 auto 12px;
+    max-width: 88%;
+    text-align: left;
+  }
+  .pantun-q {
+    display: block;
+    font-size: 0.32em;
+    font-weight: bold;
+    color: #5a3a00;
+    margin-top: 6px;
+  }
+  .jawi-big {
+    display: block;
+    font-family: 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+    font-size: 0.95em;
+    direction: rtl;
+    color: #2a0a4a;
+    margin: 10px 0 6px;
+    letter-spacing: 0.05em;
+  }
+  .jawi-q {
+    display: block;
+    font-size: 0.32em;
+    color: #5a3a00;
+    font-weight: bold;
+    margin-top: 8px;
+  }
+  .choice-btn.choice-pantun {
+    font-size: 0.95em;
+    line-height: 1.4;
+    text-align: left;
+    padding: 14px 18px;
+    white-space: normal;
+  }
   .emoji-row {
     display: block;
     font-size: 44px;
@@ -424,6 +468,16 @@
     <span class="set-sub">2 operasi · 3 × 6 ÷ 2 · key in jawapan · 18 saat</span>
   </button>
   <br>
+  <button class="big" data-set="pantun" onclick="startQuiz('pantun')" style="background: linear-gradient(135deg, #b94e2f, #6a1e0a);">
+    📜 Pantun BM
+    <span class="set-sub">Baca pantun · pilih maksud · A/B/C/D · 30 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="jawi3" onclick="startQuiz('jawi3')" style="background: linear-gradient(135deg, #6a3a8a, #2a1a4a);">
+    ج Jawi Darjah 3
+    <span class="set-sub">Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -477,7 +531,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3'],
     tahun6:  ['tambahtolak', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -888,6 +942,8 @@
         return shuffle(qs);
       }
     },
+    pantun: { time: 30, generate() { return buildPantun(); } },
+    jawi3:  { time: 22, generate() { return buildJawi3(); } },
     ejaan: {
       time: 20,
       generate() {
@@ -1474,6 +1530,156 @@
     }));
   }
 
+  // ===== BANK PANTUN (Bahasa Melayu Darjah 3 KSSR) =====
+  // Setiap entry: p (pantun 4 baris dipisah \n), a (maksud betul), d (3 maksud salah)
+  const PANTUN_BANK = [
+    {
+      p: 'Pisang emas dibawa belayar,\nMasak sebiji di atas peti,\nHutang emas boleh dibayar,\nHutang budi dibawa mati.',
+      a: 'Hutang budi sukar dibalas — dikenang seumur hidup',
+      d: ['Pisang emas mahal harganya', 'Kena rajin berniaga di laut', 'Jangan suka berhutang dengan orang']
+    },
+    {
+      p: 'Pulau Pandan jauh ke tengah,\nGunung Daik bercabang tiga,\nHancur badan dikandung tanah,\nBudi yang baik dikenang juga.',
+      a: 'Budi baik akan diingati selama-lamanya walaupun sudah meninggal',
+      d: ['Pulau Pandan tempat berehat', 'Gunung Daik ada tiga puncak', 'Tanah subur untuk bertani']
+    },
+    {
+      p: 'Sayang-sayang si buah cempedak,\nJatuh terhempas di sebelah kolam,\nBelajar rajin jangan tak hendak,\nKelak menyesal di hari malam.',
+      a: 'Mesti rajin belajar supaya tidak menyesal di kemudian hari',
+      d: ['Cempedak buah yang sedap dimakan', 'Jangan main di tepi kolam ikan', 'Buah jatuh tidak boleh dimakan']
+    },
+    {
+      p: 'Pinang muda dibelah dua,\nAnak burung mati diranggah,\nDari muda sampai ke tua,\nPengajaran baik jangan diubah.',
+      a: 'Nilai dan ajaran baik mesti dikekalkan dari muda hingga tua',
+      d: ['Pinang muda sukar dibelah', 'Anak burung mudah mati', 'Orang muda lebih kuat dari tua']
+    },
+    {
+      p: 'Ke hulu memetik bunga,\nBunga dipetik dikuntum-kuntum,\nKalau aku tidak sengaja,\nMintalah maaf jangan dikecam.',
+      a: 'Memohon maaf jika tersalah tanpa sengaja',
+      d: ['Petik bunga di hulu sungai sahaja', 'Bunga harus dipetik satu-satu', 'Jangan suka mengecam orang lain']
+    },
+    {
+      p: 'Anak ayam turun sepuluh,\nMati seekor tinggal sembilan,\nIngatlah Tuhan sepanjang waktu,\nMoga selamat dunia akhirat.',
+      a: 'Sentiasa ingat Tuhan untuk selamat di dunia dan akhirat',
+      d: ['Anak ayam mudah mati waktu kecil', 'Bilang ayam dari sepuluh ke sembilan', 'Ayam perlu dijaga rapi']
+    },
+    {
+      p: 'Burung pipit terbang ke awan,\nHinggap sekejap di pucuk kayu,\nKalau hidup bersama rakan,\nTolong-menolong jangan layu.',
+      a: 'Sentiasa tolong-menolong sesama rakan dan saudara',
+      d: ['Burung pipit suka terbang tinggi', 'Pucuk kayu tempat burung berehat', 'Rakan mudah layu seperti bunga']
+    },
+    {
+      p: 'Pergi ke pasar membeli baju,\nBaju dibeli warna merah jambu,\nWahai anakku rajin-rajin maju,\nIlmu menanti di sekolahmu.',
+      a: 'Galakan anak supaya rajin ke sekolah menuntut ilmu',
+      d: ['Anak suka warna merah jambu', 'Beli baju di pasar lebih murah', 'Sekolah berdekatan dengan pasar']
+    },
+    {
+      p: 'Buah cempedak di luar pagar,\nAmbil galah tolong jolokkan,\nSaya budak baru belajar,\nKalau salah tolong tunjukkan.',
+      a: 'Memohon bimbingan kerana masih baru belajar',
+      d: ['Cempedak luar pagar mudah dijolok', 'Pelajar perlu beli galah panjang', 'Jangan jolok buah orang lain']
+    },
+    {
+      p: 'Padi muda jangan dilurut,\nKalau dilurut pecah batangnya,\nHati muda jangan diturut,\nKalau diturut salah datangnya.',
+      a: 'Jangan ikut hawa nafsu masa muda, akan membawa kesalahan',
+      d: ['Padi muda mudah pecah batang', 'Hati muda lebih kuat dari padi', 'Lurut padi guna kedua-dua tangan']
+    },
+    {
+      p: 'Air dalam bertambah dalam,\nHujan di hulu belum lagi teduh,\nHati dendam bertambah dendam,\nDendam dahulu belum lagi sembuh.',
+      a: 'Rasa dendam yang tidak diselesaikan akan terus bertambah',
+      d: ['Air sungai naik bila hujan lebat', 'Hujan turun selalu di hulu', 'Sakit hati boleh sembuh sendiri']
+    },
+    {
+      p: 'Pohon nangka berbuah lebat,\nBatang berduri tajam menggigit,\nBercakap perlu jaga adab,\nSupaya tidak menyakiti hati.',
+      a: 'Bercakap mesti menjaga adab supaya tidak menyakitkan hati orang',
+      d: ['Pohon nangka berduri tajam', 'Buah nangka lebat dan manis', 'Cakap kuat-kuat supaya didengar']
+    },
+    {
+      p: 'Tanam selasih di tepi padang,\nSudah bertangkai diurung semut,\nKasih kekasih jangan dipandang,\nBudi pekerti yang patut diingat.',
+      a: 'Budi pekerti lebih penting daripada rupa paras',
+      d: ['Selasih elok ditanam di padang', 'Semut suka pokok berbuah', 'Kekasih pilih yang berbudi sahaja']
+    },
+    {
+      p: 'Pucuk pauh delima batu,\nAnak sembilang di tapak tangan,\nWalau jauh berbatu-batu,\nIngat dan kenang jangan dilupakan.',
+      a: 'Walau jauh terpisah, kenangan dan ingatan tetap kekal',
+      d: ['Pucuk pauh boleh dijadikan ubat', 'Anak sembilang berbisa', 'Jangan pegang ikan sembilang']
+    },
+    {
+      p: 'Banyak udang banyak garam,\nBanyak orang banyak ragam,\nBanyak senyum banyak nikmat,\nHidup pun mudah dan selamat.',
+      a: 'Hidup yang ceria dengan senyum membawa nikmat dan keselamatan',
+      d: ['Udang dimasak guna garam', 'Setiap orang ada ragam masing-masing', 'Senyum boleh halau penyakit']
+    }
+  ];
+
+  function buildPantun() {
+    const selected = shuffle([...PANTUN_BANK]).slice(0, 10);
+    return selected.map(item => {
+      const pantunHTML = item.p.split('\n').map(l => l.trim()).join('<br>');
+      return {
+        text: `<span class="pantun-text">${pantunHTML}</span><span class="pantun-q">Apakah maksud pantun ini?</span>`,
+        answer: item.a,
+        choices: shuffle([item.a, ...item.d]),
+        wideChoices: true   // tanda untuk butang lebar (text panjang)
+      };
+    });
+  }
+
+  // ===== BANK JAWI DARJAH 3 — perkataan penuh, dua arah =====
+  // dir: 'j2r' = tunjuk Jawi → pilih Romi; 'r2j' = tunjuk Romi → pilih Jawi
+  const JAWI3_BANK = [
+    // === Jawi → Romi (anak baca Jawi, pilih Romi yang betul) ===
+    { dir: 'j2r', q: 'بوکو',     a: 'BUKU',    d: ['BAJU', 'BATU', 'BOLA'] },
+    { dir: 'j2r', q: 'کريتا',    a: 'KERETA',  d: ['KELAPA', 'KERUSI', 'KEMEJA'] },
+    { dir: 'j2r', q: 'روماه',    a: 'RUMAH',   d: ['RUSA', 'RAJA', 'ROTI'] },
+    { dir: 'j2r', q: 'سکوله',    a: 'SEKOLAH', d: ['SAPU', 'SUSU', 'SAYUR'] },
+    { dir: 'j2r', q: 'هاريماو',  a: 'HARIMAU', d: ['HARI', 'HALWA', 'HAIWAN'] },
+    { dir: 'j2r', q: 'بنديرا',   a: 'BENDERA', d: ['BANTAL', 'BAKUL', 'BUDAK'] },
+    { dir: 'j2r', q: 'ايکن',     a: 'IKAN',    d: ['ITIK', 'INTAN', 'ISI'] },
+    { dir: 'j2r', q: 'نݢارا',    a: 'NEGARA',  d: ['NASI', 'NENEK', 'NAGA'] },
+    { dir: 'j2r', q: 'ڤيسڠ',     a: 'PISANG',  d: ['PINTU', 'PASAR', 'PADI'] },
+    { dir: 'j2r', q: 'کلاڤا',    a: 'KELAPA',  d: ['KEPALA', 'KERETA', 'KEMEJA'] },
+    { dir: 'j2r', q: 'منتيݢا',   a: 'MENTEGA', d: ['MEJA', 'MENARA', 'MATA'] },
+    { dir: 'j2r', q: 'کوچيڠ',    a: 'KUCING',  d: ['KUDA', 'KUTU', 'KIPAS'] },
+    { dir: 'j2r', q: 'بوروڠ',    a: 'BURUNG',  d: ['BUKU', 'BUAH', 'BUKIT'] },
+    { dir: 'j2r', q: 'بوداق',    a: 'BUDAK',   d: ['BATU', 'BAJU', 'BUKU'] },
+    { dir: 'j2r', q: 'ايبو',     a: 'IBU',     d: ['ITIK', 'IKAN', 'IPAR'] },
+    { dir: 'j2r', q: 'باڤا',     a: 'BAPA',    d: ['BAJU', 'BATU', 'BOLA'] },
+    { dir: 'j2r', q: 'ݢورو',     a: 'GURU',    d: ['GULA', 'GANTI', 'GUNUNG'] },
+    { dir: 'j2r', q: 'ميجا',     a: 'MEJA',    d: ['MATA', 'MUKA', 'MASA'] },
+    { dir: 'j2r', q: 'بوڠا',     a: 'BUNGA',   d: ['BUKU', 'BUDAK', 'BAJU'] },
+    { dir: 'j2r', q: 'باجو',     a: 'BAJU',    d: ['BATU', 'BUKU', 'BOLA'] },
+    // === Romi → Jawi (anak pilih ejaan Jawi yang betul) ===
+    { dir: 'r2j', q: 'PINTU',   a: 'ڤينتو',   d: ['ڤيسڠ', 'ڤاکو', 'ڤاسر'] },
+    { dir: 'r2j', q: 'ROTI',    a: 'روتي',    d: ['روسا', 'راج', 'روماه'] },
+    { dir: 'r2j', q: 'KAKAK',   a: 'كاكق',    d: ['کاکي', 'کوکو', 'کوچيڠ'] },
+    { dir: 'r2j', q: 'NASI',    a: 'ناسي',    d: ['نينيق', 'نام', 'ناݢا'] },
+    { dir: 'r2j', q: 'TOPI',    a: 'توڤي',    d: ['توا', 'تاڠن', 'تالي'] },
+    { dir: 'r2j', q: 'BATU',    a: 'باتو',    d: ['باجو', 'بولا', 'بوکو'] },
+    { dir: 'r2j', q: 'KAWAN',   a: 'کاوان',   d: ['کاکي', 'کاين', 'کوچيڠ'] },
+    { dir: 'r2j', q: 'GIGI',    a: 'ݢيݢي',    d: ['ݢولا', 'ݢورو', 'ݢوڠ'] },
+    { dir: 'r2j', q: 'SUSU',    a: 'سوسو',    d: ['سوڤ', 'ساڤو', 'سوک'] },
+    { dir: 'r2j', q: 'AYAM',    a: 'ايم',     d: ['ائير', 'اڤا', 'اوبت'] },
+    { dir: 'r2j', q: 'BOLA',    a: 'بولا',    d: ['باجو', 'باتو', 'بوکو'] },
+    { dir: 'r2j', q: 'KUDA',    a: 'کودا',    d: ['کوچيڠ', 'کاکي', 'کوکو'] }
+  ];
+
+  function buildJawi3() {
+    const selected = shuffle([...JAWI3_BANK]).slice(0, 10);
+    return selected.map(item => {
+      const isJawiQuestion = item.dir === 'j2r';
+      // j2r: tunjuk Jawi, pilihan Romi (text biasa)
+      // r2j: tunjuk Romi, pilihan Jawi (perlukan font Arabic)
+      const textHTML = isJawiQuestion
+        ? `<span class="jawi-big">${item.q}</span><span class="jawi-q">Apakah bacaan perkataan ini?</span>`
+        : `<span class="word-problem" style="font-size:0.44em;letter-spacing:0.1em">${item.q}</span><span class="jawi-q">Pilih ejaan Jawi yang betul:</span>`;
+      return {
+        text: textHTML,
+        answer: item.a,
+        choices: shuffle([item.a, ...item.d]),
+        jawiQuestion: !isJawiQuestion   // butang Jawi bila pilihan dalam Jawi (r2j)
+      };
+    });
+  }
+
   function showDarjah3Menu() {
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('darjah3Screen').classList.remove('hidden');
@@ -1544,6 +1750,7 @@
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
         if (q.jawiQuestion) btn.classList.add('choice-jawi');
+        if (q.wideChoices) btn.classList.add('choice-pantun');
         btn.dataset.value = String(c);
         btn.innerHTML = `<span class="choice-letter">${letters[i]}</span>${c}`;
         btn.addEventListener('click', () => submitChoice(String(c)));
