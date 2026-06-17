@@ -478,6 +478,11 @@
     <span class="set-sub">Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat</span>
   </button>
   <br>
+  <button class="big" data-set="perpuluhan" onclick="startQuiz('perpuluhan')" style="background: linear-gradient(135deg, #2a9f6f, #06492c);">
+    🔢 Pecahan → Perpuluhan
+    <span class="set-sub">Tukar 7/10 → 0.7 · key in jawapan · 18 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -531,7 +536,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3'],
+    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3', 'perpuluhan'],
     tahun6:  ['tambahtolak', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -944,6 +949,37 @@
     },
     pantun: { time: 30, generate() { return buildPantun(); } },
     jawi3:  { time: 22, generate() { return buildJawi3(); } },
+    perpuluhan: {
+      time: 18,
+      generate() {
+        const qs = [];
+        // 2 variasi: penyebut 10 (1 tempat perpuluhan) atau 100 (2 tempat perpuluhan)
+        // Untuk Darjah 3, fokus pada /10 (lebih simple), sikit /100 sebagai cabaran
+        while (qs.length < 10) {
+          const isOver100 = qs.length >= 7;  // 7 soalan /10 + 3 soalan /100
+          if (!isOver100) {
+            // Variasi /10: 1/10 → 0.1, 7/10 → 0.7, 13/10 → 1.3, dll
+            const num = randInt(1, 19);   // pengangka 1-19, jadi jawapan 0.1-1.9
+            const dec = Math.round(num) / 10;   // pastikan tepat (elak floating)
+            qs.push({
+              text: `${num}/10 = ?`,
+              answer: parseFloat(dec.toFixed(1)),
+              inputMode: 'decimal'
+            });
+          } else {
+            // Variasi /100: 5/100 → 0.05, 25/100 → 0.25
+            const num = randInt(1, 99);
+            const dec = num / 100;
+            qs.push({
+              text: `${num}/100 = ?`,
+              answer: parseFloat(dec.toFixed(2)),
+              inputMode: 'decimal'
+            });
+          }
+        }
+        return shuffle(qs);
+      }
+    },
     ejaan: {
       time: 20,
       generate() {
@@ -1771,6 +1807,20 @@
       answerArea.appendChild(input);
       setTimeout(() => input.focus(), 0);
       submitBtn.style.display = '';
+    } else if (q.inputMode === 'decimal') {
+      // Decimal input (perpuluhan — e.g. 0.7)
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = '0.1';
+      input.id = 'answerInput';
+      input.autocomplete = 'off';
+      input.inputMode = 'decimal';
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitAnswer();
+      });
+      answerArea.appendChild(input);
+      setTimeout(() => input.focus(), 0);
+      submitBtn.style.display = '';
     } else {
       // Number input
       const input = document.createElement('input');
@@ -1853,6 +1903,14 @@
         return;
       }
       isCorrect = (userVal === String(correct).toUpperCase());
+    } else if (q.inputMode === 'decimal') {
+      const userAns = parseFloat(input.value);
+      if (isNaN(userAns)) {
+        feedback.textContent = '⚠️ Tulis jawapan dulu!';
+        feedback.className = 'feedback wrong';
+        return;
+      }
+      isCorrect = (Math.abs(userAns - correct) < 0.001);
     } else {
       const userAns = parseInt(input.value);
       if (isNaN(userAns)) {
