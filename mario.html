@@ -298,13 +298,17 @@ const FRICTION = 0.80, AIR_FRICTION = 0.92;
 const JUMP_V = -11.4;
 const GRAV = 0.72, GRAV_HOLD = 0.40, MAX_FALL = 13.5;
 const COYOTE = 6, JUMP_BUF = 7;
+const FIRE_COOLDOWN = 18;       // frames antara fireball
+const STAR_DURATION = 600;      // 10 saat @ 60fps
+const ICE_FRICTION = 0.05;      // licin untuk Level 4
 
 // ─── STATE ───────────────────────────────────────────────
 let score = 0, coins = 0, lives = 3;
 let gameState = 'name'; // name | playing | dead | gameover | win | clear
 let cameraX = 0, shake = 0;
 let spawnX = 60, currentLevel = 1;
-const MAX_LEVEL = 3;
+const MAX_LEVEL = 4;            // Level 1-3 + Ice World (Level 4) dengan boss baru
+let snowflakes = [];            // untuk Level 4 background
 let level, player, particles = [], floaters = [];
 let scoreSent = false, playerName = '';
 let clearTimer = 0;
@@ -316,8 +320,11 @@ const keys = {};
 let coyoteT = 0, bufferT = 0;
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyZ'].includes(e.code)) e.preventDefault();
   if ((e.code === 'ArrowUp' || e.code === 'Space' || e.code === 'KeyW')) bufferT = JUMP_BUF;
+  if (e.code === 'KeyZ' && gameState === 'playing' && player && player.fire && player.fireCD <= 0 && !player.dead) {
+    throwFireball();
+  }
   if (e.code === 'Enter' && (gameState === 'dead' && lives > 0)) respawn();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -437,8 +444,8 @@ function buildLevel(num) {
      [1750,250],[2420,260],[2750,250],[3050,260],[3100,260]].forEach(([x,y]) => coinList.push(mkCoin(x,y)));
 
     decos.push(...[150,800,1500,2200,3000].map(x => ({x, type:'bush'})));
-  } else {
-    // ── LEVEL 3 — laluan pendek + arena BOSS di hujung ──
+  } else if (num === 3) {
+    // ── LEVEL 3 — laluan pendek + arena BOSS Giant Koopa ──
     lengthX = 2700;
     blocks.push(B(0, GROUND_Y, 560, 48, 'ground'));      // pit 560-700
     blocks.push(B(700, GROUND_Y, 1100, 48, 'ground'));   // arena bermula ~1800
@@ -450,30 +457,86 @@ function buildLevel(num) {
     blocks.push(B(640, 320, 90, 24, 'solid'));            // platform atas pit
     blocks.push(B(900, 280, 32, 32, 'question', 'coin'));
     blocks.push(B(1100, 250, 32, 32, 'brick'));
-    blocks.push(B(1132, 250, 32, 32, 'question', 'mushroom'));
+    blocks.push(B(1132, 250, 32, 32, 'question', 'fire'));   // Fire Flower!
+    blocks.push(B(1300, 290, 32, 32, 'question', 'star'));   // Super Star untuk boss
     blocks.push(B(1400, GROUND_Y-80, 56, 80, 'pipe'));
 
     // dinding arena (boss tak boleh lari keluar)
     blocks.push(B(2660, GROUND_Y-200, 40, 200, 'solid'));
 
     [380, 760, 1000, 1250].forEach((x,i) => enemies.push(mkEnemy(x, i%2===0?'goomba':'koopa')));
+    // Piranha keluar dari pipe di x=1400
+    enemies.push(mkEnemy(1428, 'piranha', { pipeY: GROUND_Y-80 }));
 
     [[300,250],[460,200],[660,280],[920,240],[1150,210],[1500,260],[1600,260]]
       .forEach(([x,y]) => coinList.push(mkCoin(x,y)));
 
     decos.push(...[150,900,1600].map(x => ({x, type:'bush'})));
+  } else {
+    // ── LEVEL 4 — ICE WORLD + ICE KING BOSS ──
+    lengthX = 3200;
+    // Lantai berlapis (pit kecil utk cabaran)
+    blocks.push(B(0, GROUND_Y, 720, 48, 'ground'));       // pit 720-820
+    blocks.push(B(820, GROUND_Y, 540, 48, 'ground'));     // pit 1360-1460
+    blocks.push(B(1460, GROUND_Y, 580, 48, 'ground'));    // arena bos start ~2040
+    blocks.push(B(2040, GROUND_Y, 1160, 48, 'ground'));   // arena boss
+
+    // Platforms terapung (ice block) + question blocks
+    blocks.push(B(220, 320, 90, 24, 'solid'));
+    blocks.push(B(360, 280, 32, 32, 'question', 'mushroom'));
+    blocks.push(B(420, 280, 32, 32, 'brick'));
+    blocks.push(B(540, 240, 32, 32, 'question', 'fire'));
+    blocks.push(B(740, 300, 110, 24, 'solid'));           // platform atas pit pertama
+    blocks.push(B(900, 250, 32, 32, 'question', 'coin'));
+    blocks.push(B(932, 250, 32, 32, 'brick'));
+    blocks.push(B(964, 250, 32, 32, 'question', 'star'));  // SUPER STAR!
+    blocks.push(B(1100, 200, 32, 32, 'question', 'coin'));
+    blocks.push(B(1280, 300, 100, 24, 'solid'));          // platform atas pit kedua
+    blocks.push(B(1500, 280, 32, 32, 'brick'));
+    blocks.push(B(1532, 280, 32, 32, 'question', 'fire'));  // satu lagi Fire Flower
+    blocks.push(B(1720, 230, 32, 32, 'question', 'coin'));
+    blocks.push(B(1900, 250, 32, 32, 'brick'));
+
+    // Pipes — piranha plants emerge
+    blocks.push(B(620, GROUND_Y-56, 56, 56, 'pipe'));
+    blocks.push(B(1150, GROUND_Y-80, 56, 80, 'pipe'));
+    const ep4 = B(1620, GROUND_Y-80, 56, 80, 'pipe'); ep4.enterable = true; blocks.push(ep4);
+
+    // Dinding arena bos
+    blocks.push(B(3160, GROUND_Y-220, 40, 220, 'solid'));
+
+    // Enemies — Goomba, Koopa, Piranha
+    [200, 480, 880, 1180, 1550, 1820].forEach((x,i) => enemies.push(mkEnemy(x, i%2===0?'goomba':'koopa')));
+    // Piranha di setiap pipe non-enterable
+    enemies.push(mkEnemy(648, 'piranha', { pipeY: GROUND_Y-56 }));
+    enemies.push(mkEnemy(1178, 'piranha', { pipeY: GROUND_Y-80 }));
+
+    // Coins (banyak — reward eksplorasi)
+    [[220,280],[270,280],[310,280],[420,250],[460,250],[760,260],[820,260],
+     [870,200],[1080,170],[1140,170],[1300,260],[1340,260],[1480,250],[1700,200],
+     [1880,210],[1980,260]]
+      .forEach(([x,y]) => coinList.push(mkCoin(x,y)));
+
+    decos.push(...[100,500,1000,1700,2400].map(x => ({x, type:'icepine'})));
   }
 
   let boss = null, flag = null;
-  if (num === MAX_LEVEL) {
-    // Boss arena: takde flag, kalahkan boss = menang
-    boss = { x: 2300, y: GROUND_Y - 70, w: 64, h: 70, vx: 1.4, dir: -1,
-             hp: 3, hit: 0, fireT: 90, alive: true, active: false,
+  if (num === 3) {
+    // Giant Koopa boss (Level 3) — kekal seperti asal
+    boss = { type: 'koopa', x: 2300, y: GROUND_Y - 70, w: 64, h: 70, vx: 1.4, dir: -1,
+             hp: 3, maxHp: 3, hit: 0, fireT: 90, alive: true, active: false,
              minX: 1900, maxX: 2580, stompLock: 0 };
+  } else if (num === 4) {
+    // Ice King boss (Level 4) — multi-fasa
+    boss = { type: 'iceking', x: 2900, y: GROUND_Y - 80, w: 70, h: 80, vx: 1.6, dir: -1,
+             hp: 5, maxHp: 5, hit: 0, fireT: 100, jumpT: 200, alive: true, active: false,
+             enraged: false, vy: 0, onGround: true,
+             minX: 2150, maxX: 3100, stompLock: 0 };
   } else {
     flag = { x: lengthX - 180, baseY: GROUND_Y, h: 280, reached: false, slide: 0 };
   }
-  return { blocks, coinList, enemies, powerups, decos, flag, boss, fireballs: [], theme: 'day', lengthX };
+  const theme = num === 4 ? 'ice' : 'day';
+  return { blocks, coinList, enemies, powerups, decos, flag, boss, fireballs: [], playerFireballs: [], theme, lengthX };
 }
 
 // ─── BONUS ROOM (bawah tanah, penuh coin) ─────────────────
@@ -490,10 +553,21 @@ function buildBonus(returnX) {
   // exit pipe di hujung kanan
   const exitPipe = B(640, GROUND_Y-80, 56, 80, 'pipe'); exitPipe.isExit = true; blocks.push(exitPipe);
   return { blocks, coinList, enemies, powerups, decos, flag: null, boss: null,
-           fireballs: [], theme: 'underground', lengthX, isBonus: true, returnX };
+           fireballs: [], playerFireballs: [], theme: 'underground', lengthX, isBonus: true, returnX };
 }
 
-function mkEnemy(x, kind) {
+function mkEnemy(x, kind, opts) {
+  opts = opts || {};
+  if (kind === 'piranha') {
+    // Piranha Plant — keluar masuk dari pipe. opts.pipeY = y koordinat puncak pipe.
+    const pipeY = opts.pipeY !== undefined ? opts.pipeY : GROUND_Y - 56;
+    const hideY = pipeY + 4;        // tersembunyi: dalam pipe
+    const showY = pipeY - 36;       // keluar penuh atas pipe
+    return { x, y: hideY, w: 28, h: 36, vx: 0, vy: 0,
+             hideY, showY, baseY: hideY,
+             alive: true, kind: 'piranha', stateT: 90, phase: 'hidden',
+             squished: false, squishT: 0, animT: 0, animF: 0, onGround: false };
+  }
   return { x, y: GROUND_Y - 30, w: 30, h: 30, vx: 0, vy: 0,
            speed: 1.2 + Math.random()*0.6, dir: -1,
            alive: true, kind, squished: false, squishT: 0, animT: 0, animF: 0, onGround:false };
@@ -504,18 +578,57 @@ function mkCoin(x, y) { return { x, y, w: 20, h: 20, got: false, spin: Math.rand
 function makePlayer() {
   return { x: spawnX, y: GROUND_Y - 44, w: 28, h: 44, vx: 0, vy: 0,
            onGround: false, facing: 1, animT: 0, animF: 0,
-           big: false, inv: 0, dead: false, deadT: 0, skid: false };
+           big: false, fire: false, starT: 0, fireCD: 0,
+           inv: 0, dead: false, deadT: 0, skid: false };
 }
 function growBig() {
+  if (player.fire) { score += 1000; floatText(player.x, player.y, '+1000'); return; }
   if (player.big) { score += 1000; floatText(player.x, player.y, '+1000'); return; }
   player.big = true; player.h = 56; player.y -= 12; player.inv = 40;
   burst(player.x+player.w/2, player.y+10, '#FFD700', 16);
   SFX.power();
 }
+function setFire() {
+  if (!player.big) { player.big = true; player.h = 56; player.y -= 12; }
+  if (player.fire) { score += 1000; floatText(player.x, player.y, '+1000'); return; }
+  player.fire = true; player.inv = 40;
+  burst(player.x+player.w/2, player.y+10, '#FF4400', 18);
+  burst(player.x+player.w/2, player.y+10, '#FFAA00', 14);
+  floatText(player.x, player.y - 12, 'FIRE!', '#FF6600');
+  SFX.power();
+}
+function setStar() {
+  player.starT = STAR_DURATION;
+  burst(player.x+player.w/2, player.y, '#FFD700', 24);
+  burst(player.x+player.w/2, player.y, '#FFFFFF', 14);
+  floatText(player.x, player.y - 14, 'STAR!', '#FFD700');
+  SFX.power();
+}
 function shrink() {
+  if (player.fire) {
+    // Fire Mario → Big Mario (tak terus kecil)
+    player.fire = false; player.inv = 100;
+    burst(player.x+player.w/2, player.y, '#FFAA00', 12);
+    SFX.hurt();
+    return;
+  }
   player.big = false; player.h = 44; player.y += 12; player.inv = 100;
   burst(player.x+player.w/2, player.y, '#fff', 12);
   SFX.hurt();
+}
+function throwFireball() {
+  if (!level || !player.fire || player.fireCD > 0) return;
+  // Maksima 2 fireball aktif serentak
+  if (level.playerFireballs.length >= 2) return;
+  const fx = player.x + (player.facing > 0 ? player.w : -8);
+  const fy = player.y + (player.big ? 16 : 12);
+  level.playerFireballs.push({
+    x: fx, y: fy, w: 12, h: 12,
+    vx: player.facing * 6, vy: -2,
+    life: 140, bounces: 0, spin: 0
+  });
+  player.fireCD = FIRE_COOLDOWN;
+  SFX.bump();   // reuse — atau define SFX baru kemudian
 }
 
 // ─── PARTICLES / FLOAT TEXT ───────────────────────────────
@@ -535,13 +648,31 @@ function startGame() {
   scoreSent = false; bonusReturn = null;
   level = buildLevel(1); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
+  initSnowflakes();
   gameState = 'playing'; updateHUD();
 }
 function nextLevel() {
   currentLevel++; spawnX = 60; bonusReturn = null;
   level = buildLevel(currentLevel); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
+  initSnowflakes();
   gameState = 'playing'; updateHUD();
+}
+
+function initSnowflakes() {
+  snowflakes = [];
+  if (level && level.theme === 'ice') {
+    for (let i = 0; i < 80; i++) {
+      snowflakes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: -0.2 - Math.random() * 0.4,
+        vy: 0.3 + Math.random() * 0.6,
+        size: 1 + Math.random() * 2,
+        sway: Math.random() * 6.28
+      });
+    }
+  }
 }
 function respawn() {
   player = makePlayer();
@@ -622,12 +753,17 @@ function update() {
   const { blocks, coinList, enemies, powerups, flag } = level;
 
   if (!player.dead) {
-    // horizontal accel
-    const acc = runHeld() ? RUN_ACC : WALK_ACC;
+    // horizontal accel — Level 4 (ice) lebih licin
+    const onIce = level.theme === 'ice';
+    const acc = (runHeld() ? RUN_ACC : WALK_ACC) * (onIce ? 0.45 : 1);
     const maxS = runHeld() ? MAX_RUN : MAX_WALK;
     if (keys['ArrowLeft'] || keys['KeyA']) { player.vx -= acc; player.facing = -1; }
     else if (keys['ArrowRight'] || keys['KeyD']) { player.vx += acc; player.facing = 1; }
-    else { player.vx *= player.onGround ? FRICTION : AIR_FRICTION; if (Math.abs(player.vx)<0.05) player.vx=0; }
+    else {
+      const fric = onIce && player.onGround ? (1 - ICE_FRICTION) : (player.onGround ? FRICTION : AIR_FRICTION);
+      player.vx *= fric;
+      if (Math.abs(player.vx) < 0.05) player.vx = 0;
+    }
     player.vx = Math.max(-maxS, Math.min(maxS, player.vx));
     // skid detection
     player.skid = player.onGround && ((player.vx>0 && (keys['ArrowLeft']||keys['KeyA'])) || (player.vx<0 && (keys['ArrowRight']||keys['KeyD'])));
@@ -674,45 +810,94 @@ function update() {
   for (const e of enemies) {
     if (!e.alive) continue;
     if (e.squished) { e.squishT--; if (e.squishT<=0) e.alive=false; continue; }
-    e.vy += GRAV; if (e.vy > MAX_FALL) e.vy = MAX_FALL;
-    e.vx = e.dir * e.speed;
-    moveX(e, blocks); moveY(e, blocks, null);
-    // wall probe — pusing kalau ada blok di hadapan
-    const wx = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
-    const wallAhead = blocks.some(b => solid(b) && wx>=b.x && wx<=b.x+b.w && b.y < e.y+e.h-3 && b.y+b.h > e.y+3);
-    if (wallAhead) e.dir *= -1;
-    // ledge probe — pusing kalau takde lantai di hadapan (jangan jatuh pit)
-    else if (e.onGround) {
-      const fx = e.dir > 0 ? e.x+e.w+2 : e.x-2;
-      const ahead = blocks.some(b => solid(b) && fx>=b.x && fx<=b.x+b.w && b.y>=e.y+e.h && b.y<=e.y+e.h+6);
-      if (!ahead) e.dir *= -1;
-    }
-    if (e.x <= 0) { e.x = 0; e.dir = 1; }
-    e.animT++; if (e.animT>10){ e.animT=0; e.animF=(e.animF+1)%2; }
 
-    if (!player.dead && player.inv === 0 && overlap(player, e)) {
+    if (e.kind === 'piranha') {
+      // Cycle: hidden → rising → showing → falling → hidden
+      e.stateT--;
+      if (e.phase === 'hidden' && e.stateT <= 0) { e.phase = 'rising'; e.stateT = 30; }
+      else if (e.phase === 'rising') {
+        e.y -= 1.5;
+        if (e.y <= e.showY || e.stateT <= 0) { e.y = e.showY; e.phase = 'showing'; e.stateT = 100; }
+      }
+      else if (e.phase === 'showing' && e.stateT <= 0) { e.phase = 'falling'; e.stateT = 30; }
+      else if (e.phase === 'falling') {
+        e.y += 1.5;
+        if (e.y >= e.hideY || e.stateT <= 0) { e.y = e.hideY; e.phase = 'hidden'; e.stateT = 90; }
+      }
+      e.animT++; if (e.animT>15){ e.animT=0; e.animF=(e.animF+1)%2; }
+      // Tak collision bila tersembunyi
+      if (e.phase === 'hidden') continue;
+    } else {
+      e.vy += GRAV; if (e.vy > MAX_FALL) e.vy = MAX_FALL;
+      e.vx = e.dir * e.speed;
+      moveX(e, blocks); moveY(e, blocks, null);
+      // wall probe — pusing kalau ada blok di hadapan
+      const wx = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
+      const wallAhead = blocks.some(b => solid(b) && wx>=b.x && wx<=b.x+b.w && b.y < e.y+e.h-3 && b.y+b.h > e.y+3);
+      if (wallAhead) e.dir *= -1;
+      // ledge probe — pusing kalau takde lantai di hadapan (jangan jatuh pit)
+      else if (e.onGround) {
+        const fx = e.dir > 0 ? e.x+e.w+2 : e.x-2;
+        const ahead = blocks.some(b => solid(b) && fx>=b.x && fx<=b.x+b.w && b.y>=e.y+e.h && b.y<=e.y+e.h+6);
+        if (!ahead) e.dir *= -1;
+      }
+      if (e.x <= 0) { e.x = 0; e.dir = 1; }
+      e.animT++; if (e.animT>10){ e.animT=0; e.animF=(e.animF+1)%2; }
+    }
+
+    if (!player.dead && overlap(player, e)) {
+      // Star Mario kill semua musuh atas sentuhan
+      if (player.starT > 0) {
+        e.squished = true; e.squishT = 26;
+        score += 500; floatText(e.x, e.y, '+500', '#FFD700'); updateHUD();
+        burst(e.x+e.w/2, e.y+e.h/2, '#FFD700', 14); shake = 4; SFX.stomp();
+        continue;
+      }
+      if (player.inv > 0) continue;
+      // Piranha — tak boleh stomp dari atas (kepala berduri tersirat)
+      if (e.kind === 'piranha') {
+        if (player.fire || player.big) shrink();
+        else killPlayer();
+        continue;
+      }
       const fromAbove = player.vy > 0 && player.y + player.h < e.y + e.h*0.7;
       if (fromAbove) {
         e.squished = true; e.squishT = 26; player.vy = -8.5;
         score += 100; floatText(e.x, e.y, '+100'); updateHUD();
         burst(e.x+e.w/2, e.y+e.h/2, '#C04000', 8); shake = 5; SFX.stomp();
-      } else if (player.big) shrink();
+      } else if (player.fire || player.big) shrink();
       else killPlayer();
     }
   }
 
-  // mushroom powerups (dynamic)
+  // mushroom / fire flower / star powerups (dynamic)
   for (const m of powerups) {
     if (m.taken) continue;
+    const kind = m.kind || 'mushroom';
     if (m.emerging) {
       m.y -= 1; if (m.y <= m.targetY) { m.emerging = false; m.vy = 0; }
       continue;
     }
     m.vy += GRAV; if (m.vy > 8) m.vy = 8;
-    moveX(m, blocks); moveY(m, blocks, null);
-    if (m.onGround) { /* keep moving */ }
-    if (m.vx === 0) m.vx = 1.5;
-    if (overlap(player, m)) { m.taken = true; growBig(); }
+    if (kind === 'star') {
+      // Star pantul kuat bila kena ground
+      moveX(m, blocks);
+      moveY(m, blocks, null);
+      if (m.onGround) m.vy = -8;
+      if (m.vx === 0) m.vx = 2.4;
+    } else if (kind === 'fire') {
+      // Fire Flower diam — tunggu Mario ambik
+      m.vx = 0; m.vy = 0;
+    } else {
+      moveX(m, blocks); moveY(m, blocks, null);
+      if (m.vx === 0) m.vx = 1.5;
+    }
+    if (overlap(player, m)) {
+      m.taken = true;
+      if (kind === 'fire') setFire();
+      else if (kind === 'star') setStar();
+      else growBig();
+    }
   }
 
   // coins
@@ -741,51 +926,182 @@ function update() {
     if (!bs.active && player.x > bs.minX - 200) bs.active = true;
     if (bs.active) {
       if (bs.hit > 0) bs.hit--;
-      // patrol
-      bs.x += bs.vx * bs.dir;
-      if (bs.x < bs.minX) { bs.x = bs.minX; bs.dir = 1; }
-      if (bs.x > bs.maxX) { bs.x = bs.maxX; bs.dir = -1; }
-      // face player occasionally + throw fireball
+
+      // ICE KING multi-fasa: aktifkan enraged bila HP ≤ 50%
+      const isIceKing = bs.type === 'iceking';
+      if (isIceKing && !bs.enraged && bs.hp <= bs.maxHp / 2) {
+        bs.enraged = true;
+        shake = 18;
+        burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF2244', 24);
+        SFX.power();
+      }
+
+      // Boss graviti (utama untuk Ice King lompat)
+      if (isIceKing) {
+        bs.vy += GRAV; if (bs.vy > MAX_FALL) bs.vy = MAX_FALL;
+        bs.y += bs.vy;
+        if (bs.y + bs.h >= GROUND_Y) {
+          if (!bs.onGround && bs.vy > 4) {
+            // mendarat dari lompatan — shockwave!
+            shake = 12;
+            level.fireballs.push({ x: bs.x - 20, y: GROUND_Y - 12, vx: -4, vy: -2, life: 90 });
+            level.fireballs.push({ x: bs.x + bs.w + 20, y: GROUND_Y - 12, vx: 4, vy: -2, life: 90 });
+          }
+          bs.y = GROUND_Y - bs.h;
+          bs.vy = 0;
+          bs.onGround = true;
+        } else {
+          bs.onGround = false;
+        }
+      }
+
+      // Patrol (hanya bila atas tanah untuk Ice King)
+      if (!isIceKing || bs.onGround) {
+        const sp = isIceKing && bs.enraged ? 1.5 : 1;
+        bs.x += bs.vx * bs.dir * sp;
+        if (bs.x < bs.minX) { bs.x = bs.minX; bs.dir = 1; }
+        if (bs.x > bs.maxX) { bs.x = bs.maxX; bs.dir = -1; }
+      }
+
+      // Throw fireball / iceball
       bs.fireT--;
       if (bs.fireT <= 0) {
-        bs.fireT = 110;
+        const baseInterval = isIceKing ? (bs.enraged ? 70 : 100) : 110;
+        bs.fireT = baseInterval;
         const toL = player.x < bs.x ? -1 : 1;
-        level.fireballs.push({ x: bs.x + bs.w/2, y: bs.y + 20, vx: toL * 3.2, vy: -1, life: 200 });
+        if (isIceKing && bs.enraged) {
+          // 3-arah serentak
+          for (const dvy of [-1, -2, -3]) {
+            level.fireballs.push({ x: bs.x + bs.w/2, y: bs.y + 24, vx: toL * 3.4, vy: dvy, life: 220, ice: true });
+          }
+        } else if (isIceKing) {
+          level.fireballs.push({ x: bs.x + bs.w/2, y: bs.y + 24, vx: toL * 3.2, vy: -1.5, life: 220, ice: true });
+        } else {
+          level.fireballs.push({ x: bs.x + bs.w/2, y: bs.y + 20, vx: toL * 3.2, vy: -1, life: 200 });
+        }
         SFX.bump();
       }
+
+      // Ice King jump attack
+      if (isIceKing && bs.onGround) {
+        bs.jumpT--;
+        if (bs.jumpT <= 0) {
+          bs.vy = bs.enraged ? -12 : -10;
+          bs.onGround = false;
+          bs.jumpT = bs.enraged ? 140 : 240;
+        }
+      }
+
       if (bs.stompLock > 0) bs.stompLock--;
+
       // collision with player
-      if (!player.dead && player.inv === 0 && overlap(player, bs)) {
-        const fromAbove = player.vy > 0 && player.y + player.h < bs.y + bs.h*0.5;
-        if (fromAbove && bs.stompLock === 0) {
-          bs.hp--; bs.hit = 30; bs.stompLock = 20; player.vy = -10;
-          score += 500; floatText(bs.x, bs.y, '+500', '#FFD700'); updateHUD();
-          burst(bs.x+bs.w/2, bs.y, '#FF8800', 14); shake = 8; SFX.stomp();
+      if (!player.dead && overlap(player, bs)) {
+        // Star Mario terus bunuh boss (1 hit damage)
+        if (player.starT > 0 && bs.stompLock === 0) {
+          bs.hp--; bs.hit = 30; bs.stompLock = 20;
+          score += 700; floatText(bs.x, bs.y, '+700', '#FFD700'); updateHUD();
+          burst(bs.x+bs.w/2, bs.y, '#FFD700', 14); shake = 8; SFX.stomp();
           if (bs.hp <= 0) {
-            bs.alive = false; score += 3000; updateHUD();
+            bs.alive = false; score += isIceKing ? 5000 : 3000; updateHUD();
             burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
             burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
             shake = 14; SFX.clear();
             gameState = 'clear'; clearTimer = 130;
           }
-        } else if (!fromAbove) {
-          if (player.big) shrink(); else killPlayer();
+        }
+        else if (player.inv === 0) {
+          const fromAbove = player.vy > 0 && player.y + player.h < bs.y + bs.h*0.5;
+          if (fromAbove && bs.stompLock === 0) {
+            bs.hp--; bs.hit = 30; bs.stompLock = 20; player.vy = -10;
+            score += 500; floatText(bs.x, bs.y, '+500', '#FFD700'); updateHUD();
+            burst(bs.x+bs.w/2, bs.y, '#FF8800', 14); shake = 8; SFX.stomp();
+            if (bs.hp <= 0) {
+              bs.alive = false; score += isIceKing ? 5000 : 3000; updateHUD();
+              burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
+              burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
+              shake = 14; SFX.clear();
+              gameState = 'clear'; clearTimer = 130;
+            }
+          } else if (!fromAbove) {
+            if (player.fire || player.big) shrink(); else killPlayer();
+          }
         }
       }
     }
   }
 
-  // ── Fireballs ──
+  // ── Boss/Enemy Fireballs (mengejar player) ──
   for (const fb of level.fireballs) {
     fb.life--; fb.vy += 0.12; fb.x += fb.vx; fb.y += fb.vy;
     // bounce on ground
     if (fb.y > GROUND_Y - 12) { fb.y = GROUND_Y - 12; fb.vy = -4; }
-    if (!player.dead && player.inv === 0 && overlap(player, { x:fb.x-9, y:fb.y-9, w:18, h:18 })) {
+    if (!player.dead && player.inv === 0 && player.starT === 0 && overlap(player, { x:fb.x-9, y:fb.y-9, w:18, h:18 })) {
       fb.life = 0;
-      if (player.big) shrink(); else killPlayer();
+      if (player.fire || player.big) shrink(); else killPlayer();
     }
   }
   level.fireballs = level.fireballs.filter(f => f.life > 0 && f.x > cameraX - 40 && f.x < cameraX + W + 40);
+
+  // ── Player Fireballs (Fire Mario lempar) ──
+  if (player.fireCD > 0) player.fireCD--;
+  if (player.starT > 0) player.starT--;
+  for (const fb of level.playerFireballs) {
+    fb.life--;
+    fb.vy += 0.32;
+    if (fb.vy > 9) fb.vy = 9;
+    fb.x += fb.vx; fb.y += fb.vy;
+    fb.spin = (fb.spin || 0) + 0.4;
+    // Bounce off ground
+    if (fb.y + fb.h > GROUND_Y) {
+      fb.y = GROUND_Y - fb.h; fb.vy = -7; fb.bounces++;
+      if (fb.bounces >= 4) fb.life = 0;
+    }
+    // Check collision dengan blok (mudah — kalau langgar dinding solid)
+    for (const b of blocks) {
+      if (b.broken) continue;
+      if (!solid(b)) continue;
+      if (fb.x + fb.w > b.x && fb.x < b.x + b.w && fb.y + fb.h > b.y && fb.y < b.y + b.h) {
+        fb.life = 0;
+        burst(fb.x+6, fb.y+6, '#FF6600', 6);
+        break;
+      }
+    }
+    // Check collision dengan enemy
+    if (fb.life > 0) {
+      for (const e of enemies) {
+        if (!e.alive || e.squished) continue;
+        if (e.kind === 'piranha' && e.phase === 'hidden') continue;
+        if (overlap(fb, e)) {
+          e.squished = true; e.squishT = 26;
+          score += 200; floatText(e.x, e.y, '+200', '#FF8800'); updateHUD();
+          burst(e.x+e.w/2, e.y+e.h/2, '#FF6600', 14);
+          shake = 4;
+          fb.life = 0;
+          SFX.stomp();
+          break;
+        }
+      }
+    }
+    // Check collision dengan boss
+    if (fb.life > 0 && level.boss && level.boss.alive && level.boss.active && level.boss.hit === 0) {
+      const bs = level.boss;
+      if (overlap(fb, bs)) {
+        bs.hp--; bs.hit = 30;
+        score += 300; floatText(bs.x, bs.y, '+300', '#FF6600'); updateHUD();
+        burst(fb.x, fb.y, '#FF6600', 10);
+        fb.life = 0; shake = 6;
+        SFX.bump();
+        if (bs.hp <= 0) {
+          bs.alive = false; score += 5000; updateHUD();
+          burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
+          burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
+          shake = 14; SFX.clear();
+          gameState = 'clear'; clearTimer = 130;
+        }
+      }
+    }
+  }
+  level.playerFireballs = level.playerFireballs.filter(f => f.life > 0 && f.x > cameraX - 60 && f.x < cameraX + W + 60);
 
   // ── Pipe entry (enterable / exit) ──
   if (!player.dead && (keys['ArrowDown'] || keys['KeyS'])) {
@@ -814,12 +1130,24 @@ function onHeadBump(b) {
     b.used = true; b.bumpT = 12; SFX.bump();
     if (b.content === 'coin') { collectCoin(b.x, b.y - 6); }
     else if (b.content === 'mushroom') {
-      level.powerups.push({ x: b.x+2, y: b.y, targetY: b.y-30, w:28, h:28, vx:1.5, vy:0,
-        emerging:true, taken:false, onGround:false });
+      // Kalau dah Big atau Fire, spawn Fire Flower instead (auto-upgrade)
+      const kind = (player.big || player.fire) ? 'fire' : 'mushroom';
+      level.powerups.push({ x: b.x+2, y: b.y, targetY: b.y-30, w:28, h:28, vx: kind==='fire'?0:1.5, vy:0,
+        emerging:true, taken:false, onGround:false, kind });
+      SFX.appear();
+    }
+    else if (b.content === 'fire') {
+      level.powerups.push({ x: b.x+2, y: b.y, targetY: b.y-30, w:28, h:28, vx:0, vy:0,
+        emerging:true, taken:false, onGround:false, kind:'fire' });
+      SFX.appear();
+    }
+    else if (b.content === 'star') {
+      level.powerups.push({ x: b.x+2, y: b.y, targetY: b.y-30, w:28, h:28, vx:2.4, vy:-6,
+        emerging:true, taken:false, onGround:false, kind:'star' });
       SFX.appear();
     }
   } else if (b.type === 'brick') {
-    if (player.big) { b.broken = true; brickBits(b.x, b.y); score+=50; shake=6; SFX.brk(); }
+    if (player.big || player.fire) { b.broken = true; brickBits(b.x, b.y); score+=50; shake=6; SFX.brk(); }
     else { b.bumpT = 10; SFX.bump(); }
   } else { b.bumpT = 6; SFX.bump(); }
 }
@@ -855,6 +1183,54 @@ function drawBackground() {
     ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     for (let i=0;i<30;i++){ const x=(i*97 - cameraX*0.3)%(W+40); ctx.fillRect(((x%W)+W)%W, (i*53)%H, 2, 2); }
+    return;
+  }
+  if (level.theme === 'ice') {
+    // Langit ais — gradient biru-putih
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0, '#4a7ab8');
+    g.addColorStop(0.5, '#88c4e8');
+    g.addColorStop(1, '#d8eef8');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // Awan kelabu sejuk
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    const clouds = [[120,80],[460,55],[820,95],[1180,65],[1560,80],[1920,55],[2300,90]];
+    for (const [cx0,cy] of clouds) {
+      let x = cx0 - cameraX*0.4; x = ((x % (level.lengthX+200)) + level.lengthX+200) % (level.lengthX+200);
+      if (x > W+120) continue;
+      cloud(x, cy);
+    }
+    // Gunung salji jauh (parallax 0.25)
+    ctx.fillStyle = '#e8f4ff';
+    for (const mx of [100,450,820,1180,1550,1920,2280,2640]) {
+      const x = mx - cameraX*0.25;
+      ctx.beginPath(); ctx.moveTo(x-110, GROUND_Y); ctx.lineTo(x-30, GROUND_Y-150); ctx.lineTo(x+30, GROUND_Y-140); ctx.lineTo(x+110, GROUND_Y); ctx.closePath(); ctx.fill();
+      // Puncak salji
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.moveTo(x-30, GROUND_Y-150); ctx.lineTo(x-10, GROUND_Y-130); ctx.lineTo(x+10, GROUND_Y-138); ctx.lineTo(x+30, GROUND_Y-140); ctx.lineTo(x+5, GROUND_Y-120); ctx.lineTo(x-15, GROUND_Y-122); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e8f4ff';
+    }
+    // Bukit ais (parallax 0.65)
+    ctx.fillStyle = '#bdd8f0';
+    for (const hx of [200,650,1150,1650,2150,2700,3150]) {
+      const x = hx - cameraX*0.65;
+      ctx.beginPath(); ctx.arc(x, GROUND_Y, 95, Math.PI, 0); ctx.fill();
+    }
+    ctx.fillStyle = '#a0c8e8';
+    for (const hx of [380,900,1450,2000,2500,3000]) {
+      const x = hx - cameraX*0.65;
+      ctx.beginPath(); ctx.arc(x, GROUND_Y, 62, Math.PI, 0); ctx.fill();
+    }
+    // Snowflakes (foreground)
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    for (const sf of snowflakes) {
+      sf.x += sf.vx; sf.y += sf.vy;
+      sf.sway += 0.04;
+      sf.x += Math.sin(sf.sway) * 0.3;
+      if (sf.y > H) { sf.y = -5; sf.x = Math.random() * W; }
+      if (sf.x < -10) sf.x = W;
+      ctx.beginPath(); ctx.arc(sf.x, sf.y, sf.size, 0, 7); ctx.fill();
+    }
     return;
   }
   // sky gradient
@@ -899,6 +1275,21 @@ function cloud(x, y) {
 function drawBush(d) {
   const x = d.x - cameraX*0.85;
   if (x < -100 || x > W+100) return;
+  if (d.type === 'icepine') {
+    // Pokok pain salji (segitiga tindih)
+    const y = GROUND_Y;
+    ctx.fillStyle = '#5a4020';
+    ctx.fillRect(x-4, y-22, 8, 22);
+    ctx.fillStyle = '#1a5a2a';
+    ctx.beginPath(); ctx.moveTo(x-26, y-22); ctx.lineTo(x, y-72); ctx.lineTo(x+26, y-22); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x-22, y-44); ctx.lineTo(x, y-92); ctx.lineTo(x+22, y-44); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x-18, y-66); ctx.lineTo(x, y-104); ctx.lineTo(x+18, y-66); ctx.closePath(); ctx.fill();
+    // Salji atas tiap lapisan
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(x-26, y-22); ctx.lineTo(x-18, y-30); ctx.lineTo(x-10, y-26); ctx.lineTo(x, y-32); ctx.lineTo(x+10, y-26); ctx.lineTo(x+18, y-30); ctx.lineTo(x+26, y-22); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y-104, 4, 0, 7); ctx.fill();
+    return;
+  }
   ctx.fillStyle = '#2a9d2a';
   const y = GROUND_Y;
   ctx.beginPath(); ctx.arc(x, y, 24, Math.PI, 0);
@@ -966,6 +1357,59 @@ function drawCoin(c) {
 function drawMushroom(m) {
   if (m.taken) return;
   const x = Math.round(m.x - cameraX), y = Math.round(m.y);
+  const kind = m.kind || 'mushroom';
+  if (kind === 'fire') {
+    // Fire Flower — bunga oren-merah dengan kelopak putih dan tengah hitam
+    const cx = x + 14, cy = y + 14;
+    const t = (Date.now() / 200) % 6.28;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.5);
+    // Kelopak — 4 helai
+    ctx.fillStyle = '#FF4400';
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.beginPath();
+      ctx.ellipse(8, 0, 9, 6, 0, 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+    // Tengah putih
+    ctx.fillStyle = '#FFEEAA';
+    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 7); ctx.fill();
+    // Mata
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cx-3, cy-1, 2, 3); ctx.fillRect(cx+1, cy-1, 2, 3);
+    // Batang
+    ctx.fillStyle = '#1a8a2a';
+    ctx.fillRect(cx-2, cy+8, 4, 8);
+    return;
+  }
+  if (kind === 'star') {
+    // Super Star — bintang kuning kerlap-kerlip
+    const cx = x + 14, cy = y + 14;
+    const flash = (Date.now() / 80) % 2 < 1;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = flash ? '#FFD700' : '#FFFFFF';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = (i * Math.PI / 5) - Math.PI/2;
+      const r = i % 2 === 0 ? 14 : 6;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    // Mata
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-4, -1, 2, 3); ctx.fillRect(2, -1, 2, 3);
+    // Smile
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 2, 3, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  // Default mushroom (merah)
   ctx.fillStyle = '#E53935';
   ctx.beginPath(); ctx.arc(x+14, y+12, 14, Math.PI, 0); ctx.fill();
   ctx.fillRect(x, y+12, 28, 6);
@@ -979,8 +1423,44 @@ function drawEnemy(e) {
   if (!e.alive) return;
   const x = Math.round(e.x - cameraX), y = Math.round(e.y);
   if (e.squished) {
+    if (e.kind === 'piranha') return;
     ctx.fillStyle = e.kind==='koopa' ? '#2a8f2a' : '#7a4a22';
     ctx.beginPath(); ctx.ellipse(x+e.w/2, y+e.h-5, e.w/2, 6, 0, 0, 7); ctx.fill();
+    return;
+  }
+  if (e.kind === 'piranha') {
+    // Piranha Plant — bunga karnivor keluar dari pipe
+    if (e.phase === 'hidden') return;
+    const cy = y + e.h*0.55;
+    // Stem hijau
+    ctx.fillStyle = '#1a8a2a';
+    ctx.fillRect(x+e.w/2-3, cy, 6, y+e.h - cy);
+    // Daun
+    ctx.fillStyle = '#2ecc40';
+    ctx.beginPath(); ctx.ellipse(x+4, cy+8, 7, 4, 0.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+e.w-4, cy+8, 7, 4, -0.4, 0, 7); ctx.fill();
+    // Kepala bulat
+    ctx.fillStyle = '#e8235a';
+    ctx.beginPath(); ctx.arc(x+e.w/2, cy-4, 12, 0, 7); ctx.fill();
+    // Bintik putih
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x+e.w/2-5, cy-5, 2.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+e.w/2+4, cy-3, 2, 0, 7); ctx.fill();
+    // Mulut (gigi)
+    const open = e.animF === 0;
+    ctx.fillStyle = '#fff';
+    if (open) {
+      // Mulut terbuka — gigi tajam
+      ctx.beginPath();
+      ctx.moveTo(x+e.w/2-7, cy-2); ctx.lineTo(x+e.w/2-5, cy+3); ctx.lineTo(x+e.w/2-3, cy-2);
+      ctx.moveTo(x+e.w/2-1, cy-2); ctx.lineTo(x+e.w/2+1, cy+3); ctx.lineTo(x+e.w/2+3, cy-2);
+      ctx.moveTo(x+e.w/2+5, cy-2); ctx.lineTo(x+e.w/2+7, cy+3); ctx.lineTo(x+e.w/2+9, cy-2);
+      ctx.fill();
+      ctx.fillStyle = '#7a0a1a';
+      ctx.fillRect(x+e.w/2-8, cy, 16, 3);
+    } else {
+      ctx.fillRect(x+e.w/2-8, cy-1, 16, 2);
+    }
     return;
   }
   if (e.kind === 'koopa') {
@@ -1016,8 +1496,27 @@ function drawEnemy(e) {
 function drawMario(p) {
   const x = Math.round(p.x - cameraX), y = Math.round(p.y);
   const flip = p.facing === -1;
-  const alpha = (p.inv>0 && Math.floor(p.inv/4)%2===0) ? 0.35 : 1;
+  let alpha = (p.inv>0 && Math.floor(p.inv/4)%2===0) ? 0.35 : 1;
   const sc = p.big ? 1.27 : 1;
+
+  // Star Mario — flash pelangi
+  let starCycle = 0;
+  if (p.starT > 0) {
+    starCycle = Math.floor(p.starT / 6) % 5;
+    if (p.starT < 80 && Math.floor(p.starT / 6) % 2 === 0) alpha = 0.5; // berkelip bila nak habis
+  }
+
+  // Palette ikut state: Fire (merah+putih), Star (pelangi cycle), Normal (merah+biru)
+  let shirtColor = '#d32f2f', overallColor = '#1a3a8f', hatColor = '#d32f2f';
+  if (p.fire) {
+    shirtColor = '#ffffff'; overallColor = '#d32f2f'; hatColor = '#ffffff';
+  }
+  if (starCycle > 0 || p.starT > 0) {
+    const palette = ['#ff4444','#ffaa00','#44ff44','#4488ff','#ff44ff'];
+    shirtColor = palette[starCycle];
+    overallColor = palette[(starCycle + 2) % 5];
+    hatColor = palette[(starCycle + 1) % 5];
+  }
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -1034,7 +1533,7 @@ function drawMario(p) {
 
   const airborne = !p.onGround;
   // legs
-  ctx.fillStyle = '#1a3a8f';
+  ctx.fillStyle = overallColor;
   if (airborne) { ctx.fillRect(3,38,10,8); ctx.fillRect(15,36,10,8); }
   else if (Math.abs(p.vx)>0.4) {
     const lo=[[0,0],[5,-2],[0,0]][p.animF];
@@ -1045,11 +1544,11 @@ function drawMario(p) {
   if (airborne){ctx.fillRect(1,44,12,5);ctx.fillRect(15,42,12,5);}
   else {ctx.fillRect(2,44,12,5);ctx.fillRect(14,44,12,5);}
   // overalls
-  ctx.fillStyle='#1a3a8f'; ctx.fillRect(3,26,22,14);
+  ctx.fillStyle = overallColor; ctx.fillRect(3,26,22,14);
   ctx.fillStyle='#e8b923'; ctx.fillRect(8,29,3,3); ctx.fillRect(17,29,3,3);
   // shirt/arms
-  ctx.fillStyle='#d32f2f'; ctx.fillRect(2,24,24,6);
-  ctx.fillStyle='#d32f2f';
+  ctx.fillStyle = shirtColor; ctx.fillRect(2,24,24,6);
+  ctx.fillStyle = shirtColor;
   if (airborne) ctx.fillRect(0,18,7,8); else ctx.fillRect(1,26,6,8);
   ctx.fillStyle='#f5c08a'; // hands
   if (airborne) ctx.fillRect(0,16,6,5); else ctx.fillRect(1,32,5,5);
@@ -1059,9 +1558,10 @@ function drawMario(p) {
   ctx.fillStyle='#000'; ctx.fillRect(15,15,3,4);    // eye
   ctx.fillStyle='#5a2d00'; ctx.fillRect(4,18,4,6);  // sideburn
   // hat
-  ctx.fillStyle='#d32f2f'; ctx.fillRect(3,4,22,7); ctx.fillRect(1,9,26,4);
+  ctx.fillStyle = hatColor; ctx.fillRect(3,4,22,7); ctx.fillRect(1,9,26,4);
   ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(11,8,3.5,0,7); ctx.fill(); // M emblem bg
-  ctx.fillStyle='#d32f2f'; ctx.font='bold 6px Arial'; ctx.fillText('M',9,10);
+  ctx.fillStyle = p.fire ? '#d32f2f' : hatColor;
+  ctx.font='bold 6px Arial'; ctx.fillText('M',9,10);
 
   ctx.restore();
 }
@@ -1129,10 +1629,30 @@ function dim(a){ ctx.fillStyle=`rgba(0,0,20,${a})`; ctx.fillRect(0,0,W,H); }
 function drawFireballs() {
   for (const fb of level.fireballs) {
     const x = fb.x - cameraX, y = fb.y;
-    ctx.fillStyle = '#FF6600';
+    // Ice King fireballs (biru) atau biasa (oren)
+    const outer = fb.ice ? '#4488ff' : '#FF6600';
+    const inner = fb.ice ? '#cce4ff' : '#FFD000';
+    ctx.fillStyle = outer;
     ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.fill();
-    ctx.fillStyle = '#FFD000';
+    ctx.fillStyle = inner;
     ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
+  }
+  // Player fireballs (Fire Mario lempar) — bola api kecil berpusing
+  for (const fb of (level.playerFireballs || [])) {
+    const cx = fb.x + fb.w/2 - cameraX, cy = fb.y + fb.h/2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(fb.spin || 0);
+    // Outer glow
+    ctx.fillStyle = '#ff3300';
+    ctx.beginPath(); ctx.arc(0, 0, 7, 0, 7); ctx.fill();
+    // Bright core
+    ctx.fillStyle = '#ffee44';
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, 7); ctx.fill();
+    // Cross sparkles
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
   }
 }
 
@@ -1142,33 +1662,101 @@ function drawBoss() {
   const flash = bs.hit > 0 && Math.floor(bs.hit/3)%2===0;
   ctx.save();
   if (flash) ctx.globalAlpha = 0.5;
-  // shell/back
-  ctx.fillStyle = '#1f7a1f';
-  ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.55, bs.w*0.5, bs.h*0.45, 0, 0, 7); ctx.fill();
-  // spikes
-  ctx.fillStyle = '#e8e0c0';
-  for (let i=0;i<4;i++){ const sx=x+12+i*13; ctx.beginPath(); ctx.moveTo(sx,y+18); ctx.lineTo(sx+6,y+4); ctx.lineTo(sx+12,y+18); ctx.fill(); }
-  // belly
-  ctx.fillStyle = '#f5d76e';
-  ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.62, bs.w*0.3, bs.h*0.32, 0, 0, 7); ctx.fill();
-  // head
-  const hx = bs.dir<0 ? x+2 : x+bs.w-26;
-  ctx.fillStyle = '#2a9a2a';
-  ctx.beginPath(); ctx.arc(hx+12, y+14, 14, 0, 7); ctx.fill();
-  // horns
-  ctx.fillStyle = '#e8e0c0';
-  ctx.beginPath(); ctx.moveTo(hx+2,y+4); ctx.lineTo(hx+6,y-6); ctx.lineTo(hx+12,y+4); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(hx+14,y+4); ctx.lineTo(hx+20,y-6); ctx.lineTo(hx+24,y+4); ctx.fill();
-  // eyes
-  ctx.fillStyle = '#fff'; ctx.fillRect(hx+8, y+10, 6, 6); ctx.fillRect(hx+16, y+10, 6, 6);
-  ctx.fillStyle = '#c00'; ctx.fillRect(hx+10, y+12, 3, 3); ctx.fillRect(hx+18, y+12, 3, 3);
-  // feet
-  ctx.fillStyle = '#f5b733';
-  ctx.fillRect(x+8, y+bs.h-8, 14, 8); ctx.fillRect(x+bs.w-22, y+bs.h-8, 14, 8);
+
+  if (bs.type === 'iceking') {
+    // ── ICE KING ── (biru normal / merah enraged)
+    const bodyColor = bs.enraged ? '#cc2244' : '#3a6aaa';
+    const accentColor = bs.enraged ? '#ff6688' : '#88c8f0';
+    const crownColor = '#ffd24d';
+    // Body
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.6, bs.w*0.45, bs.h*0.45, 0, 0, 7); ctx.fill();
+    // Frost shoulders (ice spikes)
+    ctx.fillStyle = accentColor;
+    for (let i=0;i<3;i++){ const sx=x+10+i*22; ctx.beginPath(); ctx.moveTo(sx,y+24); ctx.lineTo(sx+8,y+10); ctx.lineTo(sx+16,y+24); ctx.fill(); }
+    // Belly (ice white)
+    ctx.fillStyle = bs.enraged ? '#ffaaaa' : '#cce4f8';
+    ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.65, bs.w*0.28, bs.h*0.3, 0, 0, 7); ctx.fill();
+    // Head
+    const hx = bs.dir<0 ? x+4 : x+bs.w-32;
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath(); ctx.arc(hx+14, y+18, 16, 0, 7); ctx.fill();
+    // Crown (mahkota ais)
+    ctx.fillStyle = crownColor;
+    ctx.beginPath();
+    ctx.moveTo(hx, y+8);
+    ctx.lineTo(hx+5, y-2);
+    ctx.lineTo(hx+10, y+6);
+    ctx.lineTo(hx+14, y-6);
+    ctx.lineTo(hx+18, y+6);
+    ctx.lineTo(hx+23, y-2);
+    ctx.lineTo(hx+28, y+8);
+    ctx.closePath();
+    ctx.fill();
+    // Permata mahkota
+    ctx.fillStyle = bs.enraged ? '#ff4444' : '#4488ff';
+    ctx.beginPath(); ctx.arc(hx+14, y+4, 2.5, 0, 7); ctx.fill();
+    // Eyes (bersinar bila enraged)
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(hx+8, y+14, 6, 6); ctx.fillRect(hx+16, y+14, 6, 6);
+    ctx.fillStyle = bs.enraged ? '#ff0000' : '#0044aa';
+    ctx.fillRect(hx+10, y+16, 3, 3); ctx.fillRect(hx+18, y+16, 3, 3);
+    // Janggut ais
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(hx+6, y+26); ctx.lineTo(hx+10, y+34); ctx.lineTo(hx+14, y+28);
+    ctx.lineTo(hx+18, y+34); ctx.lineTo(hx+22, y+26);
+    ctx.fill();
+    // Arms (raised when in fight)
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(x+2, y+bs.h*0.42, 8, 18);
+    ctx.fillRect(x+bs.w-10, y+bs.h*0.42, 8, 18);
+    // Feet
+    ctx.fillStyle = '#1a3a5a';
+    ctx.fillRect(x+8, y+bs.h-10, 16, 10); ctx.fillRect(x+bs.w-24, y+bs.h-10, 16, 10);
+    // Aura beku
+    if (bs.enraged) {
+      ctx.globalAlpha = (Math.sin(Date.now()*0.01)+1)*0.15;
+      ctx.fillStyle = '#ff4488';
+      ctx.beginPath(); ctx.arc(x+bs.w/2, y+bs.h/2, bs.w*0.7, 0, 7); ctx.fill();
+      ctx.globalAlpha = flash ? 0.5 : 1;
+    }
+  } else {
+    // ── GIANT KOOPA (default existing) ──
+    // shell/back
+    ctx.fillStyle = '#1f7a1f';
+    ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.55, bs.w*0.5, bs.h*0.45, 0, 0, 7); ctx.fill();
+    // spikes
+    ctx.fillStyle = '#e8e0c0';
+    for (let i=0;i<4;i++){ const sx=x+12+i*13; ctx.beginPath(); ctx.moveTo(sx,y+18); ctx.lineTo(sx+6,y+4); ctx.lineTo(sx+12,y+18); ctx.fill(); }
+    // belly
+    ctx.fillStyle = '#f5d76e';
+    ctx.beginPath(); ctx.ellipse(x+bs.w/2, y+bs.h*0.62, bs.w*0.3, bs.h*0.32, 0, 0, 7); ctx.fill();
+    // head
+    const hx = bs.dir<0 ? x+2 : x+bs.w-26;
+    ctx.fillStyle = '#2a9a2a';
+    ctx.beginPath(); ctx.arc(hx+12, y+14, 14, 0, 7); ctx.fill();
+    // horns
+    ctx.fillStyle = '#e8e0c0';
+    ctx.beginPath(); ctx.moveTo(hx+2,y+4); ctx.lineTo(hx+6,y-6); ctx.lineTo(hx+12,y+4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(hx+14,y+4); ctx.lineTo(hx+20,y-6); ctx.lineTo(hx+24,y+4); ctx.fill();
+    // eyes
+    ctx.fillStyle = '#fff'; ctx.fillRect(hx+8, y+10, 6, 6); ctx.fillRect(hx+16, y+10, 6, 6);
+    ctx.fillStyle = '#c00'; ctx.fillRect(hx+10, y+12, 3, 3); ctx.fillRect(hx+18, y+12, 3, 3);
+    // feet
+    ctx.fillStyle = '#f5b733';
+    ctx.fillRect(x+8, y+bs.h-8, 14, 8); ctx.fillRect(x+bs.w-22, y+bs.h-8, 14, 8);
+  }
   ctx.restore();
   // HP bar
   ctx.fillStyle = '#000'; ctx.fillRect(x+4, y-14, bs.w-8, 7);
-  ctx.fillStyle = '#e53935'; ctx.fillRect(x+5, y-13, (bs.w-10)*(bs.hp/3), 5);
+  const hpColor = bs.type === 'iceking' ? (bs.enraged ? '#ff2244' : '#4488ff') : '#e53935';
+  ctx.fillStyle = hpColor; ctx.fillRect(x+5, y-13, (bs.w-10)*(bs.hp/bs.maxHp), 5);
+  // Label nama boss
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
+  const name = bs.type === 'iceking' ? (bs.enraged ? '★ ICE KING — ENRAGED ★' : 'ICE KING') : 'GIANT KOOPA';
+  ctx.fillText(name, x+bs.w/2, y-16);
 }
 
 function drawPipeHint() {
@@ -1198,7 +1786,49 @@ function render() {
   drawParticles();
   if (player) drawMario(player);
   ctx.restore();
+  drawPowerupHUD();
   drawOverlay();
+}
+
+function drawPowerupHUD() {
+  if (!player) return;
+  // Indicator power-up state — kanan atas canvas
+  const padX = W - 12;
+  let yPos = 14;
+  if (player.fire) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(padX - 88, yPos - 2, 88, 22);
+    ctx.fillStyle = '#FF6600';
+    ctx.beginPath(); ctx.arc(padX - 78, yPos + 9, 8, 0, 7); ctx.fill();
+    ctx.fillStyle = '#FFD000';
+    ctx.beginPath(); ctx.arc(padX - 78, yPos + 9, 5, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'left';
+    ctx.fillText('FIRE — Z lempar', padX - 66, yPos + 13);
+    yPos += 26;
+  }
+  if (player.starT > 0) {
+    const sec = Math.ceil(player.starT / 60);
+    const cycle = Math.floor(player.starT / 6) % 5;
+    const palette = ['#ff4444','#ffaa00','#44ff44','#4488ff','#ff44ff'];
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(padX - 88, yPos - 2, 88, 22);
+    ctx.fillStyle = palette[cycle];
+    // Bintang
+    ctx.save();
+    ctx.translate(padX - 78, yPos + 9);
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 4 * Math.PI / 5) - Math.PI/2;
+      const r = i % 2 === 0 ? 9 : 4;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'left';
+    ctx.fillText('STAR ' + sec + 's', padX - 66, yPos + 13);
+  }
 }
 
 // ─── LOOP ─────────────────────────────────────────────────
