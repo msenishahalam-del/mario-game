@@ -425,7 +425,7 @@
   <br>
   <button class="big" data-set="bahagi" onclick="startQuiz('bahagi')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
     ➗ Bahagi
-    <span class="set-sub">Sifir 2-12 · key in jawapan · 15 saat</span>
+    <span class="set-sub">Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 18 saat</span>
   </button>
   <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
@@ -613,22 +613,55 @@
       }
     },
     bahagi: {
-      time: 15,
+      time: 18,
       generate() {
         const qs = [];
         while (qs.length < 10) {
-          let divisor, quotient;
-          if (Math.random() < 0.6) {
-            // SENANG: sifir 2-9
-            divisor = randInt(2, 9);
-            quotient = randInt(2, 9);
+          // 40% soalan bahagi dengan baki (MCQ), 60% bahagi tepat (taip jawapan)
+          const withRemainder = Math.random() < 0.4;
+          if (!withRemainder) {
+            // ── Bahagi tepat (sedia ada) — taip jawapan ──
+            let divisor, quotient;
+            if (Math.random() < 0.6) {
+              // SENANG: sifir 2-9
+              divisor = randInt(2, 9);
+              quotient = randInt(2, 9);
+            } else {
+              // MEDIUM: sifir 2-12
+              divisor = randInt(2, 12);
+              quotient = randInt(2, 12);
+            }
+            const dividend = divisor * quotient;  // sentiasa habis dibahagi
+            qs.push({ text: `${dividend} ÷ ${divisor}`, answer: quotient });
           } else {
-            // MEDIUM: sifir 2-12
-            divisor = randInt(2, 12);
-            quotient = randInt(2, 12);
+            // ── Bahagi dengan baki (MCQ) — pilih "quotient baki remainder" ──
+            const divisor = randInt(2, 9);
+            const quotient = randInt(1, 9);
+            const remainder = randInt(1, divisor - 1);  // baki 1 hingga divisor-1
+            const dividend = divisor * quotient + remainder;
+            const correct = `${quotient} baki ${remainder}`;
+            const cands = new Set([correct]);
+            // Distractor: salah quotient
+            if (quotient + 1 <= 12) cands.add(`${quotient + 1} baki ${remainder}`);
+            if (quotient > 1) cands.add(`${quotient - 1} baki ${remainder}`);
+            // Distractor: salah baki
+            if (remainder + 1 < divisor) cands.add(`${quotient} baki ${remainder + 1}`);
+            if (remainder > 1) cands.add(`${quotient} baki ${remainder - 1}`);
+            // Distractor: tukar tempat (kalau valid)
+            if (remainder !== quotient && remainder < divisor && quotient < divisor) {
+              cands.add(`${remainder} baki ${quotient}`);
+            }
+            const choices = [...cands].slice(0, 4);
+            while (choices.length < 4) {
+              const r = `${randInt(1, 9)} baki ${randInt(1, divisor - 1)}`;
+              if (!choices.includes(r)) choices.push(r);
+            }
+            qs.push({
+              text: `${dividend} ÷ ${divisor} = ?`,
+              answer: correct,
+              choices: shuffle(choices)
+            });
           }
-          const dividend = divisor * quotient;  // sentiasa habis dibahagi (tiada baki)
-          qs.push({ text: `${dividend} ÷ ${divisor}`, answer: quotient });
         }
         return shuffle(qs);
       }
