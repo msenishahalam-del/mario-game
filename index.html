@@ -425,7 +425,12 @@
   <br>
   <button class="big" data-set="bahagi" onclick="startQuiz('bahagi')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
     ➗ Bahagi
-    <span class="set-sub">Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 18 saat</span>
+    <span class="set-sub">Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 30 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="bahagi2" onclick="startQuiz('bahagi2')" style="background: linear-gradient(135deg, #fa9e5a, #b5471d);">
+    ➗ Bahagi 2.0
+    <span class="set-sub">Semua ada baki! (9÷2 = 4 baki 1) · A/B/C/D · 30 saat</span>
   </button>
   <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
@@ -510,6 +515,9 @@
   <div class="stars-earned" id="starsEarned">⭐⭐⭐</div>
   <div class="completion-msg hidden" id="completionMsg"></div>
   <div class="reward-info">
+    <div id="perfectBonus" style="display:none; background:linear-gradient(135deg,#FFD700,#FF8C00); color:#5a3a00; font-weight:bold; padding:8px 14px; border-radius:10px; margin-bottom:10px; font-size:0.95em;">
+      🏆 SEMPURNA 10/10! BONUS +5 MINIT! 🎉
+    </div>
     Kamu dapat <b><span id="rewardMinutes">0</span> minit</b> untuk main game! 🎮<br>
     <small style="font-size: 0.8em;">(Mario, Tetris, Flappy, Sonic, Aladdin, Pac-Man, Felix, Snake, Invaders, Micro Machines)</small>
   </div>
@@ -536,7 +544,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3', 'perpuluhan'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3', 'perpuluhan'],
     tahun6:  ['tambahtolak', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -589,7 +597,7 @@
   // ===== SET SOALAN =====
   const SETS = {
     darab: {
-      time: 15,
+      time: 30,
       generate() {
         const qs = [];
         // 5 soalan sifir 2-9
@@ -613,7 +621,7 @@
       }
     },
     bahagi: {
-      time: 18,
+      time: 30,
       generate() {
         const qs = [];
         while (qs.length < 10) {
@@ -666,8 +674,36 @@
         return shuffle(qs);
       }
     },
+    bahagi2: {
+      time: 30,
+      generate() {
+        // SEMUA soalan ada baki (confirm baki ≥ 1). Cth: 9 ÷ 2 = 4 baki 1
+        const qs = [];
+        while (qs.length < 10) {
+          const divisor = randInt(2, 9);
+          const quotient = randInt(1, 9);
+          const remainder = randInt(1, divisor - 1);   // baki sentiasa 1 hingga divisor-1
+          const dividend = divisor * quotient + remainder;
+          const correct = `${quotient} baki ${remainder}`;
+          const cands = new Set([correct]);
+          if (quotient + 1 <= 12) cands.add(`${quotient + 1} baki ${remainder}`);
+          if (quotient > 1) cands.add(`${quotient - 1} baki ${remainder}`);
+          if (remainder + 1 < divisor) cands.add(`${quotient} baki ${remainder + 1}`);
+          if (remainder - 1 >= 1) cands.add(`${quotient} baki ${remainder - 1}`);
+          if (remainder !== quotient && remainder < divisor && quotient < divisor)
+            cands.add(`${remainder} baki ${quotient}`);
+          const choices = [...cands].slice(0, 4);
+          while (choices.length < 4) {
+            const r = `${randInt(1, 9)} baki ${randInt(1, divisor - 1)}`;
+            if (!choices.includes(r)) choices.push(r);
+          }
+          qs.push({ text: `${dividend} ÷ ${divisor} = ?`, answer: correct, choices: shuffle(choices) });
+        }
+        return shuffle(qs);
+      }
+    },
     tambahtolak: {
-      time: 20,
+      time: 30,
       generate() {
         const qs = [];
         // 7 soalan satu operasi (a + b atau a − b)
@@ -697,7 +733,7 @@
       }
     },
     bundar: {
-      time: 15,
+      time: 30,
       generate() {
         const qs = [];
         while (qs.length < 10) {
@@ -759,7 +795,7 @@
       }
     },
     pecahan: {
-      time: 60,
+      time: 30,
       generate() {
         // 1) Tambah / tolak (penyebut sama) — benarkan pecahan tak wajar kecil
         function genAddSub() {
@@ -904,7 +940,7 @@
     sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
     agama: { time: 20, generate() { return buildAgama(); } },            // Pendidikan Islam Tahun 3 (KSSR)
     cariX: {
-      time: 18,
+      time: 30,
       generate() {
         const qs = [];
         // 4 variasi rawak: X+a=b, a+X=b, X−a=b, a−X=b
@@ -939,7 +975,7 @@
       }
     },
     darabBahagi: {
-      time: 18,
+      time: 30,
       generate() {
         const qs = [];
         // 2 variasi: a × b ÷ c  dan  a ÷ b × c
@@ -983,7 +1019,7 @@
     pantun: { time: 30, generate() { return buildPantun(); } },
     jawi3:  { time: 22, generate() { return buildJawi3(); } },
     perpuluhan: {
-      time: 18,
+      time: 30,
       generate() {
         const qs = [];
         // 2 variasi: penyebut 10 (1 tempat perpuluhan) atau 100 (2 tempat perpuluhan)
@@ -1181,7 +1217,7 @@
       }
     },
     duit: {
-      time: 20,
+      time: 30,
       generate() {
         const names = ['Edris', 'Aisha', 'Ali', 'Siti', 'Hadi', 'Lisa', 'Danish', 'Nur', 'Faris', 'Mira'];
         const items = [
@@ -2013,7 +2049,11 @@
     document.getElementById('resultScreen').classList.remove('hidden');
     document.getElementById('finalScore').textContent = score;
     rewardSeconds = score * 60;
-    document.getElementById('rewardMinutes').textContent = score;
+    const perfect = (score === 10);
+    if (perfect) rewardSeconds += 300;   // BONUS 5 minit untuk markah sempurna 10/10
+    document.getElementById('rewardMinutes').textContent = Math.round(rewardSeconds / 60);
+    const bonusEl = document.getElementById('perfectBonus');
+    if (bonusEl) bonusEl.style.display = perfect ? 'block' : 'none';
 
     let stars = '';
     if (score >= 9) stars = '⭐⭐⭐⭐⭐ Cemerlang!';
