@@ -177,6 +177,20 @@
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"]:focus { outline: none; border-color: #d63384; }
 
+  /* Bahagi 2.0 — dua kotak (hasil bahagi + baki) */
+  .baki-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; flex-wrap: wrap;
+    font-size: 2em; font-weight: bold; color: #5a3a00;
+  }
+  .baki-row input.baki-box {
+    font-size: 1em; width: 96px; padding: 12px; text-align: center;
+    border: 4px solid #fa9e5a; border-radius: 16px; font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  .baki-row input.baki-box:focus { outline: none; border-color: #b5471d; }
+  .baki-label { font-size: 0.7em; color: #b5471d; }
+
   button {
     font-family: inherit;
     font-size: 1.4em;
@@ -430,7 +444,7 @@
   <br>
   <button class="big" data-set="bahagi2" onclick="startQuiz('bahagi2')" style="background: linear-gradient(135deg, #fa9e5a, #b5471d);">
     ➗ Bahagi 2.0
-    <span class="set-sub">Semua ada baki! (9÷2 = 4 baki 1) · A/B/C/D · 30 saat</span>
+    <span class="set-sub">Isi 2 kotak: 7÷2 = ▢ baki ▢ · senang → medium · 30 saat</span>
   </button>
   <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
@@ -677,29 +691,35 @@
     bahagi2: {
       time: 30,
       generate() {
-        // SEMUA soalan ada baki (confirm baki ≥ 1). Cth: 9 ÷ 2 = 4 baki 1
-        const qs = [];
-        while (qs.length < 10) {
-          const divisor = randInt(2, 9);
-          const quotient = randInt(1, 9);
-          const remainder = randInt(1, divisor - 1);   // baki sentiasa 1 hingga divisor-1
+        // Bahagi berbaki — pelajar ISI 2 KOTAK (hasil bahagi + baki).
+        // Cth: 7 ÷ 2 = [3] baki [1]. Semua soalan confirm ada baki (≥1).
+        // Mula SENANG (5 soalan) → MEDIUM (5 soalan). Tak shuffle supaya
+        // senang datang dulu.
+        function make(divisor, quotient, remainder) {
           const dividend = divisor * quotient + remainder;
-          const correct = `${quotient} baki ${remainder}`;
-          const cands = new Set([correct]);
-          if (quotient + 1 <= 12) cands.add(`${quotient + 1} baki ${remainder}`);
-          if (quotient > 1) cands.add(`${quotient - 1} baki ${remainder}`);
-          if (remainder + 1 < divisor) cands.add(`${quotient} baki ${remainder + 1}`);
-          if (remainder - 1 >= 1) cands.add(`${quotient} baki ${remainder - 1}`);
-          if (remainder !== quotient && remainder < divisor && quotient < divisor)
-            cands.add(`${remainder} baki ${quotient}`);
-          const choices = [...cands].slice(0, 4);
-          while (choices.length < 4) {
-            const r = `${randInt(1, 9)} baki ${randInt(1, divisor - 1)}`;
-            if (!choices.includes(r)) choices.push(r);
-          }
-          qs.push({ text: `${dividend} ÷ ${divisor} = ?`, answer: correct, choices: shuffle(choices) });
+          return {
+            text: `${dividend} ÷ ${divisor}`,
+            inputMode: 'baki',
+            quotient, remainder,
+            answer: `${quotient} baki ${remainder}`   // untuk paparan jawapan betul
+          };
         }
-        return shuffle(qs);
+        const qs = [];
+        // ── SENANG (5) — penyebut 2-3, hasil bahagi 1-4 (nombor kecil) ──
+        while (qs.length < 5) {
+          const divisor = randInt(2, 3);
+          const quotient = randInt(1, 4);
+          const remainder = randInt(1, divisor - 1);
+          qs.push(make(divisor, quotient, remainder));
+        }
+        // ── MEDIUM (5) — penyebut 2-6, hasil bahagi 2-9 ──
+        while (qs.length < 10) {
+          const divisor = randInt(2, 6);
+          const quotient = randInt(2, 9);
+          const remainder = randInt(1, divisor - 1);
+          qs.push(make(divisor, quotient, remainder));
+        }
+        return qs;   // JANGAN shuffle — senang dulu, medium kemudian
       }
     },
     tambahtolak: {
@@ -1890,6 +1910,23 @@
       answerArea.appendChild(input);
       setTimeout(() => input.focus(), 0);
       submitBtn.style.display = '';
+    } else if (q.inputMode === 'baki') {
+      // Dua kotak: = [hasil bahagi] baki [baki]
+      const row = document.createElement('div');
+      row.className = 'baki-row';
+      const eq = document.createElement('span'); eq.textContent = '=';
+      const in1 = document.createElement('input');
+      in1.type = 'number'; in1.id = 'ansQuotient'; in1.className = 'baki-box';
+      in1.autocomplete = 'off'; in1.inputMode = 'numeric';
+      const lbl = document.createElement('span'); lbl.textContent = 'baki'; lbl.className = 'baki-label';
+      const in2 = document.createElement('input');
+      in2.type = 'number'; in2.id = 'ansRemainder'; in2.className = 'baki-box';
+      in2.autocomplete = 'off'; in2.inputMode = 'numeric';
+      [in1, in2].forEach(inp => inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitAnswer(); }));
+      row.appendChild(eq); row.appendChild(in1); row.appendChild(lbl); row.appendChild(in2);
+      answerArea.appendChild(row);
+      setTimeout(() => in1.focus(), 0);
+      submitBtn.style.display = '';
     } else {
       // Number input
       const input = document.createElement('input');
@@ -1948,6 +1985,7 @@
     feedback.className = 'feedback wrong';
     const input = document.getElementById('answerInput');
     if (input) input.disabled = true;
+    document.querySelectorAll('.baki-box').forEach(b => b.disabled = true);
     document.querySelectorAll('.choice-btn').forEach(b => {
       b.disabled = true;
       if (b.dataset.value === String(correct)) b.classList.add('choice-correct');
@@ -1957,11 +1995,39 @@
 
   function submitAnswer() {
     if (qAnswered) return;
+    const q = questions[currentQ];
+    const feedback = document.getElementById('feedback');
+
+    // ── Mode 2-kotak (Bahagi 2.0: hasil bahagi + baki) ──
+    if (q.inputMode === 'baki') {
+      const i1 = document.getElementById('ansQuotient');
+      const i2 = document.getElementById('ansRemainder');
+      if (!i1 || !i2) return;
+      if (i1.value.trim() === '' || i2.value.trim() === '') {
+        feedback.textContent = '⚠️ Isi kedua-dua kotak!';
+        feedback.className = 'feedback wrong';
+        return;
+      }
+      const uq = parseInt(i1.value), ur = parseInt(i2.value);
+      const isCorrect = (uq === q.quotient && ur === q.remainder);
+      qAnswered = true;
+      stopQuestionTimer();
+      i1.disabled = true; i2.disabled = true;
+      if (isCorrect) {
+        score++;
+        feedback.textContent = '✅ Betul!';
+        feedback.className = 'feedback correct';
+      } else {
+        feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${q.answer}</span>`;
+        feedback.className = 'feedback wrong';
+      }
+      setTimeout(advanceQuestion, isCorrect ? CORRECT_DELAY : WRONG_DELAY);
+      return;
+    }
+
     const input = document.getElementById('answerInput');
     if (!input) return;  // MCQ mode — guna submitChoice
-    const q = questions[currentQ];
     const correct = q.answer;
-    const feedback = document.getElementById('feedback');
 
     let isCorrect;
     if (q.inputMode === 'text') {
