@@ -82,10 +82,10 @@
   // ============================================================
   // STATE
   // ============================================================
-  const PHYS = { g: 0.42, airDamp: 0.999, groundFric: 0.78, restitution: 0.32 };
+  const PHYS = { g: 0.38, airDamp: 0.999, groundFric: 0.78, restitution: 0.32 };
   const SLING = { x: 135, y: GROUND_Y - 96, forkH: 70 };  // anchor (tempat burung dilepas)
   const MAX_STRETCH = 95;
-  const POWER = 0.23;
+  const POWER = 0.185;
 
   let state = 'start';   // start | aim | flying | settling | clear | fail
   let levelIndex = 0;
@@ -180,7 +180,7 @@
   function loadNextBird() {
     if (birdsLeft <= 0) { bird = null; return; }
     birdsLeft--;
-    bird = { x: SLING.x, y: SLING.y, vx:0, vy:0, r:15, launched:false, boosted:false, mass:1.3, trail:[] };
+    bird = { x: SLING.x, y: SLING.y, vx:0, vy:0, r:15, launched:false, boosted:false, mass:1.3, trail:[], slowFrames:0, airTime:0 };
   }
 
   // ============================================================
@@ -207,8 +207,8 @@
       // Tap masa terbang = BOOST laju!
       bird.boosted = true;
       const sp = Math.hypot(bird.vx, bird.vy) || 1;
-      bird.vx = bird.vx/sp * (sp + 9);
-      bird.vy = bird.vy/sp * (sp + 9);
+      bird.vx = bird.vx/sp * (sp + 6);
+      bird.vy = bird.vy/sp * (sp + 6);
       SFX.boost();
       for (let k=0;k<8;k++) debris.push(spark(bird.x, bird.y, '#fff84a'));
     }
@@ -330,6 +330,7 @@
 
     // ── BIRD terbang ──
     if (bird && bird.launched) {
+      bird.airTime++;
       bird.vy += PHYS.g;
       bird.vx *= PHYS.airDamp; bird.vy *= PHYS.airDamp;
       bird.x += bird.vx; bird.y += bird.vy;
@@ -385,29 +386,29 @@
         }
       }
 
-      // burung berhenti / luar skrin → settle
-      const slow = Math.hypot(bird.vx, bird.vy) < 0.8;
-      if ((slow && bird.y + bird.r >= GROUND_Y - 0.5) || bird.x > W + 60 || bird.x < -60) {
-        state = 'settling'; settleTimer = 45;
+      // burung berhenti (DI MANA-MANA) / luar skrin / timeout → settle
+      // (hanya cetus SEKALI dari 'flying', supaya settleTimer tak reset setiap frame)
+      if (Math.hypot(bird.vx, bird.vy) < 0.7) bird.slowFrames++; else bird.slowFrames = 0;
+      if (state === 'flying' && (bird.slowFrames > 24 || bird.x > W + 60 || bird.x < -60 || bird.airTime > 360)) {
+        state = 'settling'; settleTimer = 40;
       }
     }
 
     stepBlocks();
     stepPigs();
 
+    // Semak menang dulu (elak deadlock): kalau semua pig mati → 'clear'
+    checkWinLose();
+
+    // Kalau belum menang & tempoh settle habis → load burung seterusnya
     if (state === 'settling') {
       settleTimer--;
-      // tunggu struktur settle sebelum burung seterusnya
       if (settleTimer <= 0) {
-        if (pigs.length === 0) return;  // dah menang (dihandle di bawah)
         loadNextBird();
         state = bird ? 'aim' : 'fail';
         if (state === 'fail') { SFX.fail(); }
       }
     }
-
-    // buang pig mati & blok mati dari array
-    checkWinLose();
   }
 
   function stepBlocks() {
