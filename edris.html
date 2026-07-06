@@ -116,6 +116,9 @@
   let particles = [];
   let spawnT = 0;
 
+  // T-Rex LOMPAT — terkam ke atas bila dekat!
+  const trexJump = { y: 0, vy: 0, jumping: false, timer: 300 };
+
   function initScenery() {
     clouds = []; hills = [];
     for (let i=0;i<5;i++) clouds.push({ x: Math.random()*W, y: 40+Math.random()*120, s: 0.7+Math.random()*0.6 });
@@ -129,6 +132,7 @@
     gap = 260; lastMilestone = 0; roarT = 0; caughtT = 0;
     cacti = []; enemies = []; particles = [];
     phase = 1; phaseMsgT = 0; meteors = []; meteorT = 0;
+    trexJump.y = 0; trexJump.vy = 0; trexJump.jumping = false; trexJump.timer = 300;
     spawnT = 50;
     initScenery();
   }
@@ -168,13 +172,20 @@
       }
       // Fasa 3+: kadang cactus + ptero SERENTAK (halangan berganda)
       if (phase >= 3 && Math.random() < 0.4) {
-        enemies.push({ x: W + 80, y: 90 + Math.random()*160, t: Math.random()*100, hit: false, dive: phase >= 3 && Math.random() < 0.5 });
+        enemies.push({ x: W + 80, y: foeY(), t: Math.random()*100, hit: false, dive: phase >= 3 && Math.random() < 0.5 });
       }
     } else {
       // pterodactyl musuh — Fasa 3+ boleh MENJUNAM ke arah player
-      const y = 90 + Math.random()*280;
-      enemies.push({ x: W + 40, y, t: Math.random()*100, hit: false, dive: phase >= 3 && Math.random() < 0.55 });
+      enemies.push({ x: W + 40, y: foeY(), t: Math.random()*100, hit: false, dive: phase >= 3 && Math.random() < 0.55 });
     }
+  }
+  // Ketinggian spawn musuh: 50% SASAR ketinggian player (anti-camping —
+  // duduk di siling pun musuh datang!), selebihnya rawak merata (40..380)
+  function foeY() {
+    if (Math.random() < 0.5) {
+      return Math.max(40, Math.min(380, player.y + (Math.random()-0.5)*90));
+    }
+    return 40 + Math.random()*340;
   }
 
   function burst(x, y, color, n=10) {
@@ -321,6 +332,38 @@
     // terbang bersih → jarak pulih; kadar pulih makin rendah ikut FASA
     gap += cfg.recover;
     if (gap > GAP_MAX) gap = GAP_MAX;
+
+    // ── T-Rex LOMPAT terkam! ──
+    if (trexJump.jumping) {
+      trexJump.vy += 0.5;
+      trexJump.y -= trexJump.vy;      // y = offset ke atas dari tanah
+      if (trexJump.y <= 0) {
+        trexJump.y = 0; trexJump.jumping = false;
+        trexJump.timer = Math.max(160, 400 - phase*55) + Math.random()*140;
+        shake = Math.max(shake, 6);   // hentakan mendarat
+        burst(PLAYER_X - gap - 40, GROUND_Y - 6, 'rgba(160,120,70,0.8)', 8);
+      }
+      // rahang T-Rex kena player masa melompat = NGAP!
+      const headX = PLAYER_X - gap + 8;
+      const headY = GROUND_Y - 80 - trexJump.y;
+      if (Math.hypot(headX - PLAYER_X, headY - player.y) < 42) {
+        state = 'caught'; caughtT = 0; shake = 14;
+        burst(PLAYER_X, player.y, '#ffb347', 20);
+        burst(PLAYER_X, player.y, '#8a2a2a', 14);
+        SFX.chomp();
+        return;
+      }
+    } else {
+      trexJump.timer--;
+      // lompat hanya bila cukup dekat untuk jadi ancaman sebenar
+      if (trexJump.timer <= 0 && gap < 250) {
+        trexJump.jumping = true;
+        trexJump.vy = -(9.5 + phase * 1.1);   // fasa lewat = lompat lebih tinggi
+        SFX.roar();
+        shake = Math.max(shake, 4);
+      }
+      if (trexJump.timer <= 0 && gap >= 250) trexJump.timer = 60;  // cuba lagi nanti
+    }
     if (roarT > 0) roarT--;
     if (gap < 110 && roarT <= 0) { SFX.roar(); roarT = 140; shake = Math.max(shake, 5); }
     if (gap <= GAP_CAUGHT) {
@@ -526,11 +569,13 @@
     const nose = PLAYER_X - gap;
     const x = nose - 10;   // rujukan rahang
     const y = GROUND_Y;
-    const run = Math.sin(frame*0.28);
+    const jumping = trexJump.jumping;
+    const run = jumping ? 0.9 : Math.sin(frame*0.28);   // kaki terlipat masa lompat
     const lunge = state === 'caught' ? Math.min(30, caughtT*2) : 0;
     ctx.save();
-    ctx.translate(x + lunge, y);
-    const near = gap < 110;
+    ctx.translate(x + lunge, y - trexJump.y);           // offset LOMPATAN
+    if (jumping) ctx.rotate(-0.08);                      // condong sikit masa terkam
+    const near = gap < 110 || jumping;
     const bodyC = '#4a7a3a', darkC = '#33582a';
     // ekor
     ctx.fillStyle = bodyC;
