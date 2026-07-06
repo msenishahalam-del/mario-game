@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Tank Gergasi vs Adudu</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%; background: #000; overflow: hidden;
+    font-family: 'Trebuchet MS', sans-serif; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  #backBtn {
+    position: fixed; top: 10px; left: 10px;
+    background: rgba(0,0,0,0.75); color: #6de84a;
+    padding: 6px 14px; border: 2px solid #6de84a; border-radius: 6px;
+    text-decoration: none; font-size: 13px; font-weight: bold; letter-spacing: 2px;
+    z-index: 999;
+  }
+  #backBtn:hover { background: #6de84a; color: #000; }
+  canvas {
+    display: block; background: #05010f; image-rendering: pixelated;
+    max-width: 100vw; max-height: 100vh; touch-action: none;
+    border: 3px solid #2a5a1a; box-shadow: 0 0 26px rgba(109,232,74,0.4);
+  }
+</style>
+</head>
+<body>
+<a id="backBtn" href="/arcade.html">◀ HUB</a>
+<canvas id="game" width="900" height="560"></canvas>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = 520;          // permukaan platform angkasa
+
+  // ============================================================
+  // AUDIO (Web Audio API)
+  // ============================================================
+  let actx = null;
+  function ensureAudio() {
+    if (actx) return;
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+  }
+  function tone(freq, dur, type='square', vol=0.07, freqEnd=null) {
+    if (!actx) return;
+    const t0 = actx.currentTime;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (freqEnd !== null) o.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0+dur);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0+dur);
+  }
+  function noiseBurst(dur, vol=0.1) {
+    if (!actx) return;
+    const t0 = actx.currentTime;
+    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate*dur), actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    const s = actx.createBufferSource(), g = actx.createGain();
+    s.buffer = buf; g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    s.connect(g).connect(actx.destination); s.start(t0);
+  }
+  const SFX = {
+    shoot:    () => tone(680, 0.07, 'square', 0.04, 260),
+    boom:     () => { tone(300, 0.2, 'sawtooth', 0.06, 500); tone(500, 0.25, 'sine', 0.04, 900); },
+    exploM:   () => { noiseBurst(0.15, 0.1); tone(200, 0.15, 'sawtooth', 0.08, 60); },
+    exploB:   () => { noiseBurst(0.4, 0.16); tone(120, 0.5, 'sawtooth', 0.12, 40); },
+    hit:      () => tone(150, 0.3, 'sawtooth', 0.12, 60),
+    bossIn:   () => { [120,150,120,90].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sawtooth',0.1,f*0.7),i*220)); },
+    enrage:   () => { noiseBurst(0.3, 0.12); tone(80, 0.6, 'sawtooth', 0.14, 200); },
+    waveClear:() => { [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'square',0.08),i*100)); },
+    gameOver: () => { [300,250,200,120].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sawtooth',0.1),i*180)); },
+    adudu:    () => { tone(220, 0.1, 'square', 0.07, 400); setTimeout(()=>tone(330,0.12,'square',0.07,180),110); }
+  };
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let state = 'start';   // start | playing | waveclear | gameover
+  let score = 0, wave = 0, lives = 3;
+  let highScore = parseInt(localStorage.getItem('adudu_hi') || '0', 10);
+  let frame = 0, shake = 0, waveMsgT = 0;
+
+  const tank = { x: W/2, w: 116, h: 46, speed: 5.2, turretA: -Math.PI/2, fireCD: 0, boomCD: 0, inv: 0 };
+  const BOOM_COOLDOWN = 180;   // 3 saat @ 60fps
+
+  let bullets = [];       // peluru biasa player
+  let boomerangs = [];    // peluru boomerang player
+  let enemies = [];       // probe / bomber Adudu
+  let eBullets = [];      // peluru musuh
+  let boss = null;
+  let particles = [];
+  let stars = [], planets = [];
+
+  function initSpace() {
+    stars = [];
+    for (let i=0;i<120;i++) stars.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()<0.8?1:2, tw: Math.random()*6.28, spd: 0.1+Math.random()*0.25 });
+    planets = [
+      { x: 120, y: 110, r: 34, c1:'#c86a3a', c2:'#7a3a15', ring: true },
+      { x: 760, y: 90,  r: 24, c1:'#5a8ad8', c2:'#2a4a88', ring: false },
+    ];
+  }
+
+  // ============================================================
+  // INPUT (keyboard + touch)
+  // ============================================================
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    ensureAudio();
+    keys[e.code] = true;
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyZ','KeyX'].includes(e.code)) e.preventDefault();
+    if (e.code === 'Enter' && state !== 'playing') restart();
+    if (e.code === 'KeyX' && state === 'playing') fireBoomerang();
+  });
+  window.addEventListener('keyup', e => keys[e.code] = false);
+
+  // Sentuh: seret = gerak tank; butang skrin FIRE / BOOM
+  let touchTargetX = null;
+  const btnFire = { x: W-150, y: H-70, r: 42 };
+  const btnBoom = { x: W-58,  y: H-70, r: 42 };
+  function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches && e.touches.length ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * (W / r.width), y: (t.clientY - r.top) * (H / r.height) };
+  }
+  let touchFiring = false;
+  canvas.addEventListener('touchstart', e => {
+    ensureAudio(); e.preventDefault();
+    if (state !== 'playing') { restart(); return; }
+    for (const t of e.touches) {
+      const p = canvasPos({ touches: [t] });
+      if (Math.hypot(p.x-btnBoom.x, p.y-btnBoom.y) < btnBoom.r+8) fireBoomerang();
+      else if (Math.hypot(p.x-btnFire.x, p.y-btnFire.y) < btnFire.r+8) touchFiring = true;
+      else touchTargetX = p.x;
+    }
+  }, {passive:false});
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.touches) {
+      const p = canvasPos({ touches: [t] });
+      if (Math.hypot(p.x-btnFire.x, p.y-btnFire.y) > btnFire.r+20 &&
+          Math.hypot(p.x-btnBoom.x, p.y-btnBoom.y) > btnBoom.r+20) touchTargetX = p.x;
+    }
+  }, {passive:false});
+  canvas.addEventListener('touchend', e => { e.preventDefault(); if (e.touches.length===0){ touchTargetX = null; touchFiring = false; } }, {passive:false});
+  canvas.addEventListener('mousedown', e => {
+    ensureAudio();
+    if (state !== 'playing') { restart(); return; }
+    touchFiring = true;
+  });
+  window.addEventListener('mouseup', () => touchFiring = false);
+
+  function restart() {
+    score = 0; wave = 0; lives = 3;
+    bullets = []; boomerangs = []; enemies = []; eBullets = []; particles = [];
+    boss = null;
+    tank.x = W/2; tank.fireCD = 0; tank.boomCD = 0; tank.inv = 90;
+    initSpace();
+    state = 'playing';
+    nextWave();
+  }
+
+  // ============================================================
+  // WAVE / ENEMIES
+  // ============================================================
+  function nextWave() {
+    wave++;
+    waveMsgT = 110;
+    if (wave % 3 === 0) {
+      spawnBoss();
+      // sikit minion teman boss
+      for (let i=0;i<2;i++) spawnProbe(140 + i*600, -40 - i*30);
+      SFX.bossIn();
+    } else {
+      const probes = 3 + wave;
+      const bombers = Math.floor(wave/2);
+      for (let i=0;i<probes;i++) spawnProbe(60 + Math.random()*(W-120), -30 - Math.random()*220);
+      for (let i=0;i<bombers;i++) spawnBomber(100 + Math.random()*(W-200), -60 - Math.random()*120);
+      SFX.waveClear();
+    }
+  }
+  function spawnProbe(x, y) {
+    enemies.push({ type:'probe', x, y, r: 16, hp: 1, vx: (Math.random()<0.5?-1:1)*(0.6+Math.random()*0.6),
+                   vy: 0.25 + Math.random()*0.2 + wave*0.02, t: Math.random()*100, shootT: 200+Math.random()*300, pts: 100 });
+  }
+  function spawnBomber(x, y) {
+    enemies.push({ type:'bomber', x, y, r: 22, hp: 3, vx: (Math.random()<0.5?-1:1)*0.8,
+                   vy: 0.15 + wave*0.015, t: Math.random()*100, shootT: 120+Math.random()*200, pts: 300 });
+  }
+  function spawnBoss() {
+    const num = Math.floor(wave/3);   // boss ke-berapa
+    boss = { x: W/2, y: -90, w: 150, h: 96, vx: 1.2 + num*0.15,
+             hp: 26 + num*12, maxHp: 26 + num*12, enraged: false,
+             shootT: 90, t: 0, entering: true, hitFlash: 0, pts: 2000 + num*1000 };
+  }
+
+  // ============================================================
+  // PELURU PLAYER
+  // ============================================================
+  function nearestEnemy() {
+    let best = null, bd = 1e9;
+    const tx = tank.x, ty = GROUND_Y - 60;
+    for (const e of enemies) { const d = Math.hypot(e.x-tx, e.y-ty); if (d < bd) { bd = d; best = e; } }
+    if (boss && !boss.entering) { const d = Math.hypot(boss.x-tx, boss.y-ty); if (d < bd) { bd = d; best = boss; } }
+    return best;
+  }
+  function fireNormal() {
+    if (tank.fireCD > 0) return;
+    tank.fireCD = 13;
+    const a = tank.turretA;
+    const mx = tank.x + Math.cos(a)*54, my = GROUND_Y - 52 + Math.sin(a)*54;
+    bullets.push({ x: mx, y: my, vx: Math.cos(a)*9.5, vy: Math.sin(a)*9.5, r: 5 });
+    particles.push(...burstAt(mx, my, '#ffe066', 3, 2));
+    SFX.shoot();
+  }
+  function fireBoomerang() {
+    if (tank.boomCD > 0 || state !== 'playing') return;
+    tank.boomCD = BOOM_COOLDOWN;
+    const a = tank.turretA;
+    boomerangs.push({
+      x: tank.x + Math.cos(a)*54, y: GROUND_Y - 52 + Math.sin(a)*54,
+      vx: Math.cos(a)*8, vy: Math.sin(a)*8,
+      phase: 'out', life: 0, spin: 0, hitSet: new Set(), r: 14
+    });
+    SFX.boom();
+  }
+  function burstAt(x, y, color, n, sp=3) {
+    const out = [];
+    for (let i=0;i<n;i++) {
+      const a = Math.random()*6.28, s = 0.5+Math.random()*sp;
+      out.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 25+Math.random()*20, max: 45, color, size: 2+Math.random()*3 });
+    }
+    return out;
+  }
+  function explosion(x, y, color, n=14) { particles.push(...burstAt(x, y, color, n, 5)); }
+
+  // ============================================================
+  // UPDATE
+  // ============================================================
+  function update() {
+    frame++;
+    if (shake > 0) shake -= 0.5;
+    for (let i=particles.length-1;i>=0;i--) { const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--; if (p.life<=0) particles.splice(i,1); }
+    if (state !== 'playing') return;
+
+    // ── TANK gerak ──
+    if (keys['ArrowLeft']||keys['KeyA']) tank.x -= tank.speed;
+    if (keys['ArrowRight']||keys['KeyD']) tank.x += tank.speed;
+    if (touchTargetX !== null) {
+      const dx = touchTargetX - tank.x;
+      tank.x += Math.abs(dx) < tank.speed ? dx : Math.sign(dx)*tank.speed;
+    }
+    tank.x = Math.max(tank.w/2+6, Math.min(W-tank.w/2-6, tank.x));
+    if (tank.fireCD > 0) tank.fireCD--;
+    if (tank.boomCD > 0) tank.boomCD--;
+    if (tank.inv > 0) tank.inv--;
+
+    // ── AUTO-AIM turret ──
+    const tgt = nearestEnemy();
+    let wantA = -Math.PI/2;
+    if (tgt) wantA = Math.atan2(tgt.y - (GROUND_Y-52), tgt.x - tank.x);
+    // hadkan supaya turret tak tunduk bawah
+    wantA = Math.max(-Math.PI+0.35, Math.min(-0.35, wantA));
+    // pusing lembut
+    let diff = wantA - tank.turretA;
+    tank.turretA += diff * 0.15;
+
+    // ── Tembak (Z tahan / butang FIRE / mouse tahan) ──
+    if (keys['KeyZ'] || keys['Space'] || touchFiring) fireNormal();
+
+    // ── Peluru biasa ──
+    for (let i=bullets.length-1;i>=0;i--) {
+      const b = bullets[i];
+      b.x += b.vx; b.y += b.vy;
+      if (b.x<-20||b.x>W+20||b.y<-20||b.y>H+20) { bullets.splice(i,1); continue; }
+      if (hitEnemies(b, 1)) bullets.splice(i,1);
+    }
+
+    // ── Boomerang: keluar → patah balik ke tank, tembus musuh ──
+    for (let i=boomerangs.length-1;i>=0;i--) {
+      const bm = boomerangs[i];
+      bm.life++; bm.spin += 0.35;
+      if (bm.phase === 'out') {
+        bm.vx *= 0.965; bm.vy *= 0.965;
+        bm.x += bm.vx; bm.y += bm.vy;
+        if (bm.life > 46) { bm.phase = 'return'; bm.hitSet.clear(); }   // pusingan kedua boleh hit lagi
+      } else {
+        const tx = tank.x, ty = GROUND_Y - 52;
+        const dx = tx - bm.x, dy = ty - bm.y;
+        const d = Math.hypot(dx, dy) || 1;
+        bm.vx += dx/d * 0.55; bm.vy += dy/d * 0.55;
+        const sp = Math.hypot(bm.vx, bm.vy);
+        if (sp > 10) { bm.vx = bm.vx/sp*10; bm.vy = bm.vy/sp*10; }
+        bm.x += bm.vx; bm.y += bm.vy;
+        if (d < 30) { boomerangs.splice(i,1); continue; }   // sampai balik ke tank
+      }
+      hitEnemiesBoomerang(bm);
+      if (bm.life > 400) boomerangs.splice(i,1);
+    }
+
+    // ── Musuh ──
+    for (let i=enemies.length-1;i>=0;i--) {
+      const e = enemies[i];
+      e.t++;
+      e.x += e.vx + Math.sin(e.t*0.03)*0.4;
+      e.y += e.vy;
+      if (e.x < 30 || e.x > W-30) e.vx *= -1;
+      e.shootT--;
+      if (e.shootT <= 0 && e.y > 0) {
+        e.shootT = (e.type==='bomber' ? 130 : 260) + Math.random()*160 - wave*4;
+        const dx = tank.x - e.x, dy = (GROUND_Y-40) - e.y;
+        const d = Math.hypot(dx,dy)||1, sp = 2.6 + wave*0.08;
+        eBullets.push({ x: e.x, y: e.y+10, vx: dx/d*sp, vy: dy/d*sp, r: 5 });
+      }
+      // musuh sampai bawah → -1 nyawa, musuh hilang
+      if (e.y > GROUND_Y - 40) {
+        enemies.splice(i,1);
+        loseLife();
+      }
+    }
+
+    // ── BOSS ADUDU ──
+    if (boss) {
+      boss.t++;
+      if (boss.hitFlash > 0) boss.hitFlash--;
+      if (boss.entering) {
+        boss.y += 1.2;
+        if (boss.y >= 90) boss.entering = false;
+      } else {
+        boss.x += boss.vx * (boss.enraged ? 1.6 : 1);
+        if (boss.x < boss.w/2+10 || boss.x > W-boss.w/2-10) boss.vx *= -1;
+        boss.y = 90 + Math.sin(boss.t*0.02)*14;
+        if (!boss.enraged && boss.hp <= boss.maxHp/2) {
+          boss.enraged = true;
+          shake = 14;
+          explosion(boss.x, boss.y, '#ff4444', 20);
+          SFX.enrage();
+        }
+        boss.shootT--;
+        if (boss.shootT <= 0) {
+          boss.shootT = boss.enraged ? 55 : 90;
+          const dx = tank.x - boss.x, dy = (GROUND_Y-40) - boss.y;
+          const base = Math.atan2(dy, dx);
+          const spread = boss.enraged ? [-0.35,-0.12,0.12,0.35] : [-0.15,0.15];
+          for (const off of spread) {
+            const a = base + off, sp = 3.2;
+            eBullets.push({ x: boss.x, y: boss.y+34, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, r: 6, boss: true });
+          }
+          SFX.adudu();
+        }
+      }
+    }
+
+    // ── Peluru musuh ──
+    for (let i=eBullets.length-1;i>=0;i--) {
+      const b = eBullets[i];
+      b.x += b.vx; b.y += b.vy;
+      if (b.x<-20||b.x>W+20||b.y>H+20) { eBullets.splice(i,1); continue; }
+      // kena tank?
+      if (tank.inv <= 0 &&
+          b.x > tank.x - tank.w/2 && b.x < tank.x + tank.w/2 &&
+          b.y > GROUND_Y - tank.h - 26 && b.y < GROUND_Y) {
+        eBullets.splice(i,1);
+        loseLife();
+      }
+    }
+
+    // ── Wave habis? ──
+    if (state === 'playing' && enemies.length === 0 && !boss) {
+      score += 500;
+      nextWave();
+    }
+  }
+
+  function hitEnemies(b, dmg) {
+    for (let j=enemies.length-1;j>=0;j--) {
+      const e = enemies[j];
+      if (Math.hypot(b.x-e.x, b.y-e.y) < e.r + b.r) {
+        e.hp -= dmg;
+        if (e.hp <= 0) {
+          score += e.pts;
+          explosion(e.x, e.y, e.type==='bomber' ? '#ff9944' : '#6de84a');
+          SFX.exploM();
+          enemies.splice(j,1);
+        }
+        return true;
+      }
+    }
+    if (boss && !boss.entering &&
+        Math.abs(b.x-boss.x) < boss.w/2 && Math.abs(b.y-boss.y) < boss.h/2) {
+      boss.hp -= dmg; boss.hitFlash = 8;
+      if (boss.hp <= 0) killBoss();
+      return true;
+    }
+    return false;
+  }
+  function hitEnemiesBoomerang(bm) {
+    for (let j=enemies.length-1;j>=0;j--) {
+      const e = enemies[j];
+      if (bm.hitSet.has(e)) continue;
+      if (Math.hypot(bm.x-e.x, bm.y-e.y) < e.r + bm.r) {
+        bm.hitSet.add(e);
+        e.hp -= 2;
+        particles.push(...burstAt(e.x, e.y, '#ffd24d', 5, 3));
+        if (e.hp <= 0) {
+          score += e.pts;
+          explosion(e.x, e.y, '#6de84a');
+          SFX.exploM();
+          enemies.splice(j,1);
+        }
+      }
+    }
+    if (boss && !boss.entering && !bm.hitSet.has(boss) &&
+        Math.abs(bm.x-boss.x) < boss.w/2+8 && Math.abs(bm.y-boss.y) < boss.h/2+8) {
+      bm.hitSet.add(boss);
+      boss.hp -= 3; boss.hitFlash = 10;
+      particles.push(...burstAt(bm.x, bm.y, '#ffd24d', 6, 4));
+      if (boss.hp <= 0) killBoss();
+    }
+  }
+  function killBoss() {
+    score += boss.pts;
+    explosion(boss.x, boss.y, '#6de84a', 30);
+    explosion(boss.x, boss.y, '#ffd24d', 20);
+    shake = 16;
+    SFX.exploB();
+    boss = null;
+    eBullets = [];
+  }
+  function loseLife() {
+    if (tank.inv > 0) return;
+    lives--;
+    tank.inv = 110;
+    shake = 10;
+    explosion(tank.x, GROUND_Y-30, '#ffcc55', 16);
+    SFX.hit();
+    if (lives <= 0) {
+      state = 'gameover';
+      if (score > highScore) { highScore = score; try { localStorage.setItem('adudu_hi', String(highScore)); } catch {} }
+      SFX.gameOver();
+    }
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function render() {
+    ctx.save();
+    if (shake > 0.5) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+    drawSpace();
+    if (state === 'start') { drawStart(); ctx.restore(); return; }
+
+    drawPlatform();
+    for (const e of enemies) drawEnemy(e);
+    if (boss) drawBoss();
+    drawTank();
+    // peluru
+    for (const b of bullets) {
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, 7); ctx.fill();
+    }
+    for (const bm of boomerangs) drawBoomerang(bm);
+    for (const b of eBullets) {
+      ctx.fillStyle = b.boss ? '#ff5aa0' : '#ff6644';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(b.x, b.y, 2, 0, 7); ctx.fill();
+    }
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life/p.max);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    drawHUD();
+    if (state === 'gameover') drawGameOver();
+    ctx.restore();
+  }
+
+  function drawSpace() {
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#05010f'); g.addColorStop(0.6,'#0d0522'); g.addColorStop(1,'#140a30');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // nebula
+    const n1 = ctx.createRadialGradient(650, 200, 10, 650, 200, 240);
+    n1.addColorStop(0,'rgba(110,60,180,0.20)'); n1.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = n1; ctx.fillRect(0,0,W,H);
+    const n2 = ctx.createRadialGradient(220, 340, 10, 220, 340, 200);
+    n2.addColorStop(0,'rgba(40,140,120,0.14)'); n2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = n2; ctx.fillRect(0,0,W,H);
+    // bintang
+    for (const s of stars) {
+      s.tw += 0.03;
+      ctx.fillStyle = `rgba(255,255,255,${0.4+0.5*Math.sin(s.tw)})`;
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+    // planet
+    for (const pl of planets) {
+      const pg = ctx.createRadialGradient(pl.x-pl.r*0.3, pl.y-pl.r*0.3, 2, pl.x, pl.y, pl.r);
+      pg.addColorStop(0, pl.c1); pg.addColorStop(1, pl.c2);
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.arc(pl.x, pl.y, pl.r, 0, 7); ctx.fill();
+      if (pl.ring) {
+        ctx.strokeStyle = 'rgba(255,220,160,0.5)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(pl.x, pl.y, pl.r+14, 6, -0.3, 0, 7); ctx.stroke();
+      }
+    }
+  }
+
+  function drawPlatform() {
+    // platform logam angkasa
+    ctx.fillStyle = '#1a2438';
+    ctx.fillRect(0, GROUND_Y, W, H-GROUND_Y);
+    ctx.fillStyle = '#2a3a58';
+    ctx.fillRect(0, GROUND_Y, W, 6);
+    ctx.fillStyle = 'rgba(109,232,74,0.25)';
+    for (let x=10; x<W; x+=60) ctx.fillRect(x, GROUND_Y+14, 30, 4);
+  }
+
+  function drawTank() {
+    const x = tank.x, y = GROUND_Y;
+    const blink = tank.inv > 0 && Math.floor(tank.inv/5)%2===0;
+    ctx.save();
+    if (blink) ctx.globalAlpha = 0.4;
+    // trek roda
+    ctx.fillStyle = '#22301a';
+    roundRect(x-tank.w/2, y-24, tank.w, 24, 11);
+    ctx.fill();
+    // roda
+    ctx.fillStyle = '#0e150a';
+    const off = (frame*0.7) % 18;
+    for (let i=0;i<6;i++) { ctx.beginPath(); ctx.arc(x-tank.w/2+14+i*18+((off%18)/18)*0, y-12, 7, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#3a5226';
+    for (let i=0;i<6;i++) { ctx.beginPath(); ctx.arc(x-tank.w/2+14+i*18, y-12, 3, 0, 7); ctx.fill(); }
+    // badan
+    const bg = ctx.createLinearGradient(x, y-58, x, y-24);
+    bg.addColorStop(0,'#5a7a36'); bg.addColorStop(1,'#324a1e');
+    ctx.fillStyle = bg;
+    roundRect(x-tank.w/2+8, y-52, tank.w-16, 30, 8);
+    ctx.fill();
+    // kubah turret
+    ctx.fillStyle = '#46622a';
+    ctx.beginPath(); ctx.arc(x, y-52, 20, Math.PI, 0); ctx.fill();
+    // laras (ikut turretA)
+    ctx.save();
+    ctx.translate(x, y-52);
+    ctx.rotate(tank.turretA);
+    ctx.fillStyle = '#2c3d1c';
+    ctx.fillRect(0, -5, 56, 10);
+    ctx.fillStyle = '#1c2812';
+    ctx.fillRect(50, -6, 10, 12);
+    ctx.restore();
+    // lampu
+    ctx.fillStyle = '#6de84a';
+    ctx.fillRect(x-6, y-46, 12, 4);
+    ctx.restore();
+  }
+
+  function drawBoomerang(bm) {
+    // trail
+    ctx.strokeStyle = 'rgba(255,210,77,0.35)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(bm.x - bm.vx*3, bm.y - bm.vy*3); ctx.lineTo(bm.x, bm.y); ctx.stroke();
+    ctx.save();
+    ctx.translate(bm.x, bm.y);
+    ctx.rotate(bm.spin);
+    ctx.strokeStyle = '#ffd24d';
+    ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-12, 8); ctx.lineTo(0, -10); ctx.lineTo(12, 8);
+    ctx.stroke();
+    ctx.strokeStyle = '#a5761a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-12, 8); ctx.lineTo(0, -10); ctx.lineTo(12, 8);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawEnemy(e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    if (e.type === 'probe') {
+      // robot probe kecil Adudu — kepala kotak hijau + jet
+      ctx.fillStyle = '#3fae2a';
+      roundRectAt(-13, -13, 26, 22, 5); ctx.fill();
+      ctx.fillStyle = '#2a7a1a';
+      roundRectAt(-13, 3, 26, 6, 3); ctx.fill();
+      // mata tunggal merah
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, -3, 6.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ff3a3a'; ctx.beginPath(); ctx.arc(0, -3, 3.2, 0, 7); ctx.fill();
+      // antena
+      ctx.strokeStyle = '#2a7a1a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0,-13); ctx.lineTo(0,-19); ctx.stroke();
+      ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(0,-21,2.5,0,7); ctx.fill();
+      // jet bawah
+      const f = 4 + Math.sin(e.t*0.3)*2;
+      ctx.fillStyle = 'rgba(120,200,255,0.7)';
+      ctx.beginPath(); ctx.moveTo(-5,9); ctx.lineTo(0,9+f); ctx.lineTo(5,9); ctx.fill();
+    } else {
+      // bomber — kapal hijau lebih besar
+      ctx.fillStyle = '#2f8a22';
+      ctx.beginPath(); ctx.ellipse(0, 0, 24, 13, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#1d5c14';
+      ctx.beginPath(); ctx.ellipse(0, 5, 24, 6, 0, 0, 7); ctx.fill();
+      // kokpit kubah
+      ctx.fillStyle = 'rgba(160,255,140,0.8)';
+      ctx.beginPath(); ctx.arc(0, -6, 9, Math.PI, 0); ctx.fill();
+      // muka Adudu mini dlm kokpit
+      ctx.fillStyle = '#3fae2a'; ctx.fillRect(-4, -11, 8, 7);
+      ctx.fillStyle = '#111'; ctx.fillRect(-3, -9, 2.5, 3); ctx.fillRect(0.5, -9, 2.5, 3);
+      // lampu
+      ctx.fillStyle = (Math.floor(e.t/12)%2===0) ? '#ff5a5a' : '#7a2020';
+      ctx.beginPath(); ctx.arc(-16, 3, 2.5, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(16, 3, 2.5, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBoss() {
+    const b = boss;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    const flash = b.hitFlash > 0 && Math.floor(b.hitFlash/2)%2===0;
+    if (flash) ctx.globalAlpha = 0.55;
+    // kapal angkasa besar
+    const hull = b.enraged ? '#8a2a2a' : '#2f8a22';
+    const hullD = b.enraged ? '#5a1414' : '#1d5c14';
+    ctx.fillStyle = hull;
+    ctx.beginPath(); ctx.ellipse(0, 14, b.w/2, 30, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = hullD;
+    ctx.beginPath(); ctx.ellipse(0, 24, b.w/2, 16, 0, 0, 7); ctx.fill();
+    // lampu keliling
+    for (let i=0;i<7;i++) {
+      const a = (i/7)*Math.PI*2 + b.t*0.02;
+      ctx.fillStyle = (Math.sin(b.t*0.1+i)>0) ? '#ffd24d' : '#7a5a10';
+      ctx.beginPath(); ctx.arc(Math.cos(a)*b.w/2*0.86, 14+Math.sin(a)*24, 3.4, 0, 7); ctx.fill();
+    }
+    // kokpit kubah kaca
+    ctx.fillStyle = 'rgba(150,255,130,0.35)';
+    ctx.beginPath(); ctx.arc(0, -14, 34, Math.PI, 0); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,255,190,0.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -14, 34, Math.PI, 0); ctx.stroke();
+    // ── ADUDU: kepala KOTAK hijau, mata besar ──
+    ctx.fillStyle = '#4fc433';
+    roundRectAt(-16, -46, 32, 30, 4); ctx.fill();          // kepala kubus
+    ctx.fillStyle = '#3a9a24';
+    roundRectAt(-16, -22, 32, 6, 2); ctx.fill();            // rahang
+    // mata besar
+    ctx.fillStyle = '#e8f8e0';
+    ctx.beginPath(); ctx.arc(-7, -34, 6.5, 0, 7); ctx.arc(7, -34, 6.5, 0, 7); ctx.fill();
+    ctx.fillStyle = b.enraged ? '#e02020' : '#1a3a10';
+    ctx.beginPath(); ctx.arc(-7, -33, 3, 0, 7); ctx.arc(7, -33, 3, 0, 7); ctx.fill();
+    // kening marah
+    ctx.strokeStyle = '#1d5c14'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-12,-42); ctx.lineTo(-3,-39); ctx.moveTo(12,-42); ctx.lineTo(3,-39); ctx.stroke();
+    // mulut
+    ctx.strokeStyle = '#143c0c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -23, 6, 0.3, Math.PI-0.3); ctx.stroke();
+    ctx.restore();
+    // HP bar
+    const bw = 220, pct = Math.max(0, b.hp/b.maxHp);
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(W/2-bw/2-2, 14, bw+4, 14);
+    ctx.fillStyle = b.enraged ? '#ff2244' : '#6de84a';
+    ctx.fillRect(W/2-bw/2, 16, bw*pct, 10);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(b.enraged ? '😡 ADUDU MENGAMUK!' : '👾 BOSS ADUDU', W/2, 30);
+  }
+
+  function drawHUD() {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0,0,W,30);
+    ctx.font = 'bold 15px Trebuchet MS'; ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24d';
+    ctx.fillText('SKOR ' + score, 12, 15);
+    ctx.fillStyle = '#8899bb';
+    ctx.fillText('BEST ' + highScore, 160, 15);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#6de84a';
+    ctx.fillText('WAVE ' + wave, W/2, 15);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ff6688';
+    let s=''; for (let i=0;i<lives;i++) s+='❤ ';
+    ctx.fillText(s.trim(), W-12, 15);
+
+    // butang sentuh FIRE / BOOM
+    drawTouchBtn(btnFire, '#ffe066', 'FIRE', tank.fireCD<=0);
+    const boomReady = tank.boomCD<=0;
+    drawTouchBtn(btnBoom, '#ffd24d', 'BOOM', boomReady);
+    if (!boomReady) {
+      // gelang cooldown
+      const pct = 1 - tank.boomCD/BOOM_COOLDOWN;
+      ctx.strokeStyle = '#ffd24d'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(btnBoom.x, btnBoom.y, btnBoom.r-2, -Math.PI/2, -Math.PI/2 + pct*6.28); ctx.stroke();
+    }
+    // mesej wave baru
+    if (waveMsgT > 0) {
+      waveMsgT--;
+      ctx.globalAlpha = Math.min(1, waveMsgT/30);
+      ctx.textAlign = 'center'; ctx.font = 'bold 34px Trebuchet MS';
+      ctx.fillStyle = wave%3===0 ? '#ff5a5a' : '#6de84a';
+      ctx.fillText(wave%3===0 ? '⚠ BOSS ADUDU DATANG! ⚠' : 'WAVE ' + wave, W/2, 200);
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawTouchBtn(btn, color, label, ready) {
+    ctx.globalAlpha = ready ? 0.85 : 0.35;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, 7); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(btn.x, btn.y, btn.r, 0, 7); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, btn.x, btn.y);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawStart() {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#6de84a';
+    ctx.shadowColor = '#6de84a'; ctx.shadowBlur = 18;
+    ctx.font = 'bold 46px Trebuchet MS';
+    ctx.fillText('TANK GERGASI', W/2, 120);
+    ctx.fillText('vs ADUDU', W/2, 172);
+    ctx.shadowBlur = 0;
+    // Adudu preview
+    ctx.save(); ctx.translate(W/2, 260); ctx.scale(1.6,1.6);
+    ctx.fillStyle = '#4fc433'; roundRectAt(-16,-24,32,30,4); ctx.fill();
+    ctx.fillStyle = '#e8f8e0'; ctx.beginPath(); ctx.arc(-7,-12,6.5,0,7); ctx.arc(7,-12,6.5,0,7); ctx.fill();
+    ctx.fillStyle = '#1a3a10'; ctx.beginPath(); ctx.arc(-7,-11,3,0,7); ctx.arc(7,-11,3,0,7); ctx.fill();
+    ctx.strokeStyle = '#1d5c14'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-12,-20); ctx.lineTo(-3,-17); ctx.moveTo(12,-20); ctx.lineTo(3,-17); ctx.stroke();
+    ctx.strokeStyle = '#143c0c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0,-1,6,0.3,Math.PI-0.3); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = '#cceeff'; ctx.font = '16px Trebuchet MS';
+    ctx.fillText('← → gerak tank  ·  Z / tahan = tembak  ·  X = BOOMERANG', W/2, 350);
+    ctx.fillText('📱 Telefon: seret untuk gerak, butang FIRE & BOOM', W/2, 378);
+    ctx.fillStyle = '#ffd24d'; ctx.font = 'bold 15px Trebuchet MS';
+    ctx.fillText('Boomerang patah balik & tembus banyak musuh! Boss Adudu setiap 3 wave!', W/2, 420);
+    if (Math.floor(Date.now()/400)%2===0) {
+      ctx.fillStyle = '#6de84a'; ctx.font = 'bold 22px Trebuchet MS';
+      ctx.fillText('▶ KLIK / TAP / ENTER UNTUK MULA', W/2, 480);
+    }
+    if (highScore > 0) { ctx.fillStyle = '#8899bb'; ctx.font = '14px Trebuchet MS'; ctx.fillText('BEST: ' + highScore, W/2, 520); }
+  }
+
+  function drawGameOver() {
+    ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ff4444'; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 14;
+    ctx.font = 'bold 44px Trebuchet MS';
+    ctx.fillText('TANK MUSNAH!', W/2, 190);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff'; ctx.font = '20px Trebuchet MS';
+    ctx.fillText('Skor: ' + score + '   ·   Wave: ' + wave, W/2, 260);
+    ctx.fillStyle = '#ffd24d';
+    ctx.fillText(score >= highScore && score > 0 ? '🏆 REKOD BAHARU!' : 'Best: ' + highScore, W/2, 296);
+    if (Math.floor(Date.now()/400)%2===0) {
+      ctx.fillStyle = '#6de84a'; ctx.font = 'bold 20px Trebuchet MS';
+      ctx.fillText('▶ KLIK / TAP / ENTER UNTUK CUBA LAGI', W/2, 370);
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+  function roundRectAt(x, y, w, h, r) { roundRect(x, y, w, h, r); }
+
+  // ============================================================
+  // LOOP
+  // ============================================================
+  initSpace();
+  function loop(){ update(); render(); requestAnimationFrame(loop); }
+  loop();
+})();
+</script>
+
+<script src="/reward-timer.js"></script>
+</body>
+</html>
