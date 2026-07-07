@@ -444,7 +444,7 @@
   <br>
   <button class="big" data-set="bahagi2" onclick="startQuiz('bahagi2')" style="background: linear-gradient(135deg, #fa9e5a, #b5471d);">
     ➗ Bahagi 2.0
-    <span class="set-sub">Isi 2 kotak: 7÷2 = ▢ baki ▢ · senang → medium · 30 saat</span>
+    <span class="set-sub">Isi 2 kotak: 47÷6 = ▢ baki ▢ · senang → medium → medium+ · 30 saat</span>
   </button>
   <br>
   <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
@@ -705,21 +705,28 @@
           };
         }
         const qs = [];
-        // ── SENANG (5) — penyebut 2-3, hasil bahagi 1-4 (nombor kecil) ──
-        while (qs.length < 5) {
+        // ── SENANG (3) — penyebut 2-3, hasil bahagi 2-4 (warm-up) ──
+        while (qs.length < 3) {
           const divisor = randInt(2, 3);
-          const quotient = randInt(1, 4);
+          const quotient = randInt(2, 4);
           const remainder = randInt(1, divisor - 1);
           qs.push(make(divisor, quotient, remainder));
         }
-        // ── MEDIUM (5) — penyebut 2-6, hasil bahagi 2-9 ──
+        // ── MEDIUM (4) — penyebut 4-6, hasil bahagi 4-9 (dividend 17-59) ──
+        while (qs.length < 7) {
+          const divisor = randInt(4, 6);
+          const quotient = randInt(4, 9);
+          const remainder = randInt(1, divisor - 1);
+          qs.push(make(divisor, quotient, remainder));
+        }
+        // ── MEDIUM+ (3) — penyebut 7-9, hasil bahagi 5-10 (dividend 36-98) ──
         while (qs.length < 10) {
-          const divisor = randInt(2, 6);
-          const quotient = randInt(2, 9);
+          const divisor = randInt(7, 9);
+          const quotient = randInt(5, 10);
           const remainder = randInt(1, divisor - 1);
           qs.push(make(divisor, quotient, remainder));
         }
-        return qs;   // JANGAN shuffle — senang dulu, medium kemudian
+        return qs;   // JANGAN shuffle — senang dulu, naik tahap kemudian
       }
     },
     tambahtolak: {
