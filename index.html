@@ -401,6 +401,11 @@
     <span class="set-sub">Single digit · key in jawapan · 20 saat</span>
   </button>
   <br>
+  <button class="big" data-set="darabAsas" onclick="startQuiz('darabAsas')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
+    ✖️ Darab Asas
+    <span class="set-sub">Super senang: 2×2, 5×2, 2×3 · key in jawapan · 1 minit satu soalan</span>
+  </button>
+  <br>
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
     🔤 Ejaan BM
     <span class="set-sub">Tengok gambar · taip suku kata yang hilang · 20 saat</span>
@@ -556,7 +561,7 @@
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3', 'perpuluhan'],
-    tahun6:  ['tambahtolak', 'ejaan', 'jawi', 'duit', 'english', 'dino']
+    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
   const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
@@ -754,6 +759,22 @@
           qs.push({ text: `${a} ${op1} ${b} ${op2} ${c}`, answer: ans });
         }
         return qs;   // JANGAN shuffle — 1 operasi dulu, 2 operasi akhir
+      }
+    },
+    darabAsas: {
+      time: 60,   // 1 minit satu soalan — bagi masa lebih untuk faham konsep
+      generate() {
+        // Darab super asas untuk 6 tahun: sifir 2, 3, 5 dengan pengganda kecil.
+        // Mula paling senang (×2) → naik sikit-sikit. Key in jawapan.
+        const qs = [];
+        const make = (a, b) => ({ text: `${a} × ${b}`, answer: a * b });
+        // 4 soalan sifir 2 (paling senang): 2×1 hingga 2×5
+        while (qs.length < 4) { const b = randInt(1, 5); qs.push(make(2, b)); }
+        // 3 soalan sifir 3: 3×1 hingga 3×4
+        while (qs.length < 7) { const b = randInt(1, 4); qs.push(make(3, b)); }
+        // 3 soalan sifir 5 (mudah dikira): 5×1 hingga 5×4
+        while (qs.length < 10) { const b = randInt(1, 4); qs.push(make(5, b)); }
+        return qs;   // JANGAN shuffle — ×2 dulu, ×3, ×5 kemudian
       }
     },
     bundar: {
