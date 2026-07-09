@@ -529,9 +529,6 @@
   <div class="stars-earned" id="starsEarned">⭐⭐⭐</div>
   <div class="completion-msg hidden" id="completionMsg"></div>
   <div class="reward-info">
-    <div id="perfectBonus" style="display:none; background:linear-gradient(135deg,#FFD700,#FF8C00); color:#5a3a00; font-weight:bold; padding:8px 14px; border-radius:10px; margin-bottom:10px; font-size:0.95em;">
-      🏆 SEMPURNA 10/10! BONUS +5 MINIT! 🎉
-    </div>
     Kamu dapat <b><span id="rewardMinutes">0</span> minit</b> untuk main game! 🎮<br>
     <small style="font-size: 0.8em;">(Mario, Tetris, Flappy, Sonic, Aladdin, Pac-Man, Felix, Snake, Invaders, Micro Machines)</small>
   </div>
@@ -2139,11 +2136,9 @@
     document.getElementById('resultScreen').classList.remove('hidden');
     document.getElementById('finalScore').textContent = score;
     rewardSeconds = score * 60;
-    const perfect = (score === 10);
-    if (perfect) rewardSeconds += 300;   // BONUS 5 minit untuk markah sempurna 10/10
     document.getElementById('rewardMinutes').textContent = Math.round(rewardSeconds / 60);
     const bonusEl = document.getElementById('perfectBonus');
-    if (bonusEl) bonusEl.style.display = perfect ? 'block' : 'none';
+    if (bonusEl) bonusEl.style.display = 'none';
 
     let stars = '';
     if (score >= 9) stars = '⭐⭐⭐⭐⭐ Cemerlang!';
