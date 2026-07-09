@@ -767,7 +767,7 @@
         // Darab super asas untuk 6 tahun: sifir 2, 3, 5 dengan pengganda kecil.
         // Mula paling senang (×2) → naik sikit-sikit. Key in jawapan.
         const qs = [];
-        const make = (a, b) => ({ text: `${a} × ${b}`, answer: a * b });
+        const make = (a, b) => ({ text: `${a} × ${b} = ▢`, answer: a * b });
         // 4 soalan sifir 2 (paling senang): 2×1 hingga 2×5
         while (qs.length < 4) { const b = randInt(1, 5); qs.push(make(2, b)); }
         // 3 soalan sifir 3: 3×1 hingga 3×4
