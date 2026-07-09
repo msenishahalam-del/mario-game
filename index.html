@@ -402,8 +402,8 @@
   </button>
   <br>
   <button class="big" data-set="darabAsas" onclick="startQuiz('darabAsas')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
-    ✖️ Darab Asas
-    <span class="set-sub">Super senang: 2×2, 5×2, 2×3 · key in jawapan · 1 minit satu soalan</span>
+    ✖️ Darab Asas (Sifir 2)
+    <span class="set-sub">Semua × 2: 2×2, 5×2, 3×2 · isi tempat kosong · 1 minit satu soalan</span>
   </button>
   <br>
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
@@ -764,17 +764,13 @@
     darabAsas: {
       time: 60,   // 1 minit satu soalan — bagi masa lebih untuk faham konsep
       generate() {
-        // Darab super asas untuk 6 tahun: sifir 2, 3, 5 dengan pengganda kecil.
-        // Mula paling senang (×2) → naik sikit-sikit. Key in jawapan.
+        // Darab super asas untuk 6 tahun: SEMUA sifir 2 sahaja (× 2).
+        // Contoh: 2×2, 5×2, 3×2. Ulang je supaya budak biasa dengan sifir 2.
         const qs = [];
-        const make = (a, b) => ({ text: `${a} × ${b} = ▢`, answer: a * b });
-        // 4 soalan sifir 2 (paling senang): 2×1 hingga 2×5
-        while (qs.length < 4) { const b = randInt(1, 5); qs.push(make(2, b)); }
-        // 3 soalan sifir 3: 3×1 hingga 3×4
-        while (qs.length < 7) { const b = randInt(1, 4); qs.push(make(3, b)); }
-        // 3 soalan sifir 5 (mudah dikira): 5×1 hingga 5×4
-        while (qs.length < 10) { const b = randInt(1, 4); qs.push(make(5, b)); }
-        return qs;   // JANGAN shuffle — ×2 dulu, ×3, ×5 kemudian
+        const make = (a) => ({ text: `${a} × 2 = ▢`, answer: a * 2 });
+        // 10 soalan, semua × 2, pengganda kecil 1-9 (rawak)
+        while (qs.length < 10) { qs.push(make(randInt(1, 9))); }
+        return qs;
       }
     },
     bundar: {
