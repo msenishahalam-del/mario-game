@@ -497,6 +497,11 @@
     <span class="set-sub">Baca pantun · pilih maksud · A/B/C/D · 30 saat</span>
   </button>
   <br>
+  <button class="big" data-set="peribahasa" onclick="startQuiz('peribahasa')" style="background: linear-gradient(135deg, #4e8d5b, #1e4a2a);">
+    🗣️ Peribahasa
+    <span class="set-sub">Baca peribahasa · pilih maksud · A/B/C/D · 30 saat</span>
+  </button>
+  <br>
   <button class="big" data-set="jawi3" onclick="startQuiz('jawi3')" style="background: linear-gradient(135deg, #6a3a8a, #2a1a4a);">
     ج Jawi Darjah 3
     <span class="set-sub">Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat</span>
@@ -560,7 +565,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'jawi3', 'perpuluhan'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'jawi3', 'perpuluhan'],
     tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -1075,6 +1080,7 @@
       }
     },
     pantun: { time: 30, generate() { return buildPantun(); } },
+    peribahasa: { time: 30, generate() { return buildPeribahasa(); } },
     jawi3:  { time: 22, generate() { return buildJawi3(); } },
     perpuluhan: {
       time: 30,
@@ -1782,6 +1788,67 @@
         answer: item.a,
         choices: shuffle([item.a, ...item.d]),
         wideChoices: true   // tanda untuk butang lebar (text panjang)
+      };
+    });
+  }
+
+  // ===== BANK PERIBAHASA DARJAH 3 — peribahasa biasa + maksud =====
+  const PERIBAHASA_BANK = [
+    { p: 'Bagai aur dengan tebing',
+      a: 'Hidup tolong-menolong antara satu sama lain',
+      d: ['Dua benda yang selalu bergaduh', 'Pokok yang tumbuh tepi sungai', 'Sesuatu yang mudah patah'] },
+    { p: 'Bagai isi dengan kuku',
+      a: 'Persahabatan yang sangat rapat dan tidak berpisah',
+      d: ['Sesuatu yang kotor dan perlu dibersih', 'Dua orang yang selalu bermusuh', 'Kuku yang panjang dan tajam'] },
+    { p: 'Bagai pinang dibelah dua',
+      a: 'Dua orang yang sangat serupa antara satu sama lain',
+      d: ['Buah pinang yang sudah masak', 'Kerja yang dibahagi kepada dua', 'Sesuatu yang mudah dibelah'] },
+    { p: 'Bulat air kerana pembetung, bulat manusia kerana muafakat',
+      a: 'Sesuatu boleh dicapai jika berbincang dan bersepakat',
+      d: ['Air yang mengalir dalam paip', 'Manusia yang bentuk badannya bulat', 'Air perlu ditakung dalam bekas'] },
+    { p: 'Alah bisa tegal biasa',
+      a: 'Perkara susah menjadi senang jika selalu dibuat',
+      d: ['Bisa ular sangat berbahaya', 'Orang yang selalu sakit', 'Sesuatu yang tidak boleh dibiasakan'] },
+    { p: 'Ada gula ada semut',
+      a: 'Di tempat yang ada kesenangan, ramai orang akan datang',
+      d: ['Semut suka makan gula', 'Gula mesti disimpan elok-elok', 'Rumah yang banyak semut'] },
+    { p: 'Genggam bara api biar sampai jadi arang',
+      a: 'Buat sesuatu kerja bersungguh-sungguh hingga selesai',
+      d: ['Jangan main dengan api', 'Bara api yang sangat panas', 'Membakar kayu menjadi arang'] },
+    { p: 'Sedikit-sedikit, lama-lama jadi bukit',
+      a: 'Simpan atau kumpul sedikit demi sedikit, akhirnya jadi banyak',
+      d: ['Bukit terbentuk daripada tanah', 'Kerja yang mengambil masa lama', 'Sesuatu yang semakin lama semakin kecil'] },
+    { p: 'Ke mana tumpahnya kuah kalau tidak ke nasi',
+      a: 'Sifat anak biasanya mengikut sifat ibu bapa',
+      d: ['Kuah selalu tumpah atas nasi', 'Makanan yang sedap dimakan', 'Nasi mesti dimakan dengan kuah'] },
+    { p: 'Berat sama dipikul, ringan sama dijinjing',
+      a: 'Bekerjasama menanggung susah dan senang bersama-sama',
+      d: ['Barang berat perlu dipikul ramai', 'Mengangkat barang yang ringan', 'Kerja yang membebankan badan'] },
+    { p: 'Seperti kacang lupakan kulit',
+      a: 'Orang yang lupa asal-usul atau lupa jasa orang',
+      d: ['Kacang yang sudah dibuang kulit', 'Kulit kacang yang keras', 'Makan kacang tanpa kulit'] },
+    { p: 'Air yang tenang jangan disangka tiada buaya',
+      a: 'Orang yang pendiam belum tentu tiada kebolehan atau bahaya',
+      d: ['Sungai yang tiada buaya', 'Air yang tidak bergerak langsung', 'Buaya suka air yang tenang'] },
+    { p: 'Bagai kacang goreng',
+      a: 'Bercakap sangat laju dan banyak tanpa henti',
+      d: ['Kacang yang digoreng garing', 'Makanan yang cepat habis', 'Kacang yang sedap dimakan'] },
+    { p: 'Melentur buluh biarlah dari rebungnya',
+      a: 'Mendidik anak mestilah bermula sejak kecil',
+      d: ['Buluh muda dipanggil rebung', 'Buluh mudah dilenturkan', 'Rebung sedap dibuat masak'] },
+    { p: 'Yang bulat tidak datang bergolek, yang pipih tidak datang melayang',
+      a: 'Kejayaan tidak datang sendiri, mesti berusaha untuk mendapatkannya',
+      d: ['Benda bulat mudah bergolek', 'Kertas pipih boleh melayang', 'Sesuatu yang datang dengan sendiri'] }
+  ];
+
+  function buildPeribahasa() {
+    const selected = shuffle([...PERIBAHASA_BANK]).slice(0, 10);
+    return selected.map(item => {
+      return {
+        text: `<span class="pantun-text">${item.p}</span><span class="pantun-q">Apakah maksud peribahasa ini?</span>`,
+        answer: item.a,
+        choices: shuffle([item.a, ...item.d]),
+        wideChoices: true   // butang lebar (text panjang) — sama seperti pantun
       };
     });
   }
