@@ -402,8 +402,8 @@
   </button>
   <br>
   <button class="big" data-set="darabAsas" onclick="startQuiz('darabAsas')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
-    ✖️ Darab Asas (Sifir 2)
-    <span class="set-sub">Semua × 2: 2×2, 5×2, 3×2 · isi tempat kosong · 1 minit satu soalan</span>
+    ✖️ Darab Asas (Sifir 2 &amp; 3)
+    <span class="set-sub">× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan</span>
   </button>
   <br>
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
@@ -774,13 +774,14 @@
     darabAsas: {
       time: 60,   // 1 minit satu soalan — bagi masa lebih untuk faham konsep
       generate() {
-        // Darab super asas untuk 6 tahun: SEMUA sifir 2 sahaja (× 2).
-        // Contoh: 2×2, 5×2, 3×2. Ulang je supaya budak biasa dengan sifir 2.
+        // Darab asas untuk 6 tahun: sifir 2 & 3. Senang dahulu (× 2), kemudian × 3.
         const qs = [];
-        const make = (a) => ({ text: `${a} × 2 = ▢`, answer: a * 2 });
-        // 10 soalan, semua × 2, pengganda kecil 1-9 (rawak)
-        while (qs.length < 10) { qs.push(make(randInt(1, 9))); }
-        return qs;
+        const make = (a, n) => ({ text: `${a} × ${n} = ▢`, answer: a * n });
+        // 5 soalan × 2 (pemanas)
+        while (qs.length < 5) { qs.push(make(randInt(1, 9), 2)); }
+        // 5 soalan × 3 (lebih mencabar sikit)
+        while (qs.length < 10) { qs.push(make(randInt(1, 9), 3)); }
+        return qs;   // JANGAN shuffle — × 2 dulu, × 3 kemudian
       }
     },
     bundar: {
@@ -2330,7 +2331,7 @@
   }
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-07-13 19:42';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-07-13 20:14';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
