@@ -265,6 +265,24 @@ let clearTimer = 0;
 let bonusReturn = null;   // simpan state level utama bila masuk pipe
 let winTimer = 0;
 
+// ── v2: simpan kemajuan + bintang ──
+const PROGRESS_KEY = 'edriswira_progress';
+function loadProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{"unlocked":1,"stars":{}}'); } catch { return { unlocked: 1, stars: {} }; } }
+function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch {} }
+let progress = loadProgress();
+let levelDeaths = 0;          // mati dalam level semasa → penilaian bintang
+let bossTalk = 0;             // pemasa gelembung dialog bos
+const BOSS_LINES = { gergasiapi: 'Kamu akan hangus!', ularlaut: 'Tenggelam kamu!', rajamonyet: 'Hihihi, tangkap pisang ni!', rajagergasi: 'Puteri Peach milik aku!' };
+// Bintang ikut kematian dalam level
+function awardStars() {
+  const s = levelDeaths === 0 ? 3 : levelDeaths === 1 ? 2 : 1;
+  if (!progress.stars[currentLevel] || s > progress.stars[currentLevel]) progress.stars[currentLevel] = s;
+  if (currentLevel + 1 > progress.unlocked && currentLevel < MAX_LEVEL) progress.unlocked = currentLevel + 1;
+  if (currentLevel === MAX_LEVEL) progress.unlocked = MAX_LEVEL;   // habis semua
+  saveProgress();
+  return s;
+}
+
 // ─── INPUT ───────────────────────────────────────────────
 const keys = {};
 let coyoteT = 0, bufferT = 0;
@@ -277,8 +295,14 @@ document.addEventListener('keydown', e => {
   }
   if (e.code === 'Enter' && (gameState === 'dead' && lives > 0)) respawn();
   if (e.code === 'Enter' && (gameState === 'cutscene' || gameState === 'ending')) endCutscene();
-  // Main semula selepas tamat (tiada leaderboard lagi)
-  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) startGame();
+  // Main semula selepas tamat → ke Peta Dunia
+  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) openMap();
+  // Peta Dunia: buka dengan M; pilih dunia 1-4
+  if (e.code === 'KeyM' && (gameState === 'playing' || gameState === 'gameover' || gameState === 'win')) openMap();
+  if (gameState === 'map' && ['Digit1','Digit2','Digit3','Digit4'].includes(e.code)) {
+    const n = parseInt(e.code.slice(5), 10);
+    if (n <= progress.unlocked) { SFX.power(); score = 0; coins = 0; lives = 5; startLevelAt(n); }
+  }
   initAudio();   // buka bunyi pada input pertama
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -471,7 +495,8 @@ function buildLevel(num) {
   const theme = num === 1 ? 'api' : num === 2 ? 'laut' : num === 3 ? 'hutan' : 'kubu';
   return { blocks, coinList, enemies, powerups, decos, flag: null, boss, yoshi,
            fireballs: [], playerFireballs: [], theme, lengthX, lavas,
-           firePipes, logZones, tsunami, fallers: [], hazT: 0 };
+           firePipes, logZones, tsunami, fallers: [], hazT: 0,
+           checkpoint: { x: Math.floor(lengthX * 0.52), reached: false } };
 }
 
 // ─── BONUS ROOM (bawah tanah, penuh coin) ─────────────────
@@ -612,17 +637,22 @@ function floatText(x, y, txt, color='#fff') { floaters.push({ x, y, txt, color, 
 
 // ─── FLOW ─────────────────────────────────────────────────
 function startGame() {
-  score = 0; coins = 0; lives = 5; currentLevel = 1; spawnX = 60;   // mod mudah: 5 nyawa
+  score = 0; coins = 0; lives = 5; spawnX = 60;   // mod mudah: 5 nyawa
   scoreSent = false; bonusReturn = null;
-  level = buildLevel(1); player = makePlayer();
+  startLevelAt(1);
+}
+// v2: mula terus di mana-mana level (dari peta dunia)
+function startLevelAt(n) {
+  currentLevel = n; spawnX = 60; bonusReturn = null; levelDeaths = 0;
+  level = buildLevel(n); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
   initSnowflakes();
   gameState = 'playing'; updateHUD();
   MUSIC.start(level.theme);
-  floatText(player.x - 10, player.y - 46, 'LEVEL 1 — ' + LEVEL_NAMES[1], '#FFD700');
+  floatText(player.x - 10, player.y - 46, 'LEVEL ' + n + ' — ' + LEVEL_NAMES[n], '#FFD700');
 }
 function nextLevel() {
-  currentLevel++; spawnX = 60; bonusReturn = null;
+  currentLevel++; spawnX = 60; bonusReturn = null; levelDeaths = 0;
   level = buildLevel(currentLevel); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
   initSnowflakes();
@@ -732,12 +762,12 @@ function update() {
   }
 
   if (gameState === 'clear') {
+    if (!level.starsAwarded) { level.starsAwarded = true; level.starsGot = awardStars(); }
     clearTimer--;
-    // mario slides down flag (level biasa sahaja)
     if (level.flag && player.y + player.h < GROUND_Y) { player.y += 2.2; level.flag.slide = Math.min(1, level.flag.slide + 0.012); }
     if (clearTimer <= 0) {
       if (currentLevel < MAX_LEVEL) nextLevel();
-      else startEnding();   // Bowser tewas → babak selamatkan Peach!
+      else startEnding();   // Raja Gergasi tewas → babak selamatkan Puteri Peach!
     }
     stepParticles();
     return;
@@ -787,7 +817,7 @@ function update() {
   } else {
     player.deadT--; player.y += player.vy; player.vy += 0.45;
     if (player.deadT <= 0) {
-      lives--;
+      lives--; levelDeaths++;
       if (lives <= 0) { gameState = 'gameover'; MUSIC.stop(); updateHUD(); }
       else respawn();
     }
@@ -825,6 +855,13 @@ function update() {
     }
   }
   if (player.inv > 0) player.inv--;
+  if (bossTalk > 0) bossTalk--;
+
+  // 🚩 Checkpoint tengah level — respawn dari sini
+  if (level.checkpoint && !level.checkpoint.reached && player.x > level.checkpoint.x) {
+    level.checkpoint.reached = true; spawnX = level.checkpoint.x;
+    floatText(player.x - 10, player.y - 40, 'CHECKPOINT! 🚩', '#5cff5c'); SFX.appear();
+  }
 
   // block bump animation decay
   for (const b of blocks) if (b.bumpT > 0) b.bumpT--;
@@ -1035,7 +1072,7 @@ function update() {
   // ── BOSS ──
   if (level.boss && level.boss.alive) {
     const bs = level.boss;
-    if (!bs.active && player.x > bs.minX - 200) { bs.active = true; MUSIC.start('bos'); }
+    if (!bs.active && player.x > bs.minX - 200) { bs.active = true; MUSIC.start('bos'); bossTalk = 170; }
     if (bs.active) {
       if (bs.hit > 0) bs.hit--;
 
@@ -2038,18 +2075,23 @@ function drawOverlay() {
     ctx.fillStyle='#FFD700'; ctx.font='18px Trebuchet MS';
     ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
   } else if (gameState === 'clear') {
+    const STONES = { 1: 'BATU API 🔴', 2: 'BATU AIR 🔵', 3: 'BATU HUTAN 🟢', 4: 'BATU PELANGI 🌈' };
     ctx.fillStyle='#FFD700'; ctx.font='bold 34px Trebuchet MS';
-    ctx.fillText(level.boss ? '👑 BOWSER DIKALAHKAN!' : 'LEVEL ' + currentLevel + ' CLEAR!', W/2, 90);
-    // Story beat — jejak mencari Peach
+    ctx.fillText(level.boss ? '✨ ' + STONES[currentLevel] + ' DIRAMPAS!' : 'DUNIA ' + currentLevel + ' SELAMAT!', W/2, 84);
+    // Bintang diperoleh
+    const sg = (level && level.starsGot) || 0;
+    ctx.font='30px serif';
+    ctx.fillText((sg>=1?'⭐':'☆') + (sg>=2?'⭐':'☆') + (sg>=3?'⭐':'☆'), W/2, 122);
+    // Story beat — jejak menyelamatkan Puteri Peach
     const beats = {
-      1: 'Peach tiada di sini... teruskan mencari! 🔍',
-      2: 'Jejak Bowser menuju dunia salji... ❄️',
-      3: 'Yoshi tahu jalan ke istana Bowser! 🌋'
+      1: 'Batu Api selamat! Puteri Peach dibawa ke laut… 🌊',
+      2: 'Ombak reda! Jejak menuju hutan gelap… 🌳',
+      3: 'Raja Monyet jadi kawan! Kubu di depan — Puteri Peach dekat! 🌉'
     };
     if (beats[currentLevel]) {
       ctx.fillStyle='#ffffff'; ctx.font='bold 19px Trebuchet MS';
       ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 5;
-      ctx.fillText(beats[currentLevel], W/2, 126);
+      ctx.fillText(beats[currentLevel], W/2, 158);
       ctx.shadowBlur = 0;
     }
   }
@@ -2280,6 +2322,17 @@ function drawBoss() {
   let name = NAMES[bs.type] || 'BOS';
   if (bs.enraged) name = '🔥 ' + name + ' — MENGGILA!';
   ctx.fillText(name, x+bs.w/2, y-16);
+  // 💬 gelembung dialog bos (bila baru aktif)
+  if (bossTalk > 0) {
+    const line = BOSS_LINES[bs.type] || '';
+    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
+    const bw = ctx.measureText(line).width + 20, bxx = x + bs.w/2, byy = y - 40;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.roundRect(bxx - bw/2, byy - 16, bw, 24, 8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bxx-6, byy+7); ctx.lineTo(bxx, byy+15); ctx.lineTo(bxx+6, byy+7); ctx.fill();
+    ctx.fillStyle = '#7a1030'; ctx.fillText(line, bxx, byy);
+    ctx.textAlign = 'left';
+  }
 }
 
 function drawPipeHint() {
@@ -2294,6 +2347,18 @@ function drawPipeHint() {
 }
 
 function drawHazards() {
+  // 🚩 Bendera checkpoint
+  if (level.checkpoint) {
+    const cx = level.checkpoint.x - cameraX;
+    if (cx > -20 && cx < W+20) {
+      ctx.fillStyle = '#8a8a9a'; ctx.fillRect(cx, GROUND_Y-90, 4, 90);
+      const reached = level.checkpoint.reached;
+      ctx.fillStyle = reached ? '#5cff5c' : '#cccccc';
+      const fy = reached ? GROUND_Y-88 : GROUND_Y-40;
+      ctx.beginPath(); ctx.moveTo(cx+4, fy); ctx.lineTo(cx+30, fy+8); ctx.lineTo(cx+4, fy+16); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.font = '10px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('🚩', cx+16, fy+13); ctx.textAlign='left';
+    }
+  }
   // 🌲 Kayu tumbang
   for (const f of (level.fallers || [])) {
     const x = f.x - cameraX;
@@ -2331,6 +2396,7 @@ function drawHazards() {
 
 function render() {
   if (gameState === 'cutscene' || gameState === 'ending') { drawCutscene(); return; }
+  if (gameState === 'map') { drawMap(); return; }
   ctx.save();
   if (shake > 0.5) ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
   drawBackground();
@@ -2496,16 +2562,102 @@ function endCutscene() {
   else { gameState = 'win'; updateHUD(); }   // updateHUD trigger leaderboard flow
 }
 // Skip cutscene / main semula / buka audio dengan tap/klik canvas
-canvas.addEventListener('click', () => {
+canvas.addEventListener('click', (e) => {
   initAudio();
   if (gameState==='cutscene'||gameState==='ending') endCutscene();
-  else if (gameState==='gameover'||gameState==='win') startGame();
+  else if (gameState==='map') mapClick(e);
+  else if (gameState==='gameover'||gameState==='win') gameState='map';
 });
 canvas.addEventListener('touchstart', e => {
   initAudio();
   if (gameState==='cutscene'||gameState==='ending') { e.preventDefault(); endCutscene(); }
-  else if (gameState==='gameover'||gameState==='win') { e.preventDefault(); startGame(); }
+  else if (gameState==='map') { e.preventDefault(); mapClick(e); }
+  else if (gameState==='gameover'||gameState==='win') { e.preventDefault(); gameState='map'; }
 }, {passive:false});
+
+// ── v2: Peta Dunia (pilih level) ──
+function mapCards() {
+  const cards = []; const cw = 170, gap = 16, total = 4*cw + 3*gap, x0 = (W - total)/2;
+  for (let i = 0; i < 4; i++) cards.push({ n: i+1, x: x0 + i*(cw+gap), y: 170, w: cw, h: 190 });
+  return cards;
+}
+function mapClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+  const px = ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) * sx;
+  const py = ((e.touches ? e.touches[0].clientY : e.clientY) - rect.top) * sy;
+  for (const c of mapCards()) {
+    if (px>=c.x && px<=c.x+c.w && py>=c.y && py<=c.y+c.h) {
+      if (c.n <= progress.unlocked) { SFX.power(); score = 0; coins = 0; lives = 5; startLevelAt(c.n); }
+      else SFX.bump();
+      return;
+    }
+  }
+}
+function openMap() { gameState = 'map'; MUSIC.stop(); }
+
+// Lukis Peta Dunia (skrin pilih level)
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+const MAP_ICON = { 1: '🔥', 2: '🌊', 3: '🌳', 4: '👹' };
+const MAP_COL  = { 1: ['#c0392b','#e67e22'], 2: ['#1c6dd0','#3fb0d8'], 3: ['#1e8b3e','#57c463'], 4: ['#5b2a86','#8e44ad'] };
+function drawMap() {
+  // latar
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1a2440'); g.addColorStop(1, '#0d1526');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // tajuk
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe36e';
+  ctx.font = 'bold 40px Trebuchet MS, sans-serif';
+  ctx.fillText('🌈 PILIH DUNIA', W/2, 90);
+  ctx.fillStyle = '#9fb4e8';
+  ctx.font = 'bold 16px Trebuchet MS, sans-serif';
+  ctx.fillText('Ketuk dunia atau tekan 1-4', W/2, 122);
+  // kad dunia
+  for (const c of mapCards()) {
+    const locked = c.n > progress.unlocked;
+    const stars = progress.stars[c.n] || 0;
+    const col = MAP_COL[c.n];
+    // badan kad
+    ctx.save();
+    if (locked) ctx.globalAlpha = 0.45;
+    const cg = ctx.createLinearGradient(c.x, c.y, c.x, c.y + c.h);
+    cg.addColorStop(0, col[0]); cg.addColorStop(1, col[1]);
+    ctx.fillStyle = cg;
+    roundRect(c.x, c.y, c.w, c.h, 16); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = locked ? '#556' : '#ffffff';
+    roundRect(c.x, c.y, c.w, c.h, 16); ctx.stroke();
+    const cx = c.x + c.w/2;
+    // nombor dunia
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = 'bold 15px Trebuchet MS, sans-serif';
+    ctx.fillText('DUNIA ' + c.n, cx, c.y + 30);
+    // ikon
+    ctx.font = '58px serif';
+    ctx.fillText(locked ? '🔒' : MAP_ICON[c.n], cx, c.y + 100);
+    // nama
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 15px Trebuchet MS, sans-serif';
+    const nm = LEVEL_NAMES[c.n];
+    ctx.fillText(nm.length > 13 ? 'KUBU RAJA' : nm, cx, c.y + 135);
+    if (nm === 'KUBU RAJA GERGASI') ctx.fillText('GERGASI', cx, c.y + 153);
+    // bintang
+    ctx.font = '20px serif';
+    let sstr = '';
+    for (let i = 0; i < 3; i++) sstr += (i < stars ? '⭐' : '☆');
+    ctx.fillText(locked ? '' : sstr, cx, c.y + c.h - 16);
+    ctx.restore();
+  }
+  ctx.textAlign = 'left';
+}
 
 function lerp(a, b, k) { return a + (b - a) * Math.max(0, Math.min(1, k)); }
 
@@ -2658,7 +2810,7 @@ function drawIntroScene(t) {
       if (t > 290) cutCaption('RAJA GERGASI: HAHAHA!!', by - 26 > 40 ? by - 26 : 40, '#ff6a3a', 24);
     }
   } else if (t < 520) {
-    // ── Babak 2: Raja Gergasi culik Enisa ──
+    // ── Babak 2: Raja Gergasi culik Puteri Peach ──
     const k = (t - 380) / 140;
     const bx = lerp(enisaX - 30, W + 160, k);
     const by = lerp(actorY - 50, -140, k);
@@ -2670,9 +2822,9 @@ function drawIntroScene(t) {
     // ── Babak 3: Edris sedih ──
     dim(lerp(0, 0.4, (t - 520) / 60));
     drawMarioAt(edrisX, actorY + 4, { facing: 1, sad: true });
-    cutCaption('Edris sedih... Enisa diculik Raja Gergasi 😢', 80, '#c9d8f0', 22);
+    cutCaption('Edris sedih... Puteri Peach diculik Raja Gergasi 😢', 80, '#c9d8f0', 22);
   } else {
-    // ── Babak 4: EDRIS AKAN SELAMATKAN ENISA! ──
+    // ── Babak 4: EDRIS AKAN SELAMATKAN PUTERI PEACH! ──
     if (!cut.fx.resolve) { cut.fx.resolve = true; SFX.power(); }
     if (t < 706) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); }
     drawMarioAt(edrisX, actorY + 4, { facing: 1 });
@@ -2681,7 +2833,7 @@ function drawIntroScene(t) {
     ctx.translate(W/2, 110); ctx.scale(pulse, pulse);
     ctx.fillStyle = '#FFD700'; ctx.font = 'bold 30px Trebuchet MS'; ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 8;
-    ctx.fillText('EDRIS AKAN SELAMATKAN ENISA! 💪', 0, 0);
+    ctx.fillText('EDRIS AKAN SELAMATKAN PUTERI PEACH! 💪', 0, 0);
     ctx.shadowBlur = 0;
     ctx.restore();
     ctx.textAlign = 'left';
@@ -2732,9 +2884,9 @@ function drawEndingScene(t) {
   drawMarioAt(marioX, actorY + 4, { facing: 1, walking: t < 150, animF: Math.floor(t / 7) % 3 });
 
   if (t < 150) {
-    cutCaption('Mario sampai ke penjara Puteri Peach...', 70, '#ffffff', 22);
+    cutCaption('Edris sampai ke kubu Raja Gergasi...', 70, '#ffffff', 22);
   } else if (t < 300) {
-    cutCaption(broken ? 'ENISA BEBAS!' : 'Edris pecahkan sangkar!', 70, '#ffd700', 24);
+    cutCaption(broken ? 'PUTERI PEACH BEBAS!' : 'Edris pecahkan sangkar!', 70, '#ffd700', 24);
   } else {
     // Bertemu semula — hujan hati!
     ctx.font = '20px serif';
@@ -2748,7 +2900,7 @@ function drawEndingScene(t) {
     ctx.font = '26px serif'; ctx.textAlign = 'center';
     ctx.fillText('❤️', (marioX + peachX) / 2 + 14, actorY - 24 - Math.sin(t / 10) * 5);
     ctx.textAlign = 'left';
-    cutCaption('ENISA SELAMAT! ❤️', 70, '#ffb3d1', 26);
+    cutCaption('PUTERI PEACH SELAMAT! ❤️', 70, '#ffb3d1', 26);
     if (t > 420) {
       const pulse = 1 + 0.05 * Math.sin(t / 6);
       ctx.save();
@@ -2771,7 +2923,9 @@ function drawEndingScene(t) {
 function loop() { update(); render(); requestAnimationFrame(loop); }
 
 // ─── INIT ─────────────────────────────────────────────────
-startIntro();   // terus main cutscene pembukaan — tiada skrin nama
+// Pemain baharu → cutscene pembukaan. Pemain yg dah maju → terus ke Peta Dunia.
+if (progress.unlocked > 1) openMap();
+else startIntro();
 loop();
 </script>
 <script src="reward-timer.js"></script>
