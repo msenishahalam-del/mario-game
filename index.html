@@ -356,6 +356,14 @@
     user-select: none;
   }
   #adminBtn:hover { color: #fff; background: rgba(0,0,0,0.4); }
+  #laporanBtn {
+    position: fixed; bottom: 6px; left: 78px;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    color: rgba(255,255,255,0.55); background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 5px;
+    padding: 3px 8px; cursor: pointer; text-decoration: none; z-index: 50;
+  }
+  #laporanBtn:hover { color: #fff; background: rgba(0,0,0,0.4); }
 
   .hidden { display: none; }
 
@@ -375,6 +383,7 @@
 <body>
 
 <div id="adminBtn" onclick="adminAccess()">🔧 Admin</div>
+<a id="laporanBtn" href="laporan.html">📊 Laporan</a>
 
 <div id="welcomeScreen" class="screen">
   <h1>🎯 Cabaran Matematik!</h1>
@@ -600,6 +609,50 @@
       if (keys.includes(setKey)) return group;
     }
     return null;
+  }
+
+  // ===== JEJAK PRESTASI (localStorage — untuk Laporan ibu bapa) =====
+  const ATTEMPTS_KEY = 'quizAttempts';
+  const PENDING_KEY  = 'quizPending';
+  const CHILD_NAME   = { darjah3: 'Enisa', tahun6: 'Edris' };
+  function loadAttempts() { try { return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]'); } catch { return []; } }
+  function saveAttempts(a) { try { localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(a.slice(-800))); } catch {} }
+  function pushAttempt(rec) { const a = loadAttempts(); a.push(rec); saveAttempts(a); }
+  function getPending() { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch { return null; } }
+  function setPending(p) { try { localStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch {} }
+  function topicLabel(setKey) {
+    const btn = document.querySelector('button.big[data-set="' + setKey + '"]');
+    if (btn) { const t = (btn.textContent || '').trim().split('\n')[0].trim(); if (t) return t; }
+    return setKey;
+  }
+  // Sesi yang tak habis (refresh / keluar separuh jalan) → rekod sebagai 'keluar'
+  function finalizeStalePending() {
+    const p = getPending();
+    if (p && p.topic) pushAttempt({ ...p, status: 'keluar', score: null, endedAt: Date.now() });
+    localStorage.removeItem(PENDING_KEY);
+  }
+  function attemptStart(setKey) {
+    finalizeStalePending();
+    const group = getCurrentGroup(setKey);
+    setPending({
+      id: Date.now(),
+      child: CHILD_NAME[group] || '?',
+      group: group || '?',
+      topic: setKey,
+      topicName: topicLabel(setKey),
+      total: (questions && questions.length) || 10,
+      reached: 1,
+      startedAt: Date.now()
+    });
+  }
+  function attemptProgress(qIndex) {
+    const p = getPending();
+    if (p) { p.reached = qIndex + 1; setPending(p); }
+  }
+  function attemptComplete(finalScore) {
+    const p = getPending();
+    localStorage.removeItem(PENDING_KEY);
+    if (p) pushAttempt({ ...p, status: 'habis', score: finalScore, reached: p.total, endedAt: Date.now() });
   }
 
   function updateLockedButtons() {
@@ -1985,6 +2038,7 @@
     questions = set.generate();
     currentQ = 0;
     score = 0;
+    attemptStart(setKey);   // jejak: mula percubaan
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('darjah3Screen').classList.add('hidden');
     document.getElementById('tahun6Screen').classList.add('hidden');
@@ -1995,6 +2049,7 @@
 
   function showQuestion() {
     const q = questions[currentQ];
+    attemptProgress(currentQ);   // jejak: sampai soalan mana
     document.getElementById('qNum').textContent = currentQ + 1;
     const qEl = document.getElementById('questionText');
     if (q.text.includes('<')) qEl.innerHTML = q.text;
@@ -2249,6 +2304,7 @@
 
   // ===== RESULT =====
   function showResult() {
+    attemptComplete(score);   // jejak: kuiz habis + markah
     document.getElementById('quizScreen').classList.add('hidden');
     document.getElementById('resultScreen').classList.remove('hidden');
     document.getElementById('finalScore').textContent = score;
@@ -2330,8 +2386,11 @@
     }
   }
 
+  // Jejak: sesi kuiz yang ditinggalkan (refresh/keluar) direkod sebagai 'keluar' bila muat semula.
+  finalizeStalePending();
+
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-07-13 20:14';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-07-13 20:24';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;

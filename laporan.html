@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Laporan Latihan</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #1a2440, #0d1526);
+    color: #e8eefc; min-height: 100vh; padding: 24px 18px 60px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+  h1 { font-size: 26px; letter-spacing: 1px; }
+  .sub { color: #8fa6d8; font-size: 13px; margin-bottom: 22px; }
+  .btn {
+    font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer;
+    padding: 8px 16px; border-radius: 8px; border: none; text-decoration: none; display: inline-block;
+  }
+  .btn-back { background: #2a3a5a; color: #fff; }
+  .btn-refresh { background: #2ecc71; color: #063; }
+  .btn-clear { background: #3a2030; color: #ff8a8a; border: 1px solid #a04a4a; }
+  .child { margin: 26px 0 10px; font-size: 20px; font-weight: bold; }
+  .child .badge { font-size: 13px; color: #8fa6d8; font-weight: normal; }
+  table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.03); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 9px 11px; text-align: left; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  th { background: rgba(255,255,255,0.06); color: #9fb4e8; font-size: 12px; letter-spacing: 1px; }
+  td.num, th.num { text-align: center; }
+  .rec-up   { color: #7CFFB2; font-weight: bold; }
+  .rec-down { color: #ff9a9a; font-weight: bold; }
+  .rec-ok   { color: #cfe0ff; }
+  .bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden; min-width: 60px; display:inline-block; vertical-align: middle; }
+  .bar > span { display: block; height: 100%; }
+  .empty { color: #8fa6d8; padding: 40px 0; text-align: center; font-size: 15px; }
+  .legend { color: #8fa6d8; font-size: 12px; margin: 8px 0 0; }
+  .status-habis { color: #9be8b0; }
+  .status-keluar { color: #ffcf7a; }
+  h2.sec { font-size: 16px; color: #9fb4e8; margin: 34px 0 10px; letter-spacing: 1px; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>📊 Laporan Latihan</h1>
+    <div>
+      <a class="btn btn-back" href="index.html">◀ Kembali</a>
+      <button class="btn btn-refresh" onclick="render()">↻ Muat semula</button>
+      <button class="btn btn-clear" onclick="clearData()">🗑️ Padam semua</button>
+    </div>
+  </div>
+  <div class="sub" id="subInfo">Prestasi kuiz anak — disimpan dalam komputer ini sahaja.</div>
+  <div id="report"></div>
+</div>
+
+<script>
+const ATTEMPTS_KEY = 'quizAttempts';
+function load() { try { return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '[]'); } catch { return []; } }
+function esc(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function fmtTime(ts) { try { return new Date(ts).toLocaleString('ms-MY', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); } catch { return ''; } }
+
+function recommend(s) {
+  // s: {attempts, completed, exited, avg, perfect}
+  if (s.completed >= 3 && s.avg >= 9) return ['rec-up', '🔼 Naikkan kesukaran'];
+  const exitRate = s.attempts ? s.exited / s.attempts : 0;
+  if ((s.completed >= 3 && s.avg <= 5) || (s.attempts >= 3 && exitRate >= 0.4)) return ['rec-down', '🔽 Turun / bantu'];
+  if (s.attempts < 3) return ['rec-ok', '· data belum cukup'];
+  return ['rec-ok', '✅ Sesuai'];
+}
+
+function render() {
+  const all = load().slice().sort((a,b) => b.id - a.id);
+  const rep = document.getElementById('report');
+  document.getElementById('subInfo').textContent =
+    'Prestasi kuiz anak — disimpan dalam komputer ini sahaja. Jumlah rekod: ' + all.length;
+
+  if (!all.length) {
+    rep.innerHTML = '<div class="empty">Belum ada rekod lagi. Suruh anak buat kuiz dulu, kemudian buka laporan ni semula. 🙂</div>';
+    return;
+  }
+
+  // Kumpul ikut anak → topik
+  const byChild = {};
+  for (const a of all) {
+    const child = a.child || '?';
+    (byChild[child] = byChild[child] || {});
+    const key = a.topic || a.topicName || '?';
+    const t = byChild[child][key] = byChild[child][key] || { name: a.topicName || key, total: a.total || 10, attempts:0, completed:0, exited:0, sum:0, perfect:0, lastScore:null, lastId:0 };
+    t.attempts++;
+    if (a.status === 'habis') { t.completed++; t.sum += (a.score||0); if ((a.score||0) >= (a.total||10)) t.perfect++; }
+    else t.exited++;
+    if (a.id > t.lastId) { t.lastId = a.id; t.lastScore = (a.status==='habis') ? (a.score+'/'+(a.total||10)) : 'keluar'; }
+  }
+
+  let html = '';
+  for (const child of Object.keys(byChild).sort()) {
+    const topics = byChild[child];
+    html += `<div class="child">👤 ${esc(child)} <span class="badge">(${Object.keys(topics).length} topik)</span></div>`;
+    html += '<div class="scroll"><table><thead><tr>' +
+      '<th>Topik</th><th class="num">Cuba</th><th class="num">Habis</th><th class="num">Keluar</th>' +
+      '<th class="num">Purata</th><th class="num">10/10</th><th>Cadangan</th></tr></thead><tbody>';
+    const rows = Object.values(topics).sort((a,b)=>b.lastId-a.lastId);
+    for (const t of rows) {
+      const avg = t.completed ? (t.sum / t.completed) : 0;
+      const [cls, txt] = recommend({ attempts:t.attempts, completed:t.completed, exited:t.exited, avg, perfect:t.perfect });
+      const pct = Math.round(avg/(t.total||10)*100);
+      const barColor = avg>=9 ? '#7CFFB2' : avg>=6 ? '#ffd24d' : '#ff8a8a';
+      html += `<tr>
+        <td>${esc(t.name)}</td>
+        <td class="num">${t.attempts}</td>
+        <td class="num">${t.completed}</td>
+        <td class="num">${t.exited}</td>
+        <td class="num">${t.completed ? avg.toFixed(1)+'/'+(t.total||10) : '—'} <span class="bar" title="${pct}%"><span style="width:${pct}%;background:${barColor}"></span></span></td>
+        <td class="num">${t.perfect}</td>
+        <td class="${cls}">${txt}</td>
+      </tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+
+  // Aktiviti terkini (30 terakhir)
+  html += '<h2 class="sec">🕒 Aktiviti Terkini</h2><div class="scroll"><table><thead><tr>' +
+    '<th>Masa</th><th>Anak</th><th>Topik</th><th>Keputusan</th></tr></thead><tbody>';
+  for (const a of all.slice(0, 30)) {
+    const res = a.status === 'habis'
+      ? `<span class="status-habis">✅ ${a.score}/${a.total||10}</span>`
+      : `<span class="status-keluar">⚠️ Keluar di soalan ${a.reached||1}/${a.total||10}</span>`;
+    html += `<tr><td>${fmtTime(a.id)}</td><td>${esc(a.child||'?')}</td><td>${esc(a.topicName||a.topic||'?')}</td><td>${res}</td></tr>`;
+  }
+  html += '</tbody></table></div>';
+  html += '<p class="legend">🔼 Naikkan = selalu 9-10 markah · 🔽 Turun/bantu = purata rendah atau kerap keluar · ✅ Sesuai = seimbang. (Perlu ≥3 percubaan untuk cadangan.)</p>';
+
+  rep.innerHTML = html;
+}
+
+function clearData() {
+  if (confirm('Padam SEMUA rekod laporan? Tindakan ini tak boleh undur.')) {
+    localStorage.removeItem(ATTEMPTS_KEY);
+    localStorage.removeItem('quizPending');
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
