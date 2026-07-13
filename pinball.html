@@ -1267,6 +1267,53 @@
 })();
 </script>
 
+<style>
+  #touchpad { display: none; }
+  @media (pointer: coarse), (max-width: 950px) {
+    #touchpad {
+      display: flex; position: fixed; left: 0; right: 0; bottom: 0;
+      justify-content: space-between; align-items: flex-end;
+      padding: 10px 14px; gap: 10px; z-index: 9998; pointer-events: none;
+    }
+    #touchpad .pad { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
+    #touchpad button {
+      border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.5);
+      color: #fff; font-size: 20px; font-weight: bold; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+      width: 60px; height: 60px; user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    #touchpad button:active { background: rgba(255,255,255,0.42); transform: scale(0.92); }
+    #touchpad .flip { width: 80px; height: 80px; background: rgba(255,68,204,0.3); border-color: #ff44cc; font-size: 30px; }
+    #touchpad .launch { background: rgba(255,210,77,0.3); border-color: #ffd24d; font-size: 14px; }
+  }
+</style>
+<div id="touchpad">
+  <div class="pad">
+    <button class="flip" data-hold="KeyZ">◀</button>
+  </div>
+  <div class="pad">
+    <button class="launch" data-hold="Space">TOLAK</button>
+    <button data-tap="Enter">OK</button>
+    <button class="flip" data-hold="Slash">▶</button>
+  </div>
+</div>
+<script>
+(function(){
+  const KEY = { Space:' ', Enter:'Enter', Slash:'/', KeyZ:'z' };
+  function fire(type, code){ window.dispatchEvent(new KeyboardEvent(type, { code, key: KEY[code]||code, bubbles:true })); }
+  document.querySelectorAll('#touchpad button').forEach(b=>{
+    const hold=b.dataset.hold, tap=b.dataset.tap;
+    if(hold){
+      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',hold);}, {passive:false});
+      const up=e=>{e.preventDefault(); fire('keyup',hold);};
+      b.addEventListener('touchend', up, {passive:false});
+      b.addEventListener('touchcancel', up, {passive:false});
+    } else if(tap){
+      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',tap); fire('keyup',tap);}, {passive:false});
+    }
+  });
+})();
+</script>
 <script src="reward-timer.js"></script>
 </body>
 </html>

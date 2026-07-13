@@ -2473,6 +2473,58 @@
 })();
 </script>
 
+<style>
+  #touchpad { display: none; }
+  @media (pointer: coarse), (max-width: 950px) {
+    #touchpad {
+      display: flex; position: fixed; left: 0; right: 0; bottom: 0;
+      justify-content: space-between; align-items: flex-end;
+      padding: 10px 14px; gap: 10px; z-index: 9998; pointer-events: none;
+    }
+    #touchpad .pad { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
+    #touchpad .dpad { display: grid; grid-template-columns: repeat(3,52px); grid-template-rows: repeat(3,52px); gap: 5px; pointer-events: auto; }
+    #touchpad .dpad button { width: 52px; height: 52px; }
+    #touchpad .dpad .u { grid-area: 1/2; } #touchpad .dpad .l { grid-area: 2/1; }
+    #touchpad .dpad .r { grid-area: 2/3; } #touchpad .dpad .d { grid-area: 3/2; }
+    #touchpad button {
+      border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.5);
+      color: #fff; font-size: 20px; font-weight: bold; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+      width: 60px; height: 60px; user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    #touchpad button:active { background: rgba(255,255,255,0.42); transform: scale(0.92); }
+    #touchpad .fire { background: rgba(255,80,0,0.35); border-color: #FF6A00; width: 72px; height: 72px; font-size: 26px; }
+  }
+</style>
+<div id="touchpad">
+  <div class="dpad">
+    <button class="u" data-hold="ArrowUp">▲</button>
+    <button class="l" data-hold="ArrowLeft">◀</button>
+    <button class="r" data-hold="ArrowRight">▶</button>
+    <button class="d" data-hold="ArrowDown">▼</button>
+  </div>
+  <div class="pad">
+    <button data-tap="Enter">OK</button>
+    <button class="fire" data-hold="Space">🔫</button>
+  </div>
+</div>
+<script>
+(function(){
+  const KEY = { Space:' ', Enter:'Enter', ArrowLeft:'ArrowLeft', ArrowRight:'ArrowRight', ArrowUp:'ArrowUp', ArrowDown:'ArrowDown' };
+  function fire(type, code){ window.dispatchEvent(new KeyboardEvent(type, { code, key: KEY[code]||code, bubbles:true })); }
+  document.querySelectorAll('#touchpad button').forEach(b=>{
+    const hold=b.dataset.hold, tap=b.dataset.tap;
+    if(hold){
+      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',hold);}, {passive:false});
+      const up=e=>{e.preventDefault(); fire('keyup',hold);};
+      b.addEventListener('touchend', up, {passive:false});
+      b.addEventListener('touchcancel', up, {passive:false});
+    } else if(tap){
+      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',tap); fire('keyup',tap);}, {passive:false});
+    }
+  });
+})();
+</script>
 <script src="reward-timer.js"></script>
 </body>
 </html>

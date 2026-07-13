@@ -111,76 +111,6 @@
       #mobileControls { display: flex; }
     }
 
-    /* ── Name Screen ── */
-    .screen-overlay {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      z-index: 40; text-align: center;
-    }
-    #nameScreen {
-      background:
-        linear-gradient(180deg, rgba(10,10,40,0.75), rgba(10,10,40,0.9)),
-        repeating-linear-gradient(45deg, #16213e 0 20px, #1a2748 20px 40px);
-    }
-    #nameScreen .logo {
-      font-size: 42px; font-weight: 900;
-      color: #FF3B3B;
-      text-shadow: 3px 3px 0 #7a0000, 6px 6px 0 rgba(0,0,0,0.4), 0 0 30px rgba(255,59,59,0.5);
-      letter-spacing: 3px; margin-bottom: 4px;
-      animation: bob 2s ease-in-out infinite;
-    }
-    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    #nameScreen .tag {
-      color: #FFD700; font-size: 18px; letter-spacing: 6px;
-      margin-bottom: 28px; font-weight: bold;
-    }
-    #nameInput {
-      font-family: 'Trebuchet MS', sans-serif;
-      font-size: 24px; font-weight: bold;
-      text-align: center; text-transform: uppercase;
-      padding: 12px 20px; width: 280px;
-      background: rgba(255,255,255,0.95); color: #1a1a2e;
-      border: 3px solid #FFD700; border-radius: 10px;
-      outline: none; letter-spacing: 3px;
-    }
-    #startBtn {
-      margin-top: 18px;
-      font-family: 'Trebuchet MS', sans-serif;
-      font-size: 20px; font-weight: bold;
-      padding: 13px 44px;
-      background: linear-gradient(180deg, #ff5555, #cc0000);
-      color: #fff; border: none; border-radius: 10px;
-      cursor: pointer; letter-spacing: 2px;
-      box-shadow: 0 5px 0 #7a0000, 0 8px 14px rgba(0,0,0,0.4);
-      transition: transform 0.08s, box-shadow 0.08s;
-    }
-    #startBtn:active { transform: translateY(4px); box-shadow: 0 1px 0 #7a0000; }
-    #nameScreen .hint { color: #9fb8e8; font-size: 13px; margin-top: 22px; line-height: 1.7; }
-    #nameScreen .hint kbd {
-      background: #2a3a5a; padding: 2px 8px; border-radius: 4px;
-      border: 1px solid #4a5a7a; font-family: monospace;
-    }
-
-    /* ── Leaderboard ── */
-    #leaderboard {
-      background: linear-gradient(180deg, rgba(5,5,25,0.95), rgba(10,10,40,0.97));
-      display: none;
-    }
-    #leaderboard h2 { color: #FFD700; font-size: 30px; margin-bottom: 16px; letter-spacing: 3px; text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
-    #lbTable { width: 88%; max-width: 520px; border-collapse: collapse; }
-    #lbTable th { color: #8fb4ff; font-size: 12px; padding: 7px; border-bottom: 2px solid #3a4a6a; text-align: left; letter-spacing: 1px; }
-    #lbTable td { color: #fff; font-size: 15px; padding: 7px 9px; border-bottom: 1px solid #243250; }
-    #lbTable tr:first-child td { color: #FFD700; font-size: 17px; font-weight: bold; }
-    #myRank { color: #00FF95; font-size: 17px; margin-top: 14px; font-weight: bold; }
-    #lbClose {
-      margin-top: 18px; font-family: 'Trebuchet MS', sans-serif;
-      font-size: 17px; font-weight: bold; padding: 11px 34px;
-      background: linear-gradient(180deg, #2ecc71, #27ae60); color: #fff;
-      border: none; border-radius: 10px; cursor: pointer; letter-spacing: 1px;
-      box-shadow: 0 5px 0 #1a7a43;
-    }
-    #lbClose:active { transform: translateY(4px); box-shadow: 0 1px 0 #1a7a43; }
   </style>
 </head>
 <body>
@@ -326,8 +256,10 @@ let mobileRun = false;
 function setupMobile() {
   const bind = (id, code) => {
     const b = document.getElementById(id);
-    const on = e => { e.preventDefault(); keys[code] = true; b.classList.add('pressed');
-      if (code === 'ArrowUp') bufferT = JUMP_BUF; };
+    const on = e => { e.preventDefault(); initAudio(); keys[code] = true; b.classList.add('pressed');
+      if (code === 'ArrowUp') bufferT = JUMP_BUF;
+      if (gameState === 'cutscene' || gameState === 'ending') endCutscene();
+      else if (gameState === 'gameover' || gameState === 'win') startGame(); };
     const off = e => { e.preventDefault(); keys[code] = false; b.classList.remove('pressed'); };
     b.addEventListener('touchstart', on, {passive:false});
     b.addEventListener('touchend', off, {passive:false});
@@ -335,14 +267,15 @@ function setupMobile() {
   };
   bind('btnLeft','ArrowLeft'); bind('btnRight','ArrowRight'); bind('btnJump','ArrowUp');
   const r = document.getElementById('btnRun');
-  r.addEventListener('touchstart', e=>{e.preventDefault(); mobileRun=true; r.classList.add('pressed');}, {passive:false});
+  r.addEventListener('touchstart', e=>{e.preventDefault(); initAudio(); mobileRun=true; r.classList.add('pressed');}, {passive:false});
   r.addEventListener('touchend',   e=>{e.preventDefault(); mobileRun=false; r.classList.remove('pressed');}, {passive:false});
   // Butang tembak api/ais 🔥
   const f = document.getElementById('btnFire');
   f.addEventListener('touchstart', e=>{
-    e.preventDefault(); f.classList.add('pressed');
+    e.preventDefault(); initAudio(); f.classList.add('pressed');
     if (gameState === 'playing' && player && (player.fire || player.ice) && player.fireCD <= 0 && !player.dead) throwProjectile();
     else if (gameState === 'cutscene' || gameState === 'ending') endCutscene();
+    else if (gameState === 'gameover' || gameState === 'win') startGame();
   }, {passive:false});
   f.addEventListener('touchend', e=>{e.preventDefault(); f.classList.remove('pressed');}, {passive:false});
 }

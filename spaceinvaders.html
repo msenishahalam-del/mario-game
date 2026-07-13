@@ -385,7 +385,7 @@ document.addEventListener('keydown', e => {
   keys[e.key] = true;
   if (e.key === ' ') { e.preventDefault(); shoot(); }
   if (e.key.toLowerCase() === 'p' && !gameOver) paused = !paused;
-  if (e.key.toLowerCase() === 'r' && gameOver) startGame();
+  if ((e.key.toLowerCase() === 'r' || e.key === 'Enter') && gameOver) startGame();
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 

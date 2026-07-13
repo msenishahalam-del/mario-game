@@ -60,37 +60,6 @@
       #mobileControls { display: flex; }
     }
 
-    .screen-overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; z-index: 40; text-align: center; }
-    #selectScreen {
-      background: linear-gradient(180deg, rgba(10,10,40,0.82), rgba(10,10,40,0.94)),
-        repeating-linear-gradient(45deg, #16213e 0 20px, #1a2748 20px 40px);
-      padding: 16px;
-    }
-    #selectScreen .logo { font-size: 40px; font-weight: 900; color: #FFC400;
-      text-shadow: 3px 3px 0 #8a4a00, 0 0 30px rgba(255,196,0,0.5); letter-spacing: 2px; margin-bottom: 2px;
-      animation: bob 2s ease-in-out infinite; }
-    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-    #selectScreen .tag { color: #7fe0ff; font-size: 15px; letter-spacing: 3px; margin-bottom: 16px; font-weight: bold; }
-    .char-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
-    .char-card { width: 130px; padding: 12px 8px; border-radius: 12px; cursor: pointer;
-      background: rgba(255,255,255,0.06); border: 3px solid transparent; transition: transform .1s, border-color .1s; }
-    .char-card:hover { transform: translateY(-4px); }
-    .char-card.sel { border-color: #FFD700; background: rgba(255,215,0,0.14); }
-    .char-card canvas { width: 64px; height: 64px; background: transparent; margin: 0 auto 4px; }
-    .char-card .cn { color: #fff; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
-    .char-card .cs { color: #9fb8e8; font-size: 11px; margin-top: 2px; }
-    #nameInput { font-family: 'Trebuchet MS', sans-serif; font-size: 20px; font-weight: bold;
-      text-align: center; text-transform: uppercase; padding: 10px 18px; width: 260px;
-      background: rgba(255,255,255,0.95); color: #1a1a2e; border: 3px solid #FFD700;
-      border-radius: 10px; outline: none; letter-spacing: 3px; }
-    #startBtn { margin-top: 14px; font-family: 'Trebuchet MS', sans-serif; font-size: 20px; font-weight: bold;
-      padding: 12px 44px; background: linear-gradient(180deg, #ff5555, #cc0000); color: #fff;
-      border: none; border-radius: 10px; cursor: pointer; letter-spacing: 2px;
-      box-shadow: 0 5px 0 #7a0000, 0 8px 14px rgba(0,0,0,0.4); transition: transform 0.08s, box-shadow 0.08s; }
-    #startBtn:active { transform: translateY(4px); box-shadow: 0 1px 0 #7a0000; }
-    #selectScreen .hint { color: #9fb8e8; font-size: 12px; margin-top: 14px; line-height: 1.6; }
-    #selectScreen .hint kbd { background: #2a3a5a; padding: 2px 7px; border-radius: 4px; border: 1px solid #4a5a7a; font-family: monospace; }
   </style>
 </head>
 <body>
@@ -229,7 +198,7 @@ document.addEventListener('keyup', e => { keys[e.code] = false; });
 function setupMobile() {
   const bind = (id, code) => {
     const b = document.getElementById(id);
-    const on = e => { e.preventDefault(); keys[code] = true; b.classList.add('pressed'); };
+    const on = e => { e.preventDefault(); initAudio(); keys[code] = true; b.classList.add('pressed'); };
     const off = e => { e.preventDefault(); keys[code] = false; b.classList.remove('pressed'); };
     b.addEventListener('touchstart', on, {passive:false});
     b.addEventListener('touchend', off, {passive:false});
