@@ -179,25 +179,6 @@
 
   <a id="backBtn" href="arcade.html">◀ HUB</a>
 
-  <!-- Name Screen -->
-  <div id="nameScreen">
-    <h1>🟦 TETRIS</h1>
-    <p>CLASSIC EDITION</p>
-    <input id="nameInput" type="text" maxlength="10" placeholder="NAMA KAMU" autocomplete="off" />
-    <button id="startBtn" onclick="submitName()">MAIN ▶</button>
-  </div>
-
-  <!-- Leaderboard -->
-  <div id="leaderboard">
-    <h2>🏆 TETRIS LEADERBOARD</h2>
-    <table id="lbTable">
-      <thead><tr><th>#</th><th>NAMA</th><th>SCORE</th><th>LINES</th><th>TARIKH</th></tr></thead>
-      <tbody id="lbBody"></tbody>
-    </table>
-    <div id="myRank"></div>
-    <button id="lbClose" onclick="restartGame()">MAIN LAGI</button>
-  </div>
-
   <h1>🟦 TETRIS</h1>
   <p class="subtitle">CLASSIC EDITION</p>
 
@@ -295,20 +276,6 @@ function resetGame() {
   dropTimer = 0;
   gameOver = false; gameStarted = true; scoreSent = false;
   updateHUD();
-}
-
-function submitName() {
-  const v = document.getElementById('nameInput').value.trim();
-  if (!v) return;
-  playerName = v.toUpperCase();
-  document.getElementById('nameScreen').style.display = 'none';
-  resetGame();
-}
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
-
-function restartGame() {
-  document.getElementById('leaderboard').style.display = 'none';
-  resetGame();
 }
 
 function updateHUD() {
@@ -415,7 +382,8 @@ function clearLines() {
 // ─── INPUT ────────────────────────────────────────────────
 const keys = {};
 document.addEventListener('keydown', e => {
-  if (!gameStarted || gameOver) return;
+  if (gameOver) { if (e.code === 'Enter' || e.code === 'Space') resetGame(); return; }
+  if (!gameStarted) return;
   if (keys[e.code]) return;
   keys[e.code] = true;
   if (e.code === 'ArrowLeft'  || e.code === 'KeyA') move(-1, 0);
@@ -528,10 +496,13 @@ function render() {
     ctx.fillStyle = '#FF4444';
     ctx.font = 'bold 36px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', W/2, H/2 - 10);
+    ctx.fillText('GAME OVER', W/2, H/2 - 20);
     ctx.fillStyle = '#fff';
     ctx.font = '16px Courier New';
-    ctx.fillText('Score: ' + score, W/2, H/2 + 30);
+    ctx.fillText('Score: ' + score, W/2, H/2 + 14);
+    ctx.fillStyle = '#00CFFF';
+    ctx.font = 'bold 14px Courier New';
+    ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2 + 44);
   }
 
   // Next piece preview
@@ -551,45 +522,16 @@ function render() {
 }
 
 // ─── BACKEND ──────────────────────────────────────────────
-async function endGame() {
-  if (scoreSent) return;
-  scoreSent = true;
-  await window.GameScores.submit({ name: 'TETRIS:' + playerName, score, coins: lines });
-
-  setTimeout(showLeaderboard, 1500);
+function endGame() {
+  // Tiada leaderboard lagi — game over dipaparkan atas board, tekan ENTER/TAP main lagi.
 }
 
-async function showLeaderboard() {
-  try {
-    const all = await window.GameScores.top();
-    const tetrisScores = all.filter(s => String(s.name).startsWith('TETRIS:')).slice(0, 10);
+// Tap/klik mana-mana untuk main semula bila game over (mobile)
+document.addEventListener('pointerdown', () => { if (gameOver) resetGame(); });
 
-    const tbody = document.getElementById('lbBody');
-    tbody.innerHTML = '';
-    const medals = ['🥇','🥈','🥉'];
-
-    tetrisScores.forEach((entry, i) => {
-      const tr = document.createElement('tr');
-      const cleanName = String(entry.name).replace('TETRIS:', '');
-      tr.innerHTML = `
-        <td>${medals[i] || (i+1)}</td>
-        <td>${cleanName}</td>
-        <td>${entry.score}</td>
-        <td>📏${entry.coins}</td>
-        <td>${entry.date}</td>
-      `;
-      if (cleanName === playerName) tr.style.background = 'rgba(0,207,255,0.2)';
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('myRank').textContent = `🎮 Score: ${score} | Lines: ${lines} | Level: ${level}`;
-    document.getElementById('leaderboard').style.display = 'flex';
-  } catch (e) { console.log('Leaderboard failed:', e); }
-}
-
+resetGame();   // terus main — tiada skrin nama
 requestAnimationFrame(update);
 </script>
-<script src="sheets.js"></script>
 <script src="reward-timer.js"></script>
 </body>
 </html>

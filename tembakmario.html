@@ -107,19 +107,6 @@
     </div>
 
     <canvas id="canvas" width="800" height="480"></canvas>
-
-    <!-- Character Select -->
-    <div id="selectScreen" class="screen-overlay">
-      <div class="logo">🔫 TEMBAK & MARIO</div>
-      <div class="tag">PILIH WIRA KAMU!</div>
-      <div class="char-row" id="charRow"></div>
-      <input id="nameInput" type="text" maxlength="10" placeholder="NAMA KAMU" autocomplete="off" />
-      <button id="startBtn" onclick="submitStart()">MULA ▶</button>
-      <div class="hint">
-        <kbd>←↑↓→</kbd> gerak &nbsp;·&nbsp; <kbd>Z</kbd> tembak &nbsp;·&nbsp; <kbd>X</kbd> tukar senjata<br>
-        4 LEVEL: ❄️ Ais · 🌬️ Angin · 👑 Bos Bowser · 🏰 Istana Akhir
-      </div>
-    </div>
   </div>
 
   <!-- Mobile Controls -->
@@ -230,10 +217,11 @@ let waveList = null, waveIndex = 0;
 const keys = {};
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
+  initAudio();   // buka bunyi pada input pertama
   if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyZ','KeyX'].includes(e.code)) e.preventDefault();
   if (e.code === 'KeyZ' && gameState === 'playing') playerShoot();
   if (e.code === 'KeyX' && gameState === 'playing') switchWeapon();
-  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) backToSelect();
+  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) startGame();
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
@@ -249,8 +237,8 @@ function setupMobile() {
   };
   bind('dUp','ArrowUp'); bind('dDown','ArrowDown'); bind('dLeft','ArrowLeft'); bind('dRight','ArrowRight');
   const s = document.getElementById('btnShoot');
-  s.addEventListener('touchstart', e => { e.preventDefault(); s.classList.add('pressed');
-    if (gameState === 'playing') playerShoot(); else if (gameState==='gameover'||gameState==='win') backToSelect(); }, {passive:false});
+  s.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); s.classList.add('pressed');
+    if (gameState === 'playing') playerShoot(); else if (gameState==='gameover'||gameState==='win') startGame(); }, {passive:false});
   s.addEventListener('touchend', e => { e.preventDefault(); s.classList.remove('pressed'); }, {passive:false});
   const w = document.getElementById('btnSwitch');
   w.addEventListener('touchstart', e => { e.preventDefault(); w.classList.add('pressed'); if (gameState==='playing') switchWeapon(); }, {passive:false});
@@ -863,46 +851,10 @@ function startGame() {
   buildLevel(1);
   gameState = 'playing'; updateHUD();
 }
-function backToSelect() {
-  gameState = 'select';
-  document.getElementById('selectScreen').style.display = 'flex';
-}
-function submitStart() {
-  const v = document.getElementById('nameInput').value.trim();
-  playerName = v ? v.toUpperCase() : 'WIRA';
-  initAudio();
-  document.getElementById('selectScreen').style.display = 'none';
-  startGame();
-}
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitStart(); });
-
-// ── Character select cards ──
-function buildCharCards() {
-  const row = document.getElementById('charRow');
-  Object.keys(CHARS).forEach(key => {
-    const card = document.createElement('div');
-    card.className = 'char-card' + (key === selectedChar ? ' sel' : '');
-    card.dataset.char = key;
-    const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
-    const cc = cv.getContext('2d'); cc.imageSmoothingEnabled = false;
-    cc.save(); cc.translate(4, 4); cc.scale(2, 2);
-    drawCharSprite(cc, key, 0, 0, 28, {x:0,y:1}, false, false);
-    cc.restore();
-    card.appendChild(cv);
-    const nm = document.createElement('div'); nm.className = 'cn'; nm.textContent = CHARS[key].name; card.appendChild(nm);
-    const sub = document.createElement('div'); sub.className = 'cs'; sub.textContent = CHAR_SUB[key]; card.appendChild(sub);
-    card.addEventListener('click', () => {
-      selectedChar = key;
-      document.querySelectorAll('.char-card').forEach(c => c.classList.toggle('sel', c.dataset.char === key));
-    });
-    row.appendChild(card);
-  });
-}
-
-buildCharCards();
-
 // ─── LOOP ────────────────────────────────────────────────
 function loop() { update(); render(); requestAnimationFrame(loop); }
+playerName = 'WIRA';
+startGame();   // terus main dengan wira lalai (mario) — tiada skrin pilih/nama
 loop();
 </script>
 <script src="reward-timer.js"></script>

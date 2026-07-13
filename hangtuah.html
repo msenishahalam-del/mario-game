@@ -127,8 +127,8 @@
     if (state === 'start' && code === 'Enter') { storyIndex = 0; state = 'story'; }
     else if (state === 'story' && code === 'Enter') beginLevel(storyIndex);
     else if (state === 'clear' && code === 'Enter') { storyIndex = levelIndex + 1; state = 'story'; }
-    else if (state === 'victory' && (code === 'Enter' || code === 'KeyR')) state = 'start';
-    else if (state === 'gameover' && (code === 'Enter' || code === 'KeyR')) state = 'start';
+    else if (state === 'victory' && (code === 'Enter' || code === 'KeyR')) { storyIndex = 0; state = 'story'; }
+    else if (state === 'gameover' && (code === 'Enter' || code === 'KeyR')) { storyIndex = 0; state = 'story'; }
     else if (state === 'playing') {
       if (code === 'KeyZ') tryAttack();
       else if (code === 'KeyX') tryThrow();
@@ -139,7 +139,7 @@
   // ============================================================
   // STATE
   // ============================================================
-  let state = 'start';     // start | story | playing | clear | gameover | victory
+  let state = 'story';     // terus ke cerita — tiada skrin mula | story | playing | clear | gameover | victory
   let storyIndex = 0;
   let levelIndex = 0;
   let score = 0;

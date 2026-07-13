@@ -197,30 +197,6 @@
     </div>
 
     <canvas id="canvas" width="800" height="480"></canvas>
-
-    <!-- Name Screen -->
-    <div id="nameScreen" class="screen-overlay">
-      <div class="logo">🍄 SUPER MARIO</div>
-      <div class="tag">ADVENTURE</div>
-      <input id="nameInput" type="text" maxlength="10" placeholder="NAMA KAMU" autocomplete="off" />
-      <button id="startBtn" onclick="submitName()">MAIN ▶</button>
-      <div class="hint">
-        <kbd>←</kbd> <kbd>→</kbd> jalan &nbsp;·&nbsp; <kbd>↑</kbd>/<kbd>SPACE</kbd> lompat (tahan = tinggi) &nbsp;·&nbsp; <kbd>SHIFT</kbd> lari &nbsp;·&nbsp; <kbd>Z</kbd> tembak api<br>
-        6 LEVEL: 🌳 Rumput · 🏜️ Padang Pasir · 🏰 Istana · ❄️ Ais · 🌌 Galaxy · 🦖 Yoshi<br>
-        Kutip 🪙 · cari 🍄 🌻 ⭐ · tunggang 🦖 Yoshi · kalahkan 👑 Bowser!
-      </div>
-    </div>
-
-    <!-- Leaderboard -->
-    <div id="leaderboard" class="screen-overlay">
-      <h2>🏆 TOP 10 PLAYERS</h2>
-      <table id="lbTable">
-        <thead><tr><th>#</th><th>NAMA</th><th>SCORE</th><th>🪙</th><th>TARIKH</th></tr></thead>
-        <tbody id="lbBody"></tbody>
-      </table>
-      <div id="myRank"></div>
-      <button id="lbClose" onclick="closeLeaderboard()">MAIN LAGI ▶</button>
-    </div>
   </div>
 
   <!-- Mobile Controls -->
@@ -331,8 +307,16 @@ document.addEventListener('keydown', e => {
     throwFireball();
   }
   if (e.code === 'Enter' && (gameState === 'dead' && lives > 0)) respawn();
+  // Main semula selepas tamat (tiada leaderboard lagi)
+  if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) startGame();
+  initAudio();   // buka bunyi pada input pertama
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+// Tap/klik canvas: buka audio + main semula bila tamat
+canvas.addEventListener('pointerdown', () => {
+  initAudio();
+  if (gameState === 'gameover' || gameState === 'win') startGame();
+});
 
 function jumpHeld() { return keys['ArrowUp'] || keys['Space'] || keys['KeyW']; }
 function runHeld()  { return keys['ShiftLeft'] || keys['ShiftRight'] || keys['KeyX'] || mobileRun; }
@@ -823,11 +807,7 @@ function updateHUD() {
   document.getElementById('coinsDisplay').textContent = coins;
   document.getElementById('livesDisplay').textContent = lives;
   document.getElementById('worldDisplay').textContent = currentLevel + '-1';
-  document.getElementById('nameTag').textContent = playerName || '—';
-  if ((gameState === 'win' || gameState === 'gameover') && !scoreSent) {
-    scoreSent = true;
-    submitScore().then(rank => setTimeout(() => showLeaderboard(rank), 1600));
-  }
+  document.getElementById('nameTag').textContent = playerName || '★';
 }
 
 // ─── COLLISION ────────────────────────────────────────────
@@ -1870,15 +1850,19 @@ function drawOverlay() {
   } else if (gameState === 'gameover') {
     dim(0.72);
     ctx.fillStyle='#FF4444'; ctx.font='bold 60px Trebuchet MS';
-    ctx.fillText('GAME OVER', W/2, H/2-10);
+    ctx.fillText('GAME OVER', W/2, H/2-30);
     ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
-    ctx.fillText('Skor: ' + score + '   🪙 ' + coins, W/2, H/2+34);
+    ctx.fillText('Skor: ' + score + '   🪙 ' + coins, W/2, H/2+14);
+    ctx.fillStyle='#FFD700'; ctx.font='18px Trebuchet MS';
+    ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
   } else if (gameState === 'win') {
     dim(0.72);
     ctx.fillStyle='#FFD700'; ctx.font='bold 56px Trebuchet MS';
-    ctx.fillText('🎉 KAMU MENANG!', W/2, H/2-10);
+    ctx.fillText('🎉 KAMU MENANG!', W/2, H/2-30);
     ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
-    ctx.fillText('Skor Akhir: ' + score + '   🪙 ' + coins, W/2, H/2+34);
+    ctx.fillText('Skor Akhir: ' + score + '   🪙 ' + coins, W/2, H/2+14);
+    ctx.fillStyle='#FFD700'; ctx.font='18px Trebuchet MS';
+    ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
   } else if (gameState === 'clear') {
     ctx.fillStyle='#FFD700'; ctx.font='bold 34px Trebuchet MS';
     ctx.fillText(level.boss ? '👑 BOSS DIKALAHKAN!' : 'LEVEL ' + currentLevel + ' CLEAR!', W/2, 90);
@@ -2204,46 +2188,10 @@ function drawPowerupHUD() {
 // ─── LOOP ─────────────────────────────────────────────────
 function loop() { update(); render(); requestAnimationFrame(loop); }
 
-// ─── NAME / SCORE / LEADERBOARD (preserved API) ──────────
-function submitName() {
-  const v = document.getElementById('nameInput').value.trim();
-  if (!v) { document.getElementById('nameInput').style.border = '3px solid #ff3b3b'; return; }
-  playerName = v.toUpperCase();
-  initAudio();
-  document.getElementById('nameScreen').style.display = 'none';
-  startGame();
-}
-document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') submitName(); });
-
-async function submitScore() {
-  return await window.GameScores.submit({ name: playerName, score, coins });
-}
-async function showLeaderboard(myRank) {
-  try {
-    const top10 = await window.GameScores.top();
-    const tbody = document.getElementById('lbBody'); tbody.innerHTML = '';
-    const medals = ['🥇','🥈','🥉'];
-    top10.forEach((en,i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${medals[i]||(i+1)}</td><td>${en.name}</td><td>${en.score}</td><td>🪙${en.coins}</td><td>${en.date}</td>`;
-      if (en.name === playerName) tr.style.background='rgba(0,255,149,0.15)';
-      tbody.appendChild(tr);
-    });
-    if (myRank) document.getElementById('myRank').textContent = `🎮 Rank kamu: #${myRank}`;
-    document.getElementById('leaderboard').style.display = 'flex';
-  } catch(e) {}
-}
-function closeLeaderboard() {
-  document.getElementById('leaderboard').style.display = 'none';
-  startGame();
-}
-
 // ─── INIT ─────────────────────────────────────────────────
-level = buildLevel(1);
-player = makePlayer();
+startGame();   // terus main — tiada skrin nama
 loop();
 </script>
-<script src="sheets.js"></script>
 <script src="reward-timer.js"></script>
 </body>
 </html>

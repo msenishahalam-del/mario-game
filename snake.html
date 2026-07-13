@@ -267,7 +267,7 @@ document.addEventListener('keydown', e => {
   else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && dir.x !== -1) nextDir = {x:1,y:0};
 });
 
-draw();
+startGame();   // terus main — tiada skrin mula (reset + draw di dalam)
 </script>
 
 <script src="reward-timer.js"></script>

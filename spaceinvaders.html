@@ -389,9 +389,10 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.key] = false; });
 
-// Initial draw on start screen
+// Initial draw
 ctx.fillStyle = '#000';
 ctx.fillRect(0,0,W,H);
+startGame();   // terus main — tiada skrin mula
 </script>
 
 <script src="reward-timer.js"></script>
