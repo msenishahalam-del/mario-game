@@ -413,7 +413,7 @@
   <br>
   <button class="big" data-set="ejaan2" onclick="startQuiz('ejaan2')" style="background: linear-gradient(135deg, #f6a5c0, #7b4397);">
     ⌨️ Ejaan BM 2.0
-    <span class="set-sub">Tengok gambar · TAIP perkataan penuh di keyboard · 40 saat</span>
+    <span class="set-sub">Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat</span>
   </button>
   <br>
   <button class="big" data-set="jawi" onclick="startQuiz('jawi')" style="background: linear-gradient(135deg, #2d6a4f, #95d5b2);">
@@ -1233,23 +1233,29 @@
       }
     },
     ejaan2: {
-      time: 40,   // masa lebih — ajar fikir jawapan sendiri & guna keyboard
+      time: 40,   // masa lebih — ajar fikir & guna keyboard
       generate() {
-        // Ejaan BM 2.0 — TAIP perkataan penuh (bukan pilih A/B/C/D). Perkataan senang & biasa.
+        // Ejaan BM 2.0 — clue suku kata awal diberi (cth 🪨 BA _ _), anak TAIP suku kata yang hilang.
         const words = [
-          { emoji: '⚽', word: 'BOLA' }, { emoji: '📚', word: 'BUKU' }, { emoji: '👕', word: 'BAJU' },
-          { emoji: '🪨', word: 'BATU' }, { emoji: '🥛', word: 'SUSU' }, { emoji: '🍚', word: 'NASI' },
-          { emoji: '🍞', word: 'ROTI' }, { emoji: '🎩', word: 'TOPI' }, { emoji: '🦷', word: 'GIGI' },
-          { emoji: '🐴', word: 'KUDA' }, { emoji: '🪑', word: 'MEJA' }, { emoji: '🐟', word: 'IKAN' },
-          { emoji: '🐔', word: 'AYAM' }, { emoji: '🍎', word: 'EPAL' }, { emoji: '🦶', word: 'KAKI' },
-          { emoji: '👁️', word: 'MATA' }, { emoji: '🦆', word: 'ITIK' }, { emoji: '🍃', word: 'DAUN' }
+          { emoji: '🪨', parts: ['BA','TU'] }, { emoji: '👕', parts: ['BA','JU'] }, { emoji: '📚', parts: ['BU','KU'] },
+          { emoji: '⚽', parts: ['BO','LA'] }, { emoji: '🥛', parts: ['SU','SU'] }, { emoji: '🍚', parts: ['NA','SI'] },
+          { emoji: '🍞', parts: ['RO','TI'] }, { emoji: '🎩', parts: ['TO','PI'] }, { emoji: '🦷', parts: ['GI','GI'] },
+          { emoji: '🐴', parts: ['KU','DA'] }, { emoji: '🪑', parts: ['ME','JA'] }, { emoji: '😀', parts: ['MU','KA'] },
+          { emoji: '🦶', parts: ['KA','KI'] }, { emoji: '👁️', parts: ['MA','TA'] }, { emoji: '🐒', parts: ['KE','RA'] },
+          { emoji: '🧀', parts: ['KE','JU'] }
         ];
         const selected = shuffle([...words]).slice(0, 10);
-        return selected.map(w => ({
-          text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${'_ '.repeat(w.word.length).trim()}</span>`,
-          answer: w.word,
-          inputMode: 'text'
-        }));
+        return selected.map(w => {
+          const answer = w.parts[w.parts.length - 1];       // suku kata hilang (yg ditaip)
+          const clue = w.parts.slice(0, -1).join('');        // suku kata awal (clue)
+          const blanks = '_ '.repeat(answer.length).trim();
+          return {
+            text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${clue} ${blanks}</span>`,
+            answer,
+            inputMode: 'text',
+            maxLen: answer.length
+          };
+        });
       }
     },
     jawi: {
@@ -2324,7 +2330,7 @@
   }
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-07-13 19:34';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-07-13 19:42';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
