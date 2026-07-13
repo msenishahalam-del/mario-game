@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>Angry Birds — Slingshot</title>
+<title>Burung Marah</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -97,13 +97,14 @@
   let settleTimer = 0;
   let shake = 0;
   let starsThisLevel = 0;
+  let birdSeq = 0;          // kira jenis burung tempatan (helang/murai/kenyalang)
   let bestStars = loadStars();
 
   function loadStars() {
-    try { return JSON.parse(localStorage.getItem('angrybirds_stars') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('burungmarah_stars') || '{}'); } catch { return {}; }
   }
   function saveStars() {
-    try { localStorage.setItem('angrybirds_stars', JSON.stringify(bestStars)); } catch {}
+    try { localStorage.setItem('burungmarah_stars', JSON.stringify(bestStars)); } catch {}
   }
 
   // ============================================================
@@ -167,12 +168,58 @@
       pigs = [ mkPig(590, GROUND_Y-80-18), mkPig(790, GROUND_Y-80-18), mkPig(690, GROUND_Y-22-18, 16) ];
       birdsLeft = 4;
     },
+    // ── LEVEL 4 — menara tinggi + titik lemah ais, 3 raksasa ──
+    () => {
+      blocks = [
+        mkBlock(700, GROUND_Y-24, 30, 48, 'stone'),
+        mkBlock(700, GROUND_Y-66, 30, 40, 'ice'),
+        mkBlock(700, GROUND_Y-104, 30, 40, 'stone'),
+        mkBlock(700, GROUND_Y-146, 30, 44, 'wood'),
+        mkBlock(660, GROUND_Y-24, 22, 48, 'wood'),
+        mkBlock(740, GROUND_Y-24, 22, 48, 'wood'),
+        mkBlock(700, GROUND_Y-176, 120, 20, 'wood'),
+        mkBlock(820, GROUND_Y-22, 24, 44, 'ice'),
+      ];
+      pigs = [ mkPig(700, GROUND_Y-176-16, 15), mkPig(660, GROUND_Y-24-30, 15), mkPig(820, GROUND_Y-22-18) ];
+      birdsLeft = 4;
+    },
+    // ── LEVEL 5 — dua menara + jambatan, 4 raksasa ──
+    () => {
+      blocks = [
+        mkBlock(560, GROUND_Y-30, 24, 60, 'stone'),
+        mkBlock(620, GROUND_Y-30, 24, 60, 'stone'),
+        mkBlock(590, GROUND_Y-72, 100, 22, 'wood'),
+        mkBlock(770, GROUND_Y-30, 24, 60, 'stone'),
+        mkBlock(830, GROUND_Y-30, 24, 60, 'stone'),
+        mkBlock(800, GROUND_Y-72, 100, 22, 'wood'),
+        mkBlock(695, GROUND_Y-104, 240, 20, 'ice'),
+        mkBlock(695, GROUND_Y-140, 30, 52, 'wood'),
+      ];
+      pigs = [ mkPig(590, GROUND_Y-72-16), mkPig(800, GROUND_Y-72-16), mkPig(695, GROUND_Y-140-15, 15), mkPig(695, GROUND_Y-22-16, 14) ];
+      birdsLeft = 5;
+    },
+    // ── LEVEL 6 — kubu besar, 4 raksasa ──
+    () => {
+      blocks = [
+        mkBlock(540, GROUND_Y-34, 28, 68, 'stone'),
+        mkBlock(540, GROUND_Y-90, 28, 44, 'stone'),
+        mkBlock(860, GROUND_Y-34, 28, 68, 'stone'),
+        mkBlock(860, GROUND_Y-90, 28, 44, 'stone'),
+        mkBlock(700, GROUND_Y-124, 360, 22, 'wood'),
+        mkBlock(640, GROUND_Y-30, 24, 60, 'ice'),
+        mkBlock(760, GROUND_Y-30, 24, 60, 'ice'),
+        mkBlock(700, GROUND_Y-70, 120, 22, 'stone'),
+        mkBlock(700, GROUND_Y-160, 30, 52, 'wood'),
+      ];
+      pigs = [ mkPig(700, GROUND_Y-70-16), mkPig(700, GROUND_Y-160-15, 15), mkPig(560, GROUND_Y-124-15, 14), mkPig(840, GROUND_Y-124-15, 14) ];
+      birdsLeft = 5;
+    },
   ];
 
   function startLevel(i) {
     levelIndex = i;
     score = 0;
-    debris = []; birds = [];
+    debris = []; birds = []; birdSeq = 0;
     LEVELS[i]();
     loadNextBird();
     state = 'aim';
@@ -180,7 +227,7 @@
   function loadNextBird() {
     if (birdsLeft <= 0) { bird = null; return; }
     birdsLeft--;
-    bird = { x: SLING.x, y: SLING.y, vx:0, vy:0, r:15, launched:false, boosted:false, mass:1.3, trail:[], slowFrames:0, airTime:0 };
+    bird = { x: SLING.x, y: SLING.y, vx:0, vy:0, r:15, launched:false, boosted:false, mass:1.3, trail:[], slowFrames:0, airTime:0, type: (birdSeq++) % 3 };
   }
 
   // ============================================================
@@ -545,8 +592,9 @@
   }
   function starThresholds() {
     // ambang bintang ikut level
-    const base = [ [8000,16000,25000], [15000,28000,42000], [22000,40000,60000] ];
-    return base[levelIndex] || base[0];
+    const base = [ [8000,16000,25000], [15000,28000,42000], [22000,40000,60000],
+                   [26000,46000,66000], [32000,54000,78000], [38000,62000,90000] ];
+    return base[levelIndex] || base[base.length-1];
   }
 
   // ============================================================
@@ -589,10 +637,24 @@
     // bukit
     ctx.fillStyle = '#8ed86a'; ctx.beginPath(); ctx.arc(250, GROUND_Y, 160, Math.PI, 0); ctx.fill();
     ctx.fillStyle = '#7ac84a'; ctx.beginPath(); ctx.arc(650, GROUND_Y, 200, Math.PI, 0); ctx.fill();
+    // pokok kelapa (latar tempatan)
+    palm(70, GROUND_Y); palm(410, GROUND_Y);
     // tanah
     ctx.fillStyle = '#7a4a20'; ctx.fillRect(0, GROUND_Y, W, H-GROUND_Y);
     ctx.fillStyle = '#5aa83a'; ctx.fillRect(0, GROUND_Y, W, 14);
     ctx.fillStyle = '#4a8a2a'; ctx.fillRect(0, GROUND_Y+12, W, 4);
+  }
+  function palm(x, gy) {
+    ctx.strokeStyle = '#8a5a2a'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, gy); ctx.quadraticCurveTo(x-10, gy-70, x+6, gy-118); ctx.stroke();
+    ctx.fillStyle = '#3f9a3a';
+    const top = { x: x+6, y: gy-120 };
+    for (const a of [-2.5,-1.9,-1.2,-0.5,0.3]) {
+      ctx.beginPath(); ctx.moveTo(top.x, top.y);
+      ctx.quadraticCurveTo(top.x+Math.cos(a)*36, top.y+Math.sin(a)*22, top.x+Math.cos(a)*66, top.y+Math.sin(a)*30);
+      ctx.quadraticCurveTo(top.x+Math.cos(a)*34, top.y+Math.sin(a)*12, top.x, top.y); ctx.fill();
+    }
+    ctx.fillStyle='#6a4a1a'; ctx.beginPath(); ctx.arc(top.x-4, top.y+4, 3, 0, 7); ctx.arc(top.x+6, top.y+6, 3, 0, 7); ctx.fill();
   }
 
   function drawSlingshot() {
@@ -635,42 +697,73 @@
       ctx.globalAlpha = 1;
     }
     ctx.save(); ctx.translate(b.x, b.y);
-    // badan merah
-    ctx.fillStyle = b.boosted ? '#ff8800' : '#e03020';
-    ctx.beginPath(); ctx.arc(0,0,b.r,0,7); ctx.fill();
-    // perut
-    ctx.fillStyle = '#f5d0c0'; ctx.beginPath(); ctx.arc(2,5,b.r*0.5,0,7); ctx.fill();
-    // mata
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(4,-4,5,0,7); ctx.arc(11,-4,4,0,7); ctx.fill();
-    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(6,-4,2.2,0,7); ctx.arc(12,-4,2,0,7); ctx.fill();
-    // kening marah
-    ctx.strokeStyle='#000'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(9,-6); ctx.moveTo(9,-9); ctx.lineTo(15,-6); ctx.stroke();
-    // paruh
-    ctx.fillStyle='#f5a623'; ctx.beginPath(); ctx.moveTo(b.r-2,0); ctx.lineTo(b.r+8,3); ctx.lineTo(b.r-2,6); ctx.fill();
-    // ekor
-    ctx.fillStyle='#a01818'; ctx.beginPath(); ctx.moveTo(-b.r,-4); ctx.lineTo(-b.r-6,-8); ctx.lineTo(-b.r-4,2); ctx.fill();
+    if (b.boosted) { ctx.fillStyle='rgba(255,248,74,0.5)'; ctx.beginPath(); ctx.arc(0,0,b.r+6,0,7); ctx.fill(); }
+    const t = b.type || 0;
+    if (t === 0) drawHelang(b.r);
+    else if (t === 1) drawMurai(b.r);
+    else drawKenyalang(b.r);
+    // kening marah (semua burung marah!)
+    ctx.strokeStyle='#000'; ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.moveTo(1,-b.r*0.5); ctx.lineTo(8,-b.r*0.25); ctx.moveTo(9,-b.r*0.55); ctx.lineTo(b.r,-b.r*0.3); ctx.stroke();
     ctx.restore();
   }
 
-  function drawPig(p) {
+  // ── 3 burung tempatan (reka bentuk original) ──
+  function drawHelang(r) {   // Helang — perang emas, paruh bengkok
+    ctx.fillStyle='#6b4423'; ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+    ctx.fillStyle='#e8d29a'; ctx.beginPath(); ctx.arc(r*0.35,-r*0.15,r*0.62,-1.4,1.4); ctx.fill();   // muka pucat
+    ctx.fillStyle='#4e3018'; ctx.beginPath(); ctx.moveTo(-r*0.2,-r*0.3); ctx.lineTo(-r,-r*0.6); ctx.lineTo(-r*0.2,r*0.4); ctx.fill(); // sayap
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(r*0.35,-r*0.3,4.2,0,7); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(r*0.45,-r*0.3,2.2,0,7); ctx.fill();
+    ctx.fillStyle='#f5b820'; ctx.beginPath(); ctx.moveTo(r*0.7,-r*0.05); ctx.lineTo(r+9,r*0.05); ctx.lineTo(r+4,r*0.32); ctx.quadraticCurveTo(r*0.85,r*0.32,r*0.7,r*0.2); ctx.fill();
+  }
+  function drawMurai(r) {   // Murai — hitam-putih, ekor panjang
+    ctx.fillStyle='#1e1e24'; ctx.beginPath(); ctx.moveTo(-r,-r*0.3); ctx.lineTo(-r-11,-r*1.1); ctx.lineTo(-r-6,r*0.1); ctx.fill(); // ekor
+    ctx.fillStyle='#232329'; ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(r*0.15,r*0.35,r*0.55,0,7); ctx.fill();   // dada putih
+    ctx.fillStyle='#f2f2f2'; ctx.fillRect(-r*0.55,-r*0.1,r*0.5,r*0.28);   // bar sayap putih
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(r*0.4,-r*0.3,4,0,7); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(r*0.5,-r*0.3,2,0,7); ctx.fill();
+    ctx.fillStyle='#e8a020'; ctx.beginPath(); ctx.moveTo(r*0.8,-r*0.1); ctx.lineTo(r+7,r*0.05); ctx.lineTo(r*0.8,r*0.2); ctx.fill();
+  }
+  function drawKenyalang(r) {   // Kenyalang (hornbill) — hitam, paruh besar + kaska
+    ctx.fillStyle='#17171b'; ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+    ctx.fillStyle='#f4f0e2'; ctx.beginPath(); ctx.arc(-r*0.1,r*0.5,r*0.5,0,7); ctx.fill();   // leher putih
+    ctx.fillStyle='#f5b820'; ctx.beginPath(); ctx.moveTo(r*0.5,-r*0.15); ctx.quadraticCurveTo(r+14,-r*0.1,r+12,r*0.35); ctx.quadraticCurveTo(r+8,r*0.5,r*0.5,r*0.35); ctx.fill(); // paruh besar
+    ctx.fillStyle='#e0631a'; ctx.beginPath(); ctx.moveTo(r*0.5,-r*0.18); ctx.quadraticCurveTo(r+2,-r*0.55,r+9,-r*0.1); ctx.quadraticCurveTo(r*0.9,-r*0.12,r*0.5,-r*0.05); ctx.fill(); // kaska atas paruh
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(r*0.15,-r*0.35,4.2,0,7); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(r*0.24,-r*0.35,2.2,0,7); ctx.fill();
+  }
+
+  function drawPig(p) {   // Raksasa (monster) — reka bentuk original
     ctx.save(); ctx.translate(p.x, p.y);
     const hurt = p.blink > 0;
-    ctx.fillStyle = hurt ? '#b5e85a' : '#7ac943';
-    ctx.beginPath(); ctx.arc(0,0,p.r,0,7); ctx.fill();
-    // telinga
-    ctx.fillStyle = hurt ? '#a5d84a' : '#6ab933';
-    ctx.beginPath(); ctx.arc(-p.r*0.6,-p.r*0.7,4,0,7); ctx.arc(p.r*0.6,-p.r*0.7,4,0,7); ctx.fill();
-    // hidung
-    ctx.fillStyle='#6ab933'; ctx.beginPath(); ctx.ellipse(0,3,7,5,0,0,7); ctx.fill();
-    ctx.fillStyle='#3a7a18'; ctx.beginPath(); ctx.arc(-2,3,1.5,0,7); ctx.arc(2,3,1.5,0,7); ctx.fill();
-    // mata
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-4,-4,4,0,7); ctx.arc(5,-4,4,0,7); ctx.fill();
-    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(-3,-4,1.8,0,7); ctx.arc(6,-4,1.8,0,7); ctx.fill();
+    const r = p.r;
+    // tanduk
+    ctx.fillStyle = '#efe3b0';
+    ctx.beginPath(); ctx.moveTo(-r*0.5,-r*0.65); ctx.lineTo(-r*0.8,-r*1.35); ctx.lineTo(-r*0.15,-r*0.85); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(r*0.5,-r*0.65); ctx.lineTo(r*0.8,-r*1.35); ctx.lineTo(r*0.15,-r*0.85); ctx.fill();
+    // badan ungu
+    ctx.fillStyle = hurt ? '#b884e8' : '#8a4fc4';
+    ctx.beginPath(); ctx.arc(0,0,r,0,7); ctx.fill();
+    // perut cerah
+    ctx.fillStyle = hurt ? '#d0b0f0' : '#a56fdc';
+    ctx.beginPath(); ctx.arc(0,r*0.28,r*0.6,0,7); ctx.fill();
+    // mata besar
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-r*0.32,-r*0.18,r*0.34,0,7); ctx.arc(r*0.36,-r*0.18,r*0.34,0,7); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(-r*0.26,-r*0.12,r*0.16,0,7); ctx.arc(r*0.42,-r*0.12,r*0.16,0,7); ctx.fill();
+    // kening marah
+    ctx.strokeStyle='#3a1f5a'; ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.moveTo(-r*0.6,-r*0.5); ctx.lineTo(-r*0.05,-r*0.28); ctx.moveTo(r*0.62,-r*0.5); ctx.lineTo(r*0.1,-r*0.28); ctx.stroke();
+    // mulut + taring
+    ctx.fillStyle='#33102e'; ctx.beginPath(); ctx.ellipse(r*0.05,r*0.45,r*0.4,r*0.22,0,0,7); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.moveTo(-r*0.2,r*0.34); ctx.lineTo(-r*0.12,r*0.62); ctx.lineTo(-r*0.02,r*0.34); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(r*0.15,r*0.34); ctx.lineTo(r*0.23,r*0.62); ctx.lineTo(r*0.33,r*0.34); ctx.fill();
     // bar HP kecil bila cedera
     if (p.hp < p.maxHp) {
-      ctx.fillStyle='#000'; ctx.fillRect(-p.r, -p.r-8, p.r*2, 4);
-      ctx.fillStyle='#5cff5c'; ctx.fillRect(-p.r, -p.r-8, p.r*2*(Math.max(0,p.hp)/p.maxHp), 4);
+      ctx.fillStyle='#000'; ctx.fillRect(-r, -r-8, r*2, 4);
+      ctx.fillStyle='#5cff5c'; ctx.fillRect(-r, -r-8, r*2*(Math.max(0,p.hp)/p.maxHp), 4);
     }
     ctx.restore();
   }
@@ -725,13 +818,13 @@
     // burung berbaki (termasuk yg sedang dipegang)
     ctx.textAlign='right';
     let bx = W - 14;
-    ctx.fillStyle='#ff5a3c';
+    ctx.fillStyle='#8a5a2a';
     const totalBirds = birdsLeft + (bird && !bird.launched ? 1 : 0);
     for (let i=0;i<totalBirds;i++){ ctx.beginPath(); ctx.arc(bx - i*22, 17, 8, 0, 7); ctx.fill(); }
-    ctx.fillStyle='#fff'; ctx.fillText('🐦', bx - totalBirds*22 - 6, 17);
-    // pig tinggal
-    ctx.textAlign='left'; ctx.fillStyle='#7ac943';
-    ctx.fillText('🐷 ' + pigs.length, 150, 17);
+    ctx.fillStyle='#fff'; ctx.fillText('🦅', bx - totalBirds*22 - 6, 17);
+    // raksasa tinggal
+    ctx.textAlign='left'; ctx.fillStyle='#b884e8';
+    ctx.fillText('👾 ' + pigs.length, 150, 17);
   }
 
   function drawStars(cx, cy, n, size) {
@@ -753,19 +846,16 @@
   function drawStart() {
     ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#ff5a3c'; ctx.font='bold 56px Trebuchet MS';
+    ctx.fillStyle='#ffcf3f'; ctx.font='bold 56px Trebuchet MS';
     ctx.shadowColor='#000'; ctx.shadowBlur=8;
-    ctx.fillText('ANGRY BIRDS', W/2, 150); ctx.shadowBlur=0;
+    ctx.fillText('BURUNG MARAH', W/2, 150); ctx.shadowBlur=0;
     ctx.fillStyle='#fff'; ctx.font='20px Trebuchet MS';
-    ctx.fillText('Tarik burung dgn slingshot, lepas untuk lancar!', W/2, 230);
-    ctx.fillText('Hapus semua 🐷 pig untuk menang', W/2, 262);
+    ctx.fillText('Tarik burung dgn lastik, lepas untuk lancar!', W/2, 230);
+    ctx.fillText('Hapus semua raksasa 👾 untuk menang', W/2, 262);
     ctx.fillStyle='#FFD700'; ctx.font='bold 18px Trebuchet MS';
     ctx.fillText('💡 TAP/KLIK masa burung terbang = BOOST laju!', W/2, 310);
-    // demo bird
-    ctx.fillStyle='#e03020'; ctx.beginPath(); ctx.arc(W/2, 380, 26, 0, 7); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W/2+6,376,8,0,7); ctx.fill();
-    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(W/2+9,376,4,0,7); ctx.fill();
-    ctx.fillStyle='#f5a623'; ctx.beginPath(); ctx.moveTo(W/2+24,380); ctx.lineTo(W/2+40,385); ctx.lineTo(W/2+24,390); ctx.fill();
+    // demo burung (helang)
+    ctx.save(); ctx.translate(W/2, 382); ctx.scale(1.7,1.7); drawHelang(15); ctx.restore();
     const blink = Math.floor(Date.now()/400)%2===0;
     if (blink) { ctx.fillStyle='#5cff5c'; ctx.font='bold 24px Trebuchet MS'; ctx.fillText('▶ KLIK / TAP UNTUK MULA', W/2, 450); }
   }
@@ -790,7 +880,7 @@
     ctx.fillStyle='#ff4444'; ctx.font='bold 48px Trebuchet MS'; ctx.shadowColor='#000'; ctx.shadowBlur=8;
     ctx.fillText('BURUNG HABIS!', W/2, 180); ctx.shadowBlur=0;
     ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
-    ctx.fillText('Masih ada ' + pigs.length + ' pig 🐷', W/2, 250);
+    ctx.fillText('Masih ada ' + pigs.length + ' raksasa 👾', W/2, 250);
     const blink = Math.floor(Date.now()/400)%2===0;
     if (blink){ ctx.fillStyle='#5cff5c'; ctx.font='bold 22px Trebuchet MS'; ctx.fillText('▶ Klik untuk CUBA LAGI', W/2, 330); }
   }

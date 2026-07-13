@@ -383,18 +383,18 @@
   <small>🎮 Mario · 🧱 Tetris · 🐦 Flappy · 🦔 Sonic · 🧞 Aladdin · 👻 Pac-Man · 🔨 Felix · 🐍 Snake · 👾 Invaders · 🏎️ Micro Machines</small></p>
   <div class="reward-info">👇 Pilih set soalan ikut umur anak</div>
   <button class="big" onclick="showDarjah3Menu()">
-    📚 Darjah 3
+    📚 Enisa - Darjah 3
     <span class="set-sub">Pilih topik · Darab / Bundar / Pecahan</span>
   </button>
   <br>
   <button class="big" onclick="show6TahunMenu()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-    🧒 6 Tahun
+    🧒 Edris 6 Tahun
     <span class="set-sub">Pilih topik · Tambah Tolak / Ejaan / Duit</span>
   </button>
 </div>
 
 <div id="tahun6Screen" class="screen hidden">
-  <h1>🧒 6 Tahun</h1>
+  <h1>🧒 Edris 6 Tahun</h1>
   <p>Pilih topik:</p>
   <button class="big" data-set="tambahtolak" onclick="startQuiz('tambahtolak')" style="background: linear-gradient(135deg, #667eea, #764ba2);">
     ➕ ➖ Tambah &amp; Tolak
@@ -408,7 +408,12 @@
   <br>
   <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
     🔤 Ejaan BM
-    <span class="set-sub">Tengok gambar · taip suku kata yang hilang · 20 saat</span>
+    <span class="set-sub">Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="ejaan2" onclick="startQuiz('ejaan2')" style="background: linear-gradient(135deg, #f6a5c0, #7b4397);">
+    ⌨️ Ejaan BM 2.0
+    <span class="set-sub">Tengok gambar · TAIP perkataan penuh di keyboard · 40 saat</span>
   </button>
   <br>
   <button class="big" data-set="jawi" onclick="startQuiz('jawi')" style="background: linear-gradient(135deg, #2d6a4f, #95d5b2);">
@@ -435,7 +440,7 @@
 </div>
 
 <div id="darjah3Screen" class="screen hidden">
-  <h1>📚 Darjah 3</h1>
+  <h1>📚 Enisa - Darjah 3</h1>
   <p>Pilih topik:</p>
   <button class="big" data-set="darab" onclick="startQuiz('darab')">
     ✖️ Darab
@@ -566,7 +571,7 @@
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'jawi3', 'perpuluhan'],
-    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'jawi', 'duit', 'english', 'dino']
+    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
   const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
@@ -1225,6 +1230,26 @@
             choices: shuffle([...choices])
           };
         });
+      }
+    },
+    ejaan2: {
+      time: 40,   // masa lebih — ajar fikir jawapan sendiri & guna keyboard
+      generate() {
+        // Ejaan BM 2.0 — TAIP perkataan penuh (bukan pilih A/B/C/D). Perkataan senang & biasa.
+        const words = [
+          { emoji: '⚽', word: 'BOLA' }, { emoji: '📚', word: 'BUKU' }, { emoji: '👕', word: 'BAJU' },
+          { emoji: '🪨', word: 'BATU' }, { emoji: '🥛', word: 'SUSU' }, { emoji: '🍚', word: 'NASI' },
+          { emoji: '🍞', word: 'ROTI' }, { emoji: '🎩', word: 'TOPI' }, { emoji: '🦷', word: 'GIGI' },
+          { emoji: '🐴', word: 'KUDA' }, { emoji: '🪑', word: 'MEJA' }, { emoji: '🐟', word: 'IKAN' },
+          { emoji: '🐔', word: 'AYAM' }, { emoji: '🍎', word: 'EPAL' }, { emoji: '🦶', word: 'KAKI' },
+          { emoji: '👁️', word: 'MATA' }, { emoji: '🦆', word: 'ITIK' }, { emoji: '🍃', word: 'DAUN' }
+        ];
+        const selected = shuffle([...words]).slice(0, 10);
+        return selected.map(w => ({
+          text: `<span class="ejaan-emoji">${w.emoji}</span><span class="ejaan-partial">${'_ '.repeat(w.word.length).trim()}</span>`,
+          answer: w.word,
+          inputMode: 'text'
+        }));
       }
     },
     jawi: {
@@ -1994,7 +2019,8 @@
       input.id = 'answerInput';
       input.className = 'text-input';
       input.autocomplete = 'off';
-      input.maxLength = 4;
+      input.autocapitalize = 'characters';
+      input.maxLength = q.maxLen || 12;
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') submitAnswer();
       });
@@ -2248,7 +2274,7 @@
 
     const msg = document.getElementById('completionMsg');
     if (groupReset) {
-      const grpName = getCurrentGroup(currentSetKey) === 'darjah3' ? 'Darjah 3' : '6 Tahun';
+      const grpName = getCurrentGroup(currentSetKey) === 'darjah3' ? 'Enisa - Darjah 3' : 'Edris 6 Tahun';
       msg.innerHTML = `🏆 Cemerlang! Anda dah siap semua topik <b>${grpName}</b>!<small>Semua topik dibuka semula — kitaran baru bermula 🎉</small>`;
       msg.classList.remove('hidden');
     } else if (justCompleted) {
@@ -2297,10 +2323,11 @@
     }
   }
 
-  // Version tag — statik (GitHub Pages tiada server). Tunjuk tarikh je.
+  // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
+  const BUILD_TIME = '2026-07-13 19:34';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
-    if (el) el.textContent = 'V' + new Date().toISOString().slice(0, 10);
+    if (el) el.textContent = 'V' + BUILD_TIME;
   })();
 </script>
 
