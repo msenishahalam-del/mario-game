@@ -185,7 +185,7 @@
 </head>
 <body>
 
-  <a id="hubBtn" class="topbtn" href="/arcade.html">◀ HUB</a>
+  <a id="hubBtn" class="topbtn" href="arcade.html">◀ HUB</a>
   <div id="muteBtn" class="topbtn">🔊</div>
 
   <div id="gameWrap">
@@ -2646,17 +2646,11 @@ function submitName() {
 document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key==='Enter') submitName(); });
 
 async function submitScore() {
-  try {
-    const res = await fetch('/api/score', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ name: playerName, score, coins }) });
-    const data = await res.json();
-    return data.rank;
-  } catch(e) { return null; }
+  return await window.GameScores.submit({ name: playerName, score, coins });
 }
 async function showLeaderboard(myRank) {
   try {
-    const res = await fetch('/api/leaderboard');
-    const top10 = await res.json();
+    const top10 = await window.GameScores.top();
     const tbody = document.getElementById('lbBody'); tbody.innerHTML = '';
     const medals = ['🥇','🥈','🥉'];
     top10.forEach((en,i) => {
@@ -2679,6 +2673,7 @@ level = buildLevel(1);
 player = makePlayer();
 loop();
 </script>
-<script src="/reward-timer.js"></script>
+<script src="sheets.js"></script>
+<script src="reward-timer.js"></script>
 </body>
 </html>

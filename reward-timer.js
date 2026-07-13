@@ -1,6 +1,11 @@
 (function () {
   const KEY = 'rewardDeadline';
-  const HOME = '/index.html';
+  // Kira laluan HOME (index.html) dari lokasi script ini sendiri, supaya betul
+  // sama ada di root domain (Railway) atau dalam subfolder (GitHub Pages /mario-game/).
+  const selfSrc = (document.currentScript && document.currentScript.src) || '';
+  const HOME_URL = selfSrc ? new URL('index.html', selfSrc).href : '/index.html';
+  const HOME_PATH = selfSrc ? new URL(HOME_URL).pathname : '/index.html';
+  const BASE_PATH = HOME_PATH.replace(/index\.html$/, '');   // cth: /mario-game/
 
   function readDeadline() {
     const v = localStorage.getItem(KEY);
@@ -12,8 +17,9 @@
   const deadline = readDeadline();
   if (!deadline || deadline <= Date.now()) {
     if (deadline) localStorage.removeItem(KEY);
-    if (location.pathname !== HOME && location.pathname !== '/') {
-      location.replace(HOME);
+    // Jangan redirect kalau kita memang sudah di halaman utama (index / root folder).
+    if (location.pathname !== HOME_PATH && location.pathname !== BASE_PATH) {
+      location.replace(HOME_URL);
     }
     return;
   }
@@ -47,7 +53,7 @@
     const remainMs = readDeadline() - Date.now();
     if (remainMs <= 0) {
       localStorage.removeItem(KEY);
-      location.replace(HOME);
+      location.replace(HOME_URL);
       return;
     }
     const t = box.querySelector('#rtTime');

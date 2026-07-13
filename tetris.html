@@ -177,7 +177,7 @@
 </head>
 <body>
 
-  <a id="backBtn" href="/arcade.html">◀ HUB</a>
+  <a id="backBtn" href="arcade.html">◀ HUB</a>
 
   <!-- Name Screen -->
   <div id="nameScreen">
@@ -554,25 +554,14 @@ function render() {
 async function endGame() {
   if (scoreSent) return;
   scoreSent = true;
-  try {
-    await fetch('/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'TETRIS:' + playerName,
-        score,
-        coins: lines
-      })
-    });
-  } catch (e) { console.log('Score submit failed:', e); }
+  await window.GameScores.submit({ name: 'TETRIS:' + playerName, score, coins: lines });
 
   setTimeout(showLeaderboard, 1500);
 }
 
 async function showLeaderboard() {
   try {
-    const res = await fetch('/api/leaderboard');
-    const all = await res.json();
+    const all = await window.GameScores.top();
     const tetrisScores = all.filter(s => String(s.name).startsWith('TETRIS:')).slice(0, 10);
 
     const tbody = document.getElementById('lbBody');
@@ -600,6 +589,7 @@ async function showLeaderboard() {
 
 requestAnimationFrame(update);
 </script>
-<script src="/reward-timer.js"></script>
+<script src="sheets.js"></script>
+<script src="reward-timer.js"></script>
 </body>
 </html>

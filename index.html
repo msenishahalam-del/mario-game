@@ -2281,7 +2281,7 @@
     if (rewardSeconds <= 0) return;
     const deadline = Date.now() + rewardSeconds * 1000;
     localStorage.setItem('rewardDeadline', String(deadline));
-    location.href = '/arcade.html';
+    location.href = 'arcade.html';
   }
 
   // ===== ADMIN (Boss test mode — skip quiz) =====
@@ -2291,20 +2291,17 @@
     if (pw === '0000') {
       // bagi 60 minit masa main untuk test
       localStorage.setItem('rewardDeadline', String(Date.now() + 60 * 60 * 1000));
-      location.href = '/arcade.html';
+      location.href = 'arcade.html';
     } else {
       alert('❌ Password salah!');
     }
   }
 
-  // Version tag (boot time server = waktu deploy)
-  fetch('/api/version', { cache: 'no-store' })
-    .then(r => r.json())
-    .then(d => {
-      const el = document.getElementById('versionTag');
-      if (el && d.version) el.textContent = d.version;
-    })
-    .catch(() => {});
+  // Version tag — statik (GitHub Pages tiada server). Tunjuk tarikh je.
+  (function () {
+    const el = document.getElementById('versionTag');
+    if (el) el.textContent = 'V' + new Date().toISOString().slice(0, 10);
+  })();
 </script>
 
 </body>

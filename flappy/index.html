@@ -23,7 +23,7 @@
       <script defer src="https://yummy.nebez.dev/script.js" data-website-id="9ceaba15-371f-4407-a59a-f57a7214af41"></script>
    </head>
    <body>
-      <a href="/arcade.html" style="position:fixed;top:12px;left:12px;background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border:2px solid #FFE000;border-radius:6px;text-decoration:none;font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;z-index:9999;">◀ HUB</a>
+      <a href="../arcade.html" style="position:fixed;top:12px;left:12px;background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border:2px solid #FFE000;border-radius:6px;text-decoration:none;font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;z-index:9999;">◀ HUB</a>
       <button onclick="showFlappyLeaderboard()" style="position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.85);color:#fff;padding:8px 16px;border:2px solid #FFE000;border-radius:6px;cursor:pointer;font-family:'Courier New',monospace;font-size:14px;letter-spacing:2px;z-index:9999;">🏆 LEADERBOARD</button>
 
       <!-- Name Prompt -->
@@ -69,17 +69,7 @@
          async function submitFlappyScore(s) {
             if (flappyScoreSent || !flappyPlayerName || s <= 0) return;
             flappyScoreSent = true;
-            try {
-               await fetch('/api/score', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                     name: 'FLAPPY:' + flappyPlayerName,
-                     score: s,
-                     coins: s
-                  })
-               });
-            } catch(e) { console.log('Submit failed:', e); }
+            await window.GameScores.submit({ name: 'FLAPPY:' + flappyPlayerName, score: s, coins: s });
          }
 
          // Reset scoreSent each new game
@@ -92,8 +82,7 @@
             var tbody = document.getElementById('flappyLbBody');
             tbody.innerHTML = '<tr><td colspan="4" style="color:#FFE000;padding:20px;text-align:center;">⏳ Loading...</td></tr>';
 
-            fetch('/api/leaderboard')
-               .then(function(res) { return res.json(); })
+            window.GameScores.top()
                .then(function(all) {
                   var flappyScores = all.filter(function(s) {
                      return String(s.name).indexOf('FLAPPY:') === 0;
@@ -168,6 +157,7 @@
       <script src="js/jquery.transit.min.js"></script>
       <script src="js/buzz.min.js"></script>
       <script src="js/main.js"></script>
-      <script src="/reward-timer.js"></script>
+      <script src="../sheets.js"></script>
+      <script src="../reward-timer.js"></script>
    </body>
 </html>
