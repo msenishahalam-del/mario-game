@@ -125,6 +125,7 @@
       <div class="hud-item"><span class="lbl">🪙</span> <span id="coinsDisplay">0</span></div>
       <div class="hud-item"><span class="lbl">❤️</span> <span id="livesDisplay">3</span></div>
       <div class="hud-item"><span class="lbl">WORLD</span> <span id="worldDisplay">1-1</span></div>
+      <div class="hud-item" id="btnPause" style="cursor:pointer;user-select:none;-webkit-user-select:none">⏸️ REHAT</div>
     </div>
 
     <canvas id="canvas" width="800" height="480"></canvas>
@@ -264,6 +265,7 @@ let scoreSent = false, playerName = '';
 let clearTimer = 0;
 let bonusReturn = null;   // simpan state level utama bila masuk pipe
 let winTimer = 0;
+let paused = false;       // rehat — bekukan permainan (cth anak nak ke tandas)
 
 // ── v2: simpan kemajuan + bintang ──
 const PROGRESS_KEY = 'edriswira_progress';
@@ -297,8 +299,10 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Enter' && (gameState === 'cutscene' || gameState === 'ending')) endCutscene();
   // Main semula selepas tamat → ke Peta Dunia
   if (e.code === 'Enter' && (gameState === 'gameover' || gameState === 'win')) openMap();
-  // Peta Dunia: buka dengan M; pilih dunia 1-4
-  if (e.code === 'KeyM' && (gameState === 'playing' || gameState === 'gameover' || gameState === 'win')) openMap();
+  // ⏸️ REHAT — P atau Escape
+  if ((e.code === 'KeyP' || e.code === 'Escape') && gameState === 'playing') togglePause();
+  // Peta Dunia: buka dengan M; pilih dunia 1-4 (tak boleh masa rehat)
+  if (e.code === 'KeyM' && !paused && (gameState === 'playing' || gameState === 'gameover' || gameState === 'win')) openMap();
   if (gameState === 'map' && ['Digit1','Digit2','Digit3','Digit4'].includes(e.code)) {
     const n = parseInt(e.code.slice(5), 10);
     if (n <= progress.unlocked) { SFX.power(); score = 0; coins = 0; lives = 5; startLevelAt(n); }
@@ -339,6 +343,14 @@ function setupMobile() {
   f.addEventListener('touchend', e=>{e.preventDefault(); f.classList.remove('pressed');}, {passive:false});
 }
 setupMobile();
+
+// ⏸️ Butang REHAT di HUD (klik & sentuh)
+(function setupPauseButton() {
+  const p = document.getElementById('btnPause');
+  if (!p) return;
+  p.addEventListener('click', () => { initAudio(); togglePause(); });
+  p.addEventListener('touchstart', e => { e.preventDefault(); initAudio(); togglePause(); }, {passive:false});
+})();
 
 // ─── LEVEL BUILDING ───────────────────────────────────────
 function B(x, y, w, h, type, content) { return { x, y, w, h, type, content: content||null, bumpT: 0, broken: false, used: false }; }
@@ -661,6 +673,7 @@ function startGame() {
 }
 // v2: mula terus di mana-mana level (dari peta dunia)
 function startLevelAt(n) {
+  paused = false;
   currentLevel = n; spawnX = 60; bonusReturn = null; levelDeaths = 0;
   level = buildLevel(n); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
@@ -677,6 +690,7 @@ function applyCarriedPower(c) {
   player.inv = Math.max(player.inv, 30);
 }
 function nextLevel() {
+  paused = false;
   const carry = { big: player.big, fire: player.fire, ice: player.ice };   // simpan power sebelum bina level baru
   currentLevel++; spawnX = 60; bonusReturn = null; levelDeaths = 0;
   level = buildLevel(currentLevel); player = makePlayer();
@@ -776,6 +790,8 @@ function moveY(e, blocks, onBump) {
 
 // ─── UPDATE ───────────────────────────────────────────────
 function update() {
+  // ⏸️ REHAT — bekukan semua pergerakan (masa, musuh, pemain) selagi paused
+  if (paused) { if (gameState === 'playing') return; paused = false; }
   if (shake > 0) shake *= 0.85;
 
   // ── Cutscene / Ending — jalankan timeline sahaja ──
@@ -2455,6 +2471,27 @@ function render() {
   ctx.restore();
   drawPowerupHUD();
   drawOverlay();
+  if (paused) drawPauseOverlay();
+}
+
+// ⏸️ REHAT — pause/sambung permainan
+function togglePause() {
+  if (gameState !== 'playing') return;
+  paused = !paused;
+  if (paused) MUSIC.stop();
+  else MUSIC.start(level && level.boss && level.boss.active ? 'bos' : (level ? level.theme : 'api'));
+}
+function drawPauseOverlay() {
+  ctx.fillStyle = 'rgba(10,14,30,0.72)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe36e';
+  ctx.font = 'bold 52px Trebuchet MS, sans-serif';
+  ctx.fillText('⏸️ REHAT', W/2, H/2 - 10);
+  ctx.fillStyle = '#cfe0ff';
+  ctx.font = 'bold 20px Trebuchet MS, sans-serif';
+  ctx.fillText('Ketuk skrin atau tekan P untuk sambung main', W/2, H/2 + 36);
+  ctx.textAlign = 'left';
 }
 
 function drawLava(lv) {
@@ -2592,12 +2629,14 @@ function endCutscene() {
 // Skip cutscene / main semula / buka audio dengan tap/klik canvas
 canvas.addEventListener('click', (e) => {
   initAudio();
+  if (paused) { togglePause(); return; }   // ketuk semasa rehat → sambung
   if (gameState==='cutscene'||gameState==='ending') endCutscene();
   else if (gameState==='map') mapClick(e);
   else if (gameState==='gameover'||gameState==='win') gameState='map';
 });
 canvas.addEventListener('touchstart', e => {
   initAudio();
+  if (paused) { e.preventDefault(); togglePause(); return; }   // ketuk semasa rehat → sambung
   if (gameState==='cutscene'||gameState==='ending') { e.preventDefault(); endCutscene(); }
   else if (gameState==='map') { e.preventDefault(); mapClick(e); }
   else if (gameState==='gameover'||gameState==='win') { e.preventDefault(); gameState='map'; }
