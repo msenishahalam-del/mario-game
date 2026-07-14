@@ -493,10 +493,28 @@ function buildLevel(num) {
   }
 
   const theme = num === 1 ? 'api' : num === 2 ? 'laut' : num === 3 ? 'hutan' : 'kubu';
+  // Checkpoint mesti atas tanah pejal — bukan atas longkang/lava/air, jauh dari pipe api & musuh
+  const cpX = safeCheckpointX(blocks, lavas, firePipes, enemies, Math.floor(lengthX * 0.52));
   return { blocks, coinList, enemies, powerups, decos, flag: null, boss, yoshi,
            fireballs: [], playerFireballs: [], theme, lengthX, lavas,
            firePipes, logZones, tsunami, fallers: [], hazT: 0,
-           checkpoint: { x: Math.floor(lengthX * 0.52), reached: false } };
+           checkpoint: { x: cpX, reached: false } };
+}
+
+// Cari kedudukan checkpoint yang selamat: atas blok 'ground', elak lava/longkang, pipe api & musuh
+function safeCheckpointX(blocks, lavas, firePipes, enemies, target) {
+  const half = 16;   // separuh lebar pemain + margin
+  const onGround = x => blocks.some(b => b.type === 'ground' && x - half >= b.x && x + half <= b.x + b.w);
+  const overLava = x => (lavas || []).some(l => x + half > l.x && x - half < l.x + l.w);
+  const nearPipe = x => (firePipes || []).some(p => Math.abs(x - (p.x + 28)) < 72);
+  const nearEnemy = x => enemies.some(e => e.kind !== 'fish' && e.kind !== 'piranha' && Math.abs(e.x - x) < 72);
+  const safe = x => x > 60 && onGround(x) && !overLava(x) && !nearPipe(x) && !nearEnemy(x);
+  if (safe(target)) return target;
+  for (let d = 24; d < 1500; d += 24) {
+    if (safe(target - d)) return target - d;
+    if (safe(target + d)) return target + d;
+  }
+  return target;
 }
 
 // ─── BONUS ROOM (bawah tanah, penuh coin) ─────────────────
@@ -692,6 +710,7 @@ function initSnowflakes() {
 }
 function respawn() {
   player = makePlayer();
+  player.inv = 120;   // ~2 saat kebal — elak mati serta-merta jika musuh ada di titik respawn
   fleeingYoshi = null;
   cameraX = Math.max(0, spawnX - W/3);
   gameState = 'playing'; updateHUD();
