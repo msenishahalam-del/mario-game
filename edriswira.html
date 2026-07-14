@@ -669,9 +669,18 @@ function startLevelAt(n) {
   MUSIC.start(level.theme);
   floatText(player.x - 10, player.y - 46, 'LEVEL ' + n + ' — ' + LEVEL_NAMES[n], '#FFD700');
 }
+// Bawa power-up ke level seterusnya — Edris tak kecil semula bila naik level
+function applyCarriedPower(c) {
+  if (!c || !(c.big || c.fire || c.ice)) return;
+  player.big = true; player.h = 56; player.y = GROUND_Y - 56;
+  player.fire = c.fire; player.ice = c.ice;
+  player.inv = Math.max(player.inv, 30);
+}
 function nextLevel() {
+  const carry = { big: player.big, fire: player.fire, ice: player.ice };   // simpan power sebelum bina level baru
   currentLevel++; spawnX = 60; bonusReturn = null; levelDeaths = 0;
   level = buildLevel(currentLevel); player = makePlayer();
+  applyCarriedPower(carry);
   cameraX = 0; particles = []; floaters = [];
   initSnowflakes();
   gameState = 'playing'; updateHUD();
