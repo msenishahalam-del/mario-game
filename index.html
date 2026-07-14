@@ -516,6 +516,11 @@
     <span class="set-sub">Baca peribahasa · pilih maksud · A/B/C/D · 30 saat</span>
   </button>
   <br>
+  <button class="big" data-set="penjodoh" onclick="startQuiz('penjodoh')" style="background: linear-gradient(135deg, #e8a33d, #a5591a);">
+    🔢 Penjodoh Bilangan
+    <span class="set-sub">Seekor ikan · sebiji telur · seorang guru · seketul sabun · A/B/C/D · 25 saat</span>
+  </button>
+  <br>
   <button class="big" data-set="jawi3" onclick="startQuiz('jawi3')" style="background: linear-gradient(135deg, #6a3a8a, #2a1a4a);">
     ج Jawi Darjah 3
     <span class="set-sub">Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat</span>
@@ -579,7 +584,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'jawi3', 'perpuluhan'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan'],
     tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -1140,6 +1145,7 @@
     },
     pantun: { time: 30, generate() { return buildPantun(); } },
     peribahasa: { time: 30, generate() { return buildPeribahasa(); } },
+    penjodoh: { time: 25, generate() { return buildPenjodoh(); } },
     jawi3:  { time: 22, generate() { return buildJawi3(); } },
     perpuluhan: {
       time: 30,
@@ -1992,6 +1998,55 @@
         choices: shuffle([item.a, ...item.d]),
         jawiQuestion: !isJawiQuestion   // butang Jawi bila pilihan dalam Jawi (r2j)
       };
+    });
+  }
+
+  // ===== PENJODOH BILANGAN (BM Darjah 3) — pilih penjodoh yang betul =====
+  const PENJODOH_POOL = ['ekor', 'orang', 'biji', 'ketul', 'batang', 'buah', 'helai', 'keping'];
+  const PENJODOH_BANK = [
+    // ekor — haiwan
+    { n: 'ikan', e: '🐟', a: 'ekor' }, { n: 'kucing', e: '🐱', a: 'ekor' },
+    { n: 'ayam', e: '🐔', a: 'ekor' }, { n: 'burung', e: '🐦', a: 'ekor' },
+    { n: 'lembu', e: '🐄', a: 'ekor' }, { n: 'gajah', e: '🐘', a: 'ekor' },
+    { n: 'arnab', e: '🐰', a: 'ekor' }, { n: 'kambing', e: '🐐', a: 'ekor' },
+    { n: 'harimau', e: '🐯', a: 'ekor' }, { n: 'kuda', e: '🐴', a: 'ekor' },
+    // orang — manusia
+    { n: 'guru', e: '🧑‍🏫', a: 'orang' }, { n: 'murid', e: '🧒', a: 'orang' },
+    { n: 'doktor', e: '🩺', a: 'orang' }, { n: 'budak', e: '👦', a: 'orang' },
+    { n: 'polis', e: '👮', a: 'orang' }, { n: 'nelayan', e: '🎣', a: 'orang' },
+    { n: 'petani', e: '🧑‍🌾', a: 'orang' }, { n: 'jururawat', e: '👩‍⚕️', a: 'orang' },
+    // biji — buah / benda bulat kecil
+    { n: 'telur', e: '🥚', a: 'biji' }, { n: 'mangga', e: '🥭', a: 'biji' },
+    { n: 'epal', e: '🍎', a: 'biji' }, { n: 'tembikai', e: '🍉', a: 'biji' },
+    { n: 'limau', e: '🍊', a: 'biji' }, { n: 'kelapa', e: '🥥', a: 'biji' },
+    { n: 'guli', e: '🔮', a: 'biji' },
+    // ketul — benda berketul
+    { n: 'sabun', e: '🧼', a: 'ketul' }, { n: 'batu', e: '🪨', a: 'ketul' },
+    { n: 'daging', e: '🥩', a: 'ketul' }, { n: 'ais', e: '🧊', a: 'ketul' },
+    // batang — benda panjang
+    { n: 'pen', e: '🖊️', a: 'batang' }, { n: 'pensel', e: '✏️', a: 'batang' },
+    { n: 'pokok', e: '🌳', a: 'batang' }, { n: 'lilin', e: '🕯️', a: 'batang' },
+    { n: 'payung', e: '☂️', a: 'batang' },
+    // buah — benda besar / bangunan
+    { n: 'rumah', e: '🏠', a: 'buah' }, { n: 'kereta', e: '🚗', a: 'buah' },
+    { n: 'kapal', e: '🚢', a: 'buah' }, { n: 'basikal', e: '🚲', a: 'buah' },
+    { n: 'buku', e: '📖', a: 'buah' },
+    // helai — benda nipis
+    { n: 'baju', e: '👕', a: 'helai' }, { n: 'kertas', e: '📄', a: 'helai' },
+    { n: 'daun', e: '🍃', a: 'helai' }, { n: 'selimut', e: '🛏️', a: 'helai' },
+    // keping — benda leper
+    { n: 'gambar', e: '🖼️', a: 'keping' }, { n: 'biskut', e: '🍪', a: 'keping' },
+    { n: 'kad', e: '💳', a: 'keping' }
+  ];
+  function buildPenjodoh() {
+    const picked = shuffle([...PENJODOH_BANK]).slice(0, 10);
+    return picked.map(item => {
+      const distract = shuffle(PENJODOH_POOL.filter(p => p !== item.a)).slice(0, 3);
+      const text =
+        `<span style="display:block;font-size:0.95em;margin:2px 0">${item.e}</span>` +
+        `<span style="display:block;font-size:0.5em;color:#333;margin:2px 0 6px">se<span style="color:#c0392b">_____</span> ${item.n}</span>` +
+        `<span style="display:block;font-size:0.32em;font-weight:bold;color:#5a3a00">Pilih penjodoh bilangan yang betul:</span>`;
+      return { text, answer: item.a, choices: shuffle([item.a, ...distract]) };
     });
   }
 
