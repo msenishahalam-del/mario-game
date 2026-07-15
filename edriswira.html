@@ -212,6 +212,7 @@ const FIRE_COOLDOWN = 18;       // frames antara fireball
 const STAR_DURATION = 600;      // 10 saat @ 60fps
 const ICE_FRICTION = 0.05;      // licin untuk Level 2 (Dunia Salji)
 const FLUTTER_FRAMES = 32;      // tempoh flutter jump atas Yoshi
+const BRIDGE_CRUMBLE = 50;      // frames sebelum jambatan patah selepas dipijak (Dunia 4)
 const FREEZE_FRAMES = 240;      // musuh beku 4 saat
 
 // ─── MUZIK LATAR (chiptune original — bukan lagu berhak cipta) ───
@@ -274,7 +275,7 @@ function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringif
 let progress = loadProgress();
 let levelDeaths = 0;          // mati dalam level semasa → penilaian bintang
 let bossTalk = 0;             // pemasa gelembung dialog bos
-const BOSS_LINES = { gergasiapi: 'Kamu akan hangus!', ularlaut: 'Tenggelam kamu!', rajamonyet: 'Hihihi, tangkap pisang ni!', rajagergasi: 'Puteri Peach milik aku!' };
+const BOSS_LINES = { gergasiapi: 'Kamu akan hangus!', ularlaut: 'Tenggelam kamu!', rajamonyet: 'Hihihi, tangkap pisang ni!', rajagergasi: 'Puteri Peach milik aku!', rajagergasi2: 'Belum tamat! Rasakan kuasa bayang!' };
 // Bintang ikut kematian dalam level
 function awardStars() {
   const s = levelDeaths === 0 ? 3 : levelDeaths === 1 ? 2 : 1;
@@ -359,6 +360,27 @@ function mkBoss(type, x, hp, minX, maxX) {
   return { type, x, y: GROUND_Y - 90, w: 80, h: 90, vx: 1.5, dir: -1,
            hp, maxHp: hp, hit: 0, fireT: 90, jumpT: 190, alive: true, active: false,
            enraged: false, vy: 0, onGround: true, minX, maxX, stompLock: 0 };
+}
+
+// Bos dikalahkan — Dunia 4 ada bos kedua (Gergasi Bayang) sebelum menang
+function defeatBoss(bs, bonus) {
+  bs.alive = false; score += bonus; updateHUD();
+  burst(bs.x + bs.w/2, bs.y + bs.h/2, '#FFD700', 30);
+  burst(bs.x + bs.w/2, bs.y + bs.h/2, '#FF4400', 20);
+  shake = 14; SFX.clear();
+  // 👹 Dunia 4: selepas Raja Gergasi kalah → bos kedua muncul (lebih kuat)
+  if (currentLevel === MAX_LEVEL && level.bossWave === 1) {
+    level.bossWave = 2;
+    const b2 = mkBoss('rajagergasi2', 2560, 9, 2180, 2800);
+    b2.w = 96; b2.h = 108; b2.y = GROUND_Y - b2.h;
+    b2.active = true; b2.enraged = true; b2.fireT = 70; b2.jumpT = 120;
+    level.boss = b2;
+    bossTalk = 180;
+    floatText(bs.x, bs.y - 26, 'GERGASI BAYANG MUNCUL! 👹', '#c060ff');
+    MUSIC.start('bos');
+    return;
+  }
+  gameState = 'clear'; clearTimer = 130;
 }
 
 function buildLevel(num) {
@@ -509,7 +531,7 @@ function buildLevel(num) {
   const cpX = safeCheckpointX(blocks, lavas, firePipes, enemies, Math.floor(lengthX * 0.52));
   return { blocks, coinList, enemies, powerups, decos, flag: null, boss, yoshi,
            fireballs: [], playerFireballs: [], theme, lengthX, lavas,
-           firePipes, logZones, tsunami, fallers: [], hazT: 0,
+           firePipes, logZones, tsunami, fallers: [], hazT: 0, bossWave: 1,
            checkpoint: { x: cpX, reached: false } };
 }
 
@@ -910,6 +932,25 @@ function update() {
   // block bump animation decay
   for (const b of blocks) if (b.bumpT > 0) b.bumpT--;
 
+  // 🌉 Jambatan reput (Dunia 4) — pijak → retak → patah (kena lari cepat!)
+  for (const b of blocks) {
+    if (b.type !== 'bridge' || b.broken) continue;
+    // Edris berdiri atas papan ini?
+    const onThis = player.onGround && !player.dead &&
+      player.x + player.w > b.x + 1 && player.x < b.x + b.w - 1 &&
+      Math.abs((player.y + player.h) - b.y) < 5;
+    if (onThis && !b.crumbling) { b.crumbling = true; b.crumbleT = BRIDGE_CRUMBLE; SFX.bump(); }
+    if (b.crumbling) {
+      b.crumbleT--;
+      if (b.crumbleT <= 0) {
+        b.broken = true;
+        level.fallers.push({ x: b.x, y: b.y, vy: 1.5, w: b.w, h: b.h, spin: 0, debris: true });
+        burst(b.x + b.w/2, b.y + 4, '#7a4a20', 7);
+        shake = Math.max(shake, 3);
+      }
+    }
+  }
+
   // ── HAZARD KHAS (mekanik Edris) ──
   level.hazT = (level.hazT || 0) + 1;
   // 🔴 Pipe tembak api (Dunia Api)
@@ -940,7 +981,7 @@ function update() {
   if (level.fallers && level.fallers.length) {
     for (let i = level.fallers.length - 1; i >= 0; i--) {
       const f = level.fallers[i]; f.vy += 0.35; f.y += f.vy; f.spin += 0.05;
-      if (!player.dead && player.starT === 0 && player.inv === 0 && overlap(player, f)) { hurtPlayer(); level.fallers.splice(i,1); continue; }
+      if (!f.debris && !player.dead && player.starT === 0 && player.inv === 0 && overlap(player, f)) { hurtPlayer(); level.fallers.splice(i,1); continue; }
       if (f.y > GROUND_Y) { burst(f.x+13, GROUND_Y, '#7a4a20', 8); level.fallers.splice(i,1); }
     }
   }
@@ -1121,7 +1162,7 @@ function update() {
       if (bs.hit > 0) bs.hit--;
 
       // Semua 4 bos Edris jenis "jumper" — multi-fasa
-      const finalBoss = bs.type === 'rajagergasi';   // bos akhir = 4-arah, paling ganas
+      const finalBoss = bs.type === 'rajagergasi' || bs.type === 'rajagergasi2';   // bos akhir = 4-arah, paling ganas
       const waterShot = bs.type === 'ularlaut';       // Ular Laut tembak air (biru)
       const jumper = true;
       const iceShot = waterShot;
@@ -1199,13 +1240,7 @@ function update() {
           bs.hp--; bs.hit = 30; bs.stompLock = 20;
           score += 700; floatText(bs.x, bs.y, '+700', '#FFD700'); updateHUD();
           burst(bs.x+bs.w/2, bs.y, '#FFD700', 14); shake = 8; SFX.stomp();
-          if (bs.hp <= 0) {
-            bs.alive = false; score += finalBoss ? 8000 : 4000; updateHUD();
-            burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
-            burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
-            shake = 14; SFX.clear();
-            gameState = 'clear'; clearTimer = 130;
-          }
+          if (bs.hp <= 0) defeatBoss(bs, finalBoss ? 8000 : 4000);
         }
         else if (player.inv === 0) {
           const fromAbove = player.vy > 0 && player.y + player.h < bs.y + bs.h*0.5;
@@ -1213,13 +1248,7 @@ function update() {
             bs.hp--; bs.hit = 30; bs.stompLock = 20; player.vy = -10;
             score += 500; floatText(bs.x, bs.y, '+500', '#FFD700'); updateHUD();
             burst(bs.x+bs.w/2, bs.y, '#FF8800', 14); shake = 8; SFX.stomp();
-            if (bs.hp <= 0) {
-              bs.alive = false; score += finalBoss ? 8000 : 4000; updateHUD();
-              burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
-              burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
-              shake = 14; SFX.clear();
-              gameState = 'clear'; clearTimer = 130;
-            }
+            if (bs.hp <= 0) defeatBoss(bs, finalBoss ? 8000 : 4000);
           } else if (!fromAbove) {
             hurtPlayer();
           }
@@ -1296,13 +1325,7 @@ function update() {
         burst(fb.x, fb.y, '#FF6600', 10);
         fb.life = 0; shake = 6;
         SFX.bump();
-        if (bs.hp <= 0) {
-          bs.alive = false; score += 5000; updateHUD();
-          burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FFD700', 30);
-          burst(bs.x+bs.w/2, bs.y+bs.h/2, '#FF4400', 20);
-          shake = 14; SFX.clear();
-          gameState = 'clear'; clearTimer = 130;
-        }
+        if (bs.hp <= 0) defeatBoss(bs, 5000);
       }
     }
   }
@@ -1675,9 +1698,11 @@ function drawBush(d) {
 }
 
 function drawBlock(b) {
+  if (b.broken) return;   // blok pecah / jambatan patah — jangan lukis
   const x = Math.round(b.x - cameraX);
   if (x + b.w < -10 || x > W+10) return;
-  const yo = b.bumpT > 0 ? -Math.sin((b.bumpT/12)*Math.PI)*8 : 0;
+  let yo = b.bumpT > 0 ? -Math.sin((b.bumpT/12)*Math.PI)*8 : 0;
+  if (b.crumbling && b.crumbleT > 0) yo += Math.sin(Date.now()/40) * 1.6;   // jambatan bergegar sebelum patah
   const y = b.y + yo;
 
   if (b.type === 'ground') {
@@ -1723,9 +1748,11 @@ function drawBlock(b) {
     ctx.fillStyle = '#27c427'; ctx.fillRect(x-2, y+2, b.w+4, 5);
     ctx.fillStyle = '#0d7a0d'; ctx.fillRect(x-5, y+12, b.w+10, 4);
   } else if (b.type === 'bridge') {   // 🌉 papan jambatan kayu
-    ctx.fillStyle = '#8a5a2a'; ctx.fillRect(x, y, b.w, b.h);
+    const warn = b.crumbling && b.crumbleT > 0;
+    ctx.fillStyle = warn ? '#a34a26' : '#8a5a2a'; ctx.fillRect(x, y, b.w, b.h);
     ctx.fillStyle = '#6a3f18'; ctx.fillRect(x, y, b.w, 2);
-    ctx.strokeStyle = '#5a3416'; ctx.lineWidth=1; ctx.strokeRect(x+0.5, y+0.5, b.w-1, b.h-1);
+    ctx.strokeStyle = warn ? '#c0392b' : '#5a3416'; ctx.lineWidth=1; ctx.strokeRect(x+0.5, y+0.5, b.w-1, b.h-1);
+    if (warn) { ctx.strokeStyle = '#3a1a0a'; ctx.beginPath(); ctx.moveTo(x+b.w*0.5, y); ctx.lineTo(x+b.w*0.4, y+b.h); ctx.stroke(); }  // retak
   } else { // solid
     ctx.fillStyle = '#c9a050'; ctx.fillRect(x, y, b.w, b.h);
     ctx.strokeStyle = '#8a6a30'; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,b.w-2,b.h-2);
@@ -2362,7 +2389,7 @@ function drawBoss() {
   // Label nama boss
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
-  const NAMES = { gergasiapi:'GERGASI API', ularlaut:'ULAR LAUT', rajamonyet:'RAJA MONYET', rajagergasi:'RAJA GERGASI' };
+  const NAMES = { gergasiapi:'GERGASI API', ularlaut:'ULAR LAUT', rajamonyet:'RAJA MONYET', rajagergasi:'RAJA GERGASI', rajagergasi2:'GERGASI BAYANG' };
   let name = NAMES[bs.type] || 'BOS';
   if (bs.enraged) name = '🔥 ' + name + ' — MENGGILA!';
   ctx.fillText(name, x+bs.w/2, y-16);
@@ -2403,9 +2430,18 @@ function drawHazards() {
       ctx.fillStyle = '#333'; ctx.font = '10px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('🚩', cx+16, fy+13); ctx.textAlign='left';
     }
   }
-  // 🌲 Kayu tumbang
+  // 🌲 Kayu tumbang + 🌉 serpihan jambatan patah
   for (const f of (level.fallers || [])) {
     const x = f.x - cameraX;
+    if (f.debris) {   // papan jambatan runtuh — jatuh berpusing
+      ctx.save(); ctx.translate(x + f.w/2, f.y + f.h/2); ctx.rotate(f.spin*2);
+      ctx.fillStyle = '#8a5a2c'; ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
+      ctx.fillStyle = '#5a3416'; ctx.fillRect(-f.w/2, -f.h/2, f.w, 3);
+      ctx.strokeStyle = '#5a3416'; ctx.lineWidth = 1;
+      ctx.strokeRect(-f.w/2, -f.h/2, f.w, f.h);
+      ctx.restore();
+      continue;
+    }
     ctx.save(); ctx.translate(x + f.w/2, f.y + f.h/2); ctx.rotate(Math.sin(f.spin)*0.15);
     ctx.fillStyle = '#7a4a20'; ctx.fillRect(-f.w/2, -f.h/2, f.w, f.h);
     ctx.fillStyle = '#5a3416'; ctx.fillRect(-f.w/2, -f.h/2, f.w, 6);
