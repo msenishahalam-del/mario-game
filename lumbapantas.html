@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>EDRIS & ENISA: LUMBA PANTAS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #0d1020;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  #hubBtn, #muteBtn {
+    position: fixed; top: 10px; z-index: 30;
+    background: rgba(0,0,0,0.45); color: #fff; text-decoration: none;
+    border: 2px solid rgba(255,255,255,0.4); border-radius: 8px;
+    padding: 6px 12px; font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  #hubBtn { left: 10px; }
+  #muteBtn { right: 10px; }
+  #gameWrap {
+    width: 800px; max-width: 100%;
+    border-radius: 10px; overflow: hidden;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+    background: #000;
+  }
+  canvas {
+    display: block;
+    width: 800px; max-width: 100%;
+    image-rendering: pixelated;
+    touch-action: none;
+    background: #79c0ff;
+  }
+  /* Kawalan sentuh */
+  #mobileControls {
+    display: none; width: 800px; max-width: 100%;
+    padding: 10px 14px; justify-content: space-between; gap: 10px;
+  }
+  .ctrl-group { display: flex; gap: 12px; align-items: center; }
+  .ctrl-btn {
+    width: 66px; height: 66px;
+    background: rgba(255,255,255,0.14);
+    border: 3px solid rgba(255,255,255,0.5);
+    border-radius: 50%;
+    color: #fff; font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; -webkit-user-select: none;
+    touch-action: none; transition: transform 0.05s, background 0.1s;
+  }
+  .ctrl-btn:active, .ctrl-btn.pressed { background: rgba(255,255,255,0.45); transform: scale(0.92); }
+  #btnGas   { width: 82px; height: 82px; background: rgba(46,204,113,0.5); border-color: #2ecc71; }
+  #btnBoost { width: 82px; height: 82px; background: rgba(255,140,0,0.5); border-color: #ff8c00; }
+  #btnBrake { background: rgba(231,76,60,0.5); border-color: #e74c3c; }
+  @media (max-width: 820px) { #mobileControls { display: flex; } }
+</style>
+</head>
+<body>
+  <a id="hubBtn" href="arcade.html">◀ HUB</a>
+  <div id="muteBtn">🔊</div>
+  <div id="gameWrap">
+    <canvas id="canvas" width="800" height="480"></canvas>
+  </div>
+  <div id="mobileControls">
+    <div class="ctrl-group">
+      <div class="ctrl-btn" id="btnLeft">◀</div>
+      <div class="ctrl-btn" id="btnRight">▶</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-btn" id="btnBrake">🛑</div>
+      <div class="ctrl-btn" id="btnBoost">🚀</div>
+      <div class="ctrl-btn" id="btnGas">⛽</div>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  EDRIS & ENISA: LUMBA PANTAS — racer pseudo-3D (semua original)
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// ─── AUDIO (WebAudio chiptune sendiri — tiada lagu berhak cipta) ───
+let actx = null, muted = false;
+function initAudio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  if (actx && actx.state === 'suspended') actx.resume();
+  ENGINE.ensure();
+}
+function tone(freq, dur, type='square', vol=0.14, when=0, slideTo=null) {
+  if (!actx || muted) return;
+  const t = actx.currentTime + when;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + dur);
+}
+function noise(dur, vol=0.12, when=0) {
+  if (!actx || muted) return;
+  const t = actx.currentTime + when;
+  const n = Math.floor(actx.sampleRate * dur);
+  const buf = actx.createBuffer(1, n, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<n;i++) d[i] = (Math.random()*2-1) * (1 - i/n);
+  const s = actx.createBufferSource(); s.buffer = buf;
+  const g = actx.createGain(); g.gain.value = vol;
+  s.connect(g); g.connect(actx.destination); s.start(t);
+}
+const SFX = {
+  beep:  () => tone(520, 0.14, 'square', 0.16),
+  go:    () => { tone(880, 0.28, 'square', 0.2); tone(1320, 0.3, 'square', 0.13, 0.02); },
+  boost: () => { tone(300, 0.25, 'sawtooth', 0.14, 0, 900); noise(0.2, 0.08); },
+  hit:   () => { tone(140, 0.14, 'square', 0.2, 0, 60); noise(0.14, 0.16); },
+  lap:   () => { [660,880,1046].forEach((f,i)=>tone(f,0.12,'square',0.15,i*0.07)); },
+  win:   () => { [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.18,'square',0.16,i*0.11)); },
+  lose:  () => { [440,349,262].forEach((f,i)=>tone(f,0.22,'square',0.15,i*0.16)); },
+  pick:  () => tone(720, 0.09, 'square', 0.14),
+  star:  () => { tone(988,0.09,'square',0.15); tone(1319,0.14,'square',0.14,0.08); },
+};
+// Enjin — oscillator gelung, pitch ikut laju
+const ENGINE = (function () {
+  let o=null, g=null, lp=null, running=false;
+  function ensure() {
+    if (o || !actx) return;
+    o = actx.createOscillator(); o.type = 'sawtooth';
+    lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    g = actx.createGain(); g.gain.value = 0;
+    o.connect(lp); lp.connect(g); g.connect(actx.destination);
+    o.frequency.value = 60; o.start();
+  }
+  function set(speedPct, boosting) {
+    if (!o || muted) { if (g) g.gain.value = 0; return; }
+    const base = 55 + speedPct * 150 + (boosting ? 40 : 0);
+    o.frequency.setTargetAtTime(base, actx.currentTime, 0.05);
+    lp.frequency.setTargetAtTime(500 + speedPct*1600, actx.currentTime, 0.05);
+    g.gain.setTargetAtTime(running ? 0.05 + speedPct*0.05 : 0, actx.currentTime, 0.08);
+  }
+  return {
+    ensure,
+    start(){ running = true; ensure(); },
+    stop(){ running = false; if (g && actx) g.gain.setTargetAtTime(0, actx.currentTime, 0.05); },
+    set,
+  };
+})();
+// Muzik ringkas (chiptune sendiri) — loop menu / lumba
+const MUSIC = (function () {
+  const THEMES = {
+    menu: { bpm: 108, notes: [0,4,7,12,7,4,0,-5], bass: [0,0,5,5], type:'square' },
+    race: { bpm: 150, notes: [0,7,12,7,3,10,7,3], bass: [0,0,-2,-2,-5,-5,-2,-2], type:'square' },
+  };
+  let cur=null, timer=null, step=0, root=196; // G3
+  function hz(semi){ return root * Math.pow(2, semi/12); }
+  function tick() {
+    if (!actx || muted || !cur) return;
+    const th = THEMES[cur], beat = 60/th.bpm;
+    const n = th.notes[step % th.notes.length];
+    tone(hz(n)*2, beat*0.9, th.type, 0.035);
+    const b = th.bass[step % th.bass.length];
+    tone(hz(b)/2, beat*0.9, 'triangle', 0.05);
+    step++;
+  }
+  function start(name){ if (cur===name) return; stop(); cur=name; step=0;
+    if (!actx) return; const beat = 60/THEMES[name].bpm; timer = setInterval(tick, beat*1000); }
+  function stop(){ if (timer) clearInterval(timer); timer=null; cur=null; }
+  return { start, stop, get current(){ return cur; } };
+})();
+document.getElementById('muteBtn').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+  if (muted) { MUSIC.stop(); ENGINE.set(0,false); }
+  else if (state==='menu'||state==='tracks'||state==='cars') MUSIC.start('menu');
+});
+
+// ─── PEMALAR ENJIN ─────────────────────────────────────────────
+const SEG_LEN   = 200;      // panjang satu segmen jalan (unit dunia)
+const RUMBLE    = 3;        // segmen per jalur rumble
+const DRAW_DIST = 150;      // bilangan segmen dilukis ke hadapan
+const ROAD_W    = 2000;     // separuh lebar jalan
+const LANES     = 3;
+const FOV       = 100;
+const CAM_DEPTH = 1 / Math.tan((FOV/2) * Math.PI/180);
+const CAM_HEIGHT= 1000;
+const PLAYER_Z  = CAM_HEIGHT * CAM_DEPTH;
+const CENTRIFUGAL = 0.3;    // kuasa tolak keluar pada selekoh
+const OFFROAD_LIMIT = 0.55; // had laju bila luar jalan (peratus)
+const TOTAL_LAPS_DEFAULT = 2;
+
+// ─── DATA KERETA (stat 1-10, semua original) ───────────────────
+const CARS = [
+  { id:'pipit',    name:'SI PIPIT',    body:'#39b54a', unlock:0,
+    stats:{ laju:6, pecut:7, kendali:8, brek:8, boost:5 }, note:'Seimbang & mudah dikawal' },
+  { id:'komet',    name:'SI KOMET',    body:'#e63946', unlock:2,
+    stats:{ laju:10, pecut:6, kendali:5, brek:5, boost:7 }, note:'Laju tertinggi di jalan lurus' },
+  { id:'belalang', name:'SI BELALANG', body:'#b06bff', unlock:4,
+    stats:{ laju:7, pecut:8, kendali:10, brek:9, boost:6 }, note:'Kawalan selekoh terbaik' },
+];
+
+// ─── DATA LITAR (4 bertema) ────────────────────────────────────
+const TRACKS = [
+  { id:'padang', name:'PADANG HIJAU', laps:2, len:'pendek',
+    sky:'#79c0ff', hill:'#8fd48a', grassL:'#4caf50', grassD:'#43a047',
+    roadL:'#6b6f75', roadD:'#63676d', rumbleL:'#e8e8e8', rumbleD:'#cf2b2b', lane:'#ffffff',
+    deco:'tree', grip:1.0,
+    build(a){ a.straight(30); a.curve(40,2,10); a.straight(20); a.hill(40,-30,20); a.curve(40,-2,10); a.straight(30); } },
+  { id:'gurun', name:'GURUN EMAS', laps:2, len:'panjang',
+    sky:'#ffd27a', hill:'#c99a5b', grassL:'#e6c07a', grassD:'#d9b16b',
+    roadL:'#7a736a', roadD:'#726b62', rumbleL:'#fff2cf', rumbleD:'#b5651d', lane:'#fff6df',
+    deco:'cactus', grip:0.95,
+    build(a){ a.straight(60); a.curve(30,2.5,8); a.straight(50); a.hill(30,40,15); a.curve(30,-2.5,8); a.straight(40); } },
+  { id:'salji', name:'SALJI FROSTPEAK', laps:3, len:'sederhana',
+    sky:'#cfe8ff', hill:'#dfeaf5', grassL:'#f2f7fb', grassD:'#e3edf5',
+    roadL:'#8a97a6', roadD:'#828f9e', rumbleL:'#ffffff', rumbleD:'#4f6fb0', lane:'#dfe9f5',
+    deco:'pine', grip:0.78,
+    build(a){ a.straight(20); a.curve(24,3.2,6); a.curve(24,-3.2,6); a.hill(30,50,12); a.curve(30,3,7); a.straight(25); } },
+  { id:'neon', name:'BANDAR NEON', laps:3, len:'teknikal', night:true,
+    sky:'#120a2a', hill:'#241247', grassL:'#1b1030', grassD:'#160c28',
+    roadL:'#3a3550', roadD:'#332f48', rumbleL:'#ff3df0', rumbleD:'#00e5ff', lane:'#7cf6ff',
+    deco:'neon', grip:0.92,
+    build(a){ a.straight(20); a.curve(26,3,6); a.straight(16); a.curve(26,-3.4,6); a.hill(24,-30,10); a.curve(24,3.2,6); a.straight(20); } },
+];
+
+// ─── SIMPAN KEMAJUAN ───────────────────────────────────────────
+const PKEY = 'lumbapantas_progress';
+function loadProg(){ try { return JSON.parse(localStorage.getItem(PKEY) || '{"unlocked":1,"stars":{},"bestLap":{},"car":"pipit"}'); }
+  catch { return { unlocked:1, stars:{}, bestLap:{}, car:'pipit' }; } }
+function saveProg(){ try { localStorage.setItem(PKEY, JSON.stringify(prog)); } catch {} }
+let prog = loadProg();
+function carUnlocked(c){ return c.unlock <= (prog.unlocked - 1); }
+function trackUnlocked(i){ return i < prog.unlocked; }
+
+// ─── INPUT ─────────────────────────────────────────────────────
+const keys = {};
+function left(){ return keys.left; }
+function right(){ return keys.right; }
+function gas(){ return keys.gas; }
+function brake(){ return keys.brake; }
+document.addEventListener('keydown', e => {
+  initAudio();
+  const c = e.code;
+  if (['ArrowLeft','KeyA'].includes(c)) keys.left = true;
+  if (['ArrowRight','KeyD'].includes(c)) keys.right = true;
+  if (['ArrowUp','KeyW'].includes(c)) keys.gas = true;
+  if (['ArrowDown','KeyS'].includes(c)) keys.brake = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(c)) e.preventDefault();
+  if (c === 'Space') tryBoost();
+  if (c === 'KeyM') document.getElementById('muteBtn').click();
+  if (c === 'KeyP' || c === 'Escape') { if (state==='race') togglePause(); }
+  if (c === 'Enter') onConfirm();
+});
+document.addEventListener('keyup', e => {
+  const c = e.code;
+  if (['ArrowLeft','KeyA'].includes(c)) keys.left = false;
+  if (['ArrowRight','KeyD'].includes(c)) keys.right = false;
+  if (['ArrowUp','KeyW'].includes(c)) keys.gas = false;
+  if (['ArrowDown','KeyS'].includes(c)) keys.brake = false;
+});
+function bindHold(id, prop) {
+  const b = document.getElementById(id);
+  const on = e => { e.preventDefault(); initAudio(); keys[prop]=true; b.classList.add('pressed'); };
+  const off = e => { e.preventDefault(); keys[prop]=false; b.classList.remove('pressed'); };
+  b.addEventListener('touchstart', on, {passive:false});
+  b.addEventListener('touchend', off, {passive:false});
+  b.addEventListener('touchcancel', off, {passive:false});
+  b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
+}
+bindHold('btnLeft','left'); bindHold('btnRight','right'); bindHold('btnGas','gas'); bindHold('btnBrake','brake');
+(function(){ const b=document.getElementById('btnBoost');
+  const on=e=>{ e.preventDefault(); initAudio(); tryBoost(); b.classList.add('pressed'); };
+  const off=e=>{ e.preventDefault(); b.classList.remove('pressed'); };
+  b.addEventListener('touchstart',on,{passive:false}); b.addEventListener('touchend',off,{passive:false});
+  b.addEventListener('mousedown',on); b.addEventListener('mouseup',off);
+})();
+
+// Klik/ketuk kanvas → digunakan untuk skrin menu
+canvas.addEventListener('click', e => { initAudio(); onCanvasTap(e); });
+canvas.addEventListener('touchstart', e => { if (state!=='race'){ e.preventDefault(); } initAudio(); onCanvasTap(e); }, {passive:false});
+function tapPos(e){
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width/r.width, sy = canvas.height/r.height;
+  const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+  const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+  return { x: cx*sx, y: cy*sy };
+}
+
+// ─── STATE ─────────────────────────────────────────────────────
+let state = 'menu';   // menu | tracks | cars | countdown | race | paused | result
+let segments = [];
+let trackLength = 0;
+let track = null, trackIndex = 0, carDef = CARS[0];
+let totalLaps = TOTAL_LAPS_DEFAULT;
+let paused = false;
+
+// pemain
+let position = 0, playerX = 0, speed = 0, maxSpeed = 0;
+let playerDist = 0, lap = 1, place = 1;
+let boostEnergy = 1, boosting = 0, damage = 0;
+let raceTime = 0, lapTime = 0, bestLapThis = 0, offT = 0, driftLean = 0;
+let opponents = [];
+let particles = [];
+let countT = 0, resultData = null, msg = '', msgT = 0;
+
+// ─── BINA LITAR ────────────────────────────────────────────────
+function lastY(){ return segments.length===0 ? 0 : segments[segments.length-1].p2.world.y; }
+function easeIn(a,b,p){ return a + (b-a)*Math.pow(p,2); }
+function easeInOut(a,b,p){ return a + (b-a)*(-Math.cos(p*Math.PI)/2 + 0.5); }
+function addSegment(curve, y) {
+  const n = segments.length;
+  segments.push({
+    index:n,
+    p1:{ world:{ y:lastY(), z:n*SEG_LEN }, camera:{}, screen:{} },
+    p2:{ world:{ y:y, z:(n+1)*SEG_LEN }, camera:{}, screen:{} },
+    curve:curve, deco:null, dark: Math.floor(n/RUMBLE)%2===1,
+  });
+}
+const builder = {
+  straight(n){ this.road(n*0.3,n*0.4,n*0.3, 0, 0); },
+  curve(n,c,h){ this.road(n*0.3,n*0.4,n*0.3, c, h); },
+  hill(n,h,c){ this.road(n*0.3,n*0.4,n*0.3, c||0, h); },
+  road(enter,hold,leave,curve,y){
+    enter=Math.round(enter); hold=Math.round(hold); leave=Math.round(leave);
+    const startY=lastY(), endY=startY + y*SEG_LEN, total=enter+hold+leave; let i;
+    for(i=0;i<enter;i++) addSegment(easeIn(0,curve,i/enter), easeInOut(startY,endY,i/total));
+    for(i=0;i<hold;i++)  addSegment(curve, easeInOut(startY,endY,(enter+i)/total));
+    for(i=0;i<leave;i++) addSegment(easeInOut(curve,0,i/leave), easeInOut(startY,endY,(enter+hold+i)/total));
+  }
+};
+function buildTrack(t) {
+  segments = [];
+  t.build(builder);
+  // pastikan gelung tutup rata (tarik y balik ke 0 di hujung)
+  const tail = 20, sy = lastY();
+  for (let i=0;i<tail;i++) addSegment(0, easeInOut(sy,0,i/tail));
+  trackLength = segments.length * SEG_LEN;
+  // hiasan tepi jalan
+  for (let i=10;i<segments.length-5;i++) {
+    if (i % 7 === 0) segments[i].deco = { side:-1, type:t.deco };
+    if (i % 9 === 0) segments[i].deco = { side:1, type:t.deco };
+  }
+  // garisan mula/penamat
+  segments[4].start = true;
+}
+function findSeg(z){ return segments[Math.floor(z/SEG_LEN) % segments.length]; }
+
+// ─── MULA LUMBA ────────────────────────────────────────────────
+function startRace() {
+  track = TRACKS[trackIndex];
+  totalLaps = track.laps;
+  buildTrack(track);
+  const s = carDef.stats;
+  maxSpeed = SEG_LEN * 60 * (0.62 + s.laju*0.045);   // unit/saat
+  position = 0; playerX = 0; speed = 0; playerDist = 0; lap = 1; place = 1;
+  boostEnergy = 1; boosting = 0; damage = 0; raceTime = 0; lapTime = 0; bestLapThis = 0; offT = 0; driftLean = 0;
+  particles = []; msg=''; msgT=0;
+  // lawan AI
+  opponents = [];
+  const rivalColors = ['#ff8c00','#00b8d4','#ffd000','#ff4da6','#7cff5c'];
+  const rivalNames  = ['MILO','SORA','ZANE','KIRA','VEGA'];
+  const nAI = 5;
+  for (let i=0;i<nAI;i++) {
+    opponents.push({
+      dist: -(i+1)*SEG_LEN*2.2,       // bermula sedikit di hadapan/grid
+      offset: ((i%LANES)-1) * 0.6,
+      targetOff: ((i%LANES)-1) * 0.6,
+      speed: maxSpeed * (0.74 + Math.random()*0.05),
+      color: rivalColors[i], name: rivalNames[i],
+      skill: 0.85 + Math.random()*0.12,
+    });
+  }
+  state = 'countdown'; countT = 0;
+  ENGINE.start(); MUSIC.start('race');
+}
+
+function tryBoost() {
+  if (state!=='race' || paused) return;
+  if (boostEnergy > 0.18 && boosting <= 0) {
+    boosting = 1.0; boostEnergy = Math.max(0, boostEnergy - 0.34);
+    SFX.boost(); flash('BOOST! 🚀', '#ffb000');
+    for (let i=0;i<10;i++) particles.push({ x: W/2+(Math.random()-0.5)*40, y: H-60, vx:(Math.random()-0.5)*3, vy:Math.random()*2+1, life:22, c:'#ffcf3f' });
+  }
+}
+function flash(t,c){ msg=t; msgCol=c||'#fff'; msgT=90; }
+let msgCol='#fff';
+
+function togglePause(){ paused = !paused; if (paused){ ENGINE.set(0,false); MUSIC.stop(); } else { MUSIC.start(track && track.night?'race':'race'); } }
+
+// ─── KEMASKINI ─────────────────────────────────────────────────
+let lastT = 0;
+function update(dt) {
+  if (state === 'countdown') {
+    countT += dt;
+    ENGINE.set(0.05, false);
+    if (countT >= 4) { state='race'; SFX.go(); }
+    return;
+  }
+  if (state !== 'race' || paused) return;
+
+  raceTime += dt; lapTime += dt; if (msgT>0) msgT -= dt*60;
+
+  const s = carDef.stats, grip = track.grip;
+  const spdPct = speed / maxSpeed;
+  const playerSeg = findSeg(position + PLAYER_Z);
+
+  // kemudi (steer) — sensitif ikut laju, bantuan pada laju rendah
+  const steerRate = dt * (1.6 + s.kendali*0.12) * (0.5 + spdPct*0.5);
+  let steering = 0;
+  if (left())  { playerX -= steerRate; steering=-1; }
+  if (right()) { playerX += steerRate; steering= 1; }
+  // daya empar selekoh (tolak keluar)
+  playerX -= dt * spdPct * playerSeg.curve * CENTRIFUGAL * (1.3 - s.kendali*0.05);
+  driftLean += ((steering) - driftLean) * 0.15;
+
+  // pecut / brek / auto-cruise (mesra kanak)
+  const accel = maxSpeed / (2.4 - s.pecut*0.12);
+  const cruise = maxSpeed * 0.5;
+  const offroad = Math.abs(playerX) > 1;
+  if (brake()) speed -= (maxSpeed / (1.3 - s.brek*0.05)) * dt;
+  else if (gas()) speed += accel * dt;
+  else { if (speed < cruise) speed += accel*0.45*dt; else speed -= accel*0.25*dt; }
+  // boost
+  if (boosting > 0) { boosting -= dt; speed += accel*0.9*dt; }
+  // luar jalan / selekoh terlalu laju
+  let effMax = maxSpeed * (boosting>0 ? 1.32 : 1);
+  if (offroad) { speed -= maxSpeed*1.1*dt; effMax = maxSpeed*OFFROAD_LIMIT;
+    if (speed>effMax && Math.random()<0.5) particles.push({ x:W/2+(playerX>0?90:-90), y:H-40, vx:(Math.random()-0.5)*3, vy:-Math.random()*2, life:16, c: track.deco==='pine'?'#fff':'#c9a05a' });
+    offT += dt;
+  }
+  speed = Math.max(0, Math.min(speed, effMax));
+
+  // cengkaman rendah (salji) → sedikit hanyut
+  if (grip < 1 && spdPct > 0.5) playerX += steering * (1-grip) * 0.004 * (spdPct);
+
+  // gerak ke hadapan
+  playerDist += speed * dt;
+  position = playerDist % trackLength;
+  const newLap = Math.floor(playerDist / trackLength) + 1;
+  if (newLap > lap && newLap <= totalLaps) {
+    lap = newLap; SFX.lap();
+    if (bestLapThis===0 || lapTime<bestLapThis) bestLapThis = lapTime;
+    flash('PUSINGAN ' + lap + '/' + totalLaps, '#7cf6ff'); lapTime = 0;
+    boostEnergy = Math.min(1, boostEnergy + 0.25);
+  }
+  // recas boost perlahan bila di jalan & laju
+  if (!offroad && !boosting) boostEnergy = Math.min(1, boostEnergy + dt*0.05*(1+s.boost*0.05));
+
+  playerX = Math.max(-2, Math.min(2, playerX));
+
+  // ── AI ──
+  let draftGain = false;
+  for (const o of opponents) {
+    const oseg = findSeg(((o.dist % trackLength) + trackLength) % trackLength);
+    // perlahan di selekoh, ikut kemahiran
+    let want = o.speed * (1 - Math.min(0.3, Math.abs(oseg.curve)*0.09*(2-o.skill)));
+    // rubber-band lembut: kalau jauh tertinggal, laju sikit
+    const gap = playerDist - o.dist;   // + = pemain mendahului
+    if (gap < -SEG_LEN*15) want *= 0.88;       // pemain jauh tertinggal → AI perlahan (mesra kanak)
+    else if (gap > SEG_LEN*40) want *= 1.04;   // pemain jauh mendahului → AI sedikit laju (tak padam lead)
+    o.speed += (want - o.speed) * 0.02;
+    o.dist += o.speed * dt;
+    // ikut racing line + elak player bila rapat
+    o.targetOff = -Math.sign(oseg.curve)*0.35;
+    const rel = ((o.dist - playerDist) % trackLength + trackLength) % trackLength;
+    if (rel < SEG_LEN*6 && rel > 0 && Math.abs(o.offset - playerX) < 0.5) o.targetOff = playerX > 0 ? -0.7 : 0.7;
+    o.offset += (o.targetOff - o.offset) * dt * 2;
+    o.offset = Math.max(-1, Math.min(1, o.offset));
+    // perlanggaran dengan pemain
+    if (rel < SEG_LEN*1.4 && rel > -SEG_LEN*1.4 && Math.abs(o.offset - playerX) < 0.42) {
+      const dur = 1 - carDef.stats.brek*0.03;
+      speed *= 0.72; playerX += (playerX > o.offset ? 1 : -1) * 0.28; o.dist -= SEG_LEN*0.5;
+      damage = Math.min(1, damage + 0.06*(carDef.id==='pipit'?0.8:1));
+      SFX.hit(); shake();
+      for (let i=0;i<6;i++) particles.push({ x:W/2, y:H-70, vx:(Math.random()-0.5)*4, vy:-Math.random()*3, life:18, c:'#ffd24d' });
+    }
+    // drafting: rapat belakang lawan
+    if (rel > SEG_LEN*1.4 && rel < SEG_LEN*5 && Math.abs(o.offset - playerX) < 0.6) { draftGain = true; }
+  }
+  if (draftGain && speed < effMax) { speed = Math.min(effMax*1.04, speed + accel*0.3*dt); boostEnergy = Math.min(1, boostEnergy+dt*0.08); }
+
+  // kedudukan (ranking ikut jumlah jarak)
+  place = 1; for (const o of opponents) if (o.dist > playerDist) place++;
+
+  // partikel
+  for (let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life--; if(p.life<=0) particles.splice(i,1); }
+
+  ENGINE.set(spdPct, boosting>0);
+
+  // tamat?
+  if (playerDist >= trackLength * totalLaps) finishRace();
+}
+let shakeT = 0;
+function shake(){ shakeT = 8; }
+
+function finishRace() {
+  state = 'result';
+  ENGINE.stop(); MUSIC.stop();
+  if (bestLapThis===0) bestLapThis = lapTime;
+  // bintang: 1 habis, 2 top-3, 3 menang
+  let stars = 1; if (place <= 3) stars = 2; if (place === 1) stars = 3;
+  const tk = track.id;
+  const prevStars = prog.stars[tk] || 0;
+  if (stars > prevStars) prog.stars[tk] = stars;
+  const prevBest = prog.bestLap[tk] || 0;
+  const newRecord = (prevBest===0 || bestLapThis < prevBest);
+  if (newRecord) prog.bestLap[tk] = bestLapThis;
+  // buka kunci litar & kereta seterusnya bila menang (place 1)
+  let unlockedMsg = null;
+  if (place === 1 && trackIndex + 1 >= prog.unlocked && prog.unlocked < TRACKS.length) {
+    prog.unlocked++;
+    const nt = TRACKS[prog.unlocked-1];
+    unlockedMsg = 'Litar baru: ' + nt.name;
+    const nc = CARS.find(c => c.unlock === prog.unlocked-1);
+    if (nc) unlockedMsg += ' + Kereta ' + nc.name;
+  }
+  saveProg();
+  resultData = { place, stars, bestLap: bestLapThis, time: raceTime, newRecord, unlockedMsg, win: place===1 };
+  if (place === 1) SFX.win(); else SFX.lose();
+  for (let i=0;i<stars;i++) SFX.star && setTimeout(()=>SFX.star(), 300+i*200);
+}
+
+// ─── RENDER ────────────────────────────────────────────────────
+function project(p, camX, camY, camZ) {
+  p.camera.x = (p.world.x||0) - camX;
+  p.camera.y = (p.world.y||0) - camY;
+  p.camera.z = (p.world.z||0) - camZ;
+  p.screen.scale = CAM_DEPTH / p.camera.z;
+  p.screen.x = Math.round((W/2) + (p.screen.scale * p.camera.x * W/2));
+  p.screen.y = Math.round((H/2) - (p.screen.scale * p.camera.y * H/2));
+  p.screen.w = Math.round(p.screen.scale * ROAD_W * W/2);
+}
+function poly(x1,y1,x2,y2,x3,y3,x4,y4,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.lineTo(x4,y4); ctx.closePath(); ctx.fill(); }
+
+function render() {
+  if (state==='menu'){ drawMenu(); return; }
+  if (state==='tracks'){ drawTrackSelect(); return; }
+  if (state==='cars'){ drawCarSelect(); return; }
+
+  ctx.save();
+  if (shakeT>0){ shakeT-=1; ctx.translate((Math.random()-0.5)*shakeT, (Math.random()-0.5)*shakeT); }
+
+  const t = track;
+  // langit + bukit parallax
+  const sky = ctx.createLinearGradient(0,0,0,H*0.6);
+  sky.addColorStop(0, t.sky); sky.addColorStop(1, t.night ? '#3a1c66' : '#cdeaff');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+  if (t.night) { // bintang
+    ctx.fillStyle='#fff'; for(let i=0;i<40;i++){ const sx=(i*97)%W, sy=(i*53)%140; ctx.fillRect(sx, sy, 2, 2); }
+  }
+  const base = findSeg(position);
+  const bump = -(base.p1.world.y||0) * 0.00035;
+  ctx.fillStyle = t.hill;
+  ctx.beginPath(); ctx.moveTo(0, H*0.5);
+  for (let x=0;x<=W;x+=40){ ctx.lineTo(x, H*0.42 + Math.sin((x*0.01)+(position*0.0002)) * 22 + bump*H); }
+  ctx.lineTo(W,H*0.6); ctx.lineTo(0,H*0.6); ctx.closePath(); ctx.fill();
+
+  // ── jalan (segmen jauh→dekat) ──
+  const basePct = (position % SEG_LEN)/SEG_LEN;
+  const playerSeg = findSeg(position + PLAYER_Z);
+  const playerPct = ((position+PLAYER_Z)%SEG_LEN)/SEG_LEN;
+  const playerY = easeInOut(playerSeg.p1.world.y, playerSeg.p2.world.y, playerPct);
+  let maxy = H, x = 0, dx = -(base.curve * basePct);
+  const camY = playerY + CAM_HEIGHT;
+
+  for (let n=0;n<DRAW_DIST;n++) {
+    const seg = segments[(base.index+n) % segments.length];
+    const looped = seg.index < base.index;
+    const camZ = position - (looped ? trackLength : 0);
+    project(seg.p1, (playerX*ROAD_W) - x, camY, camZ);
+    project(seg.p2, (playerX*ROAD_W) - x - dx, camY, camZ);
+    x += dx; dx += seg.curve;
+    seg._x1=seg.p1.screen.x; seg._y1=seg.p1.screen.y; seg._w1=seg.p1.screen.w;
+    seg._x2=seg.p2.screen.x; seg._y2=seg.p2.screen.y; seg._w2=seg.p2.screen.w; seg._scale=seg.p1.screen.scale; seg._draw=false;
+    if (seg.p1.camera.z <= CAM_DEPTH || seg.p2.screen.y >= seg.p1.screen.y || seg.p2.screen.y >= maxy) continue;
+    seg._draw = true;
+    drawSegment(seg, t);
+    maxy = seg.p2.screen.y;
+  }
+
+  // ── sprite & kereta AI (dekat→jauh untuk susunan betul: lukis jauh dulu) ──
+  for (let n=DRAW_DIST-1;n>=0;n--) {
+    const seg = segments[(base.index+n) % segments.length];
+    if (!seg._draw) continue;
+    // hiasan tepi
+    if (seg.deco) drawDeco(seg, t);
+    // kereta AI atas segmen ini
+    for (const o of opponents) {
+      const od = ((o.dist % trackLength) + trackLength) % trackLength;
+      if (findSeg(od).index === seg.index) {
+        const sc = seg._scale;
+        const carX = seg._x1 + sc * (o.offset*ROAD_W) * W/2;
+        const carY = Math.min(seg._y1, H-10);
+        const cw = Math.max(8, Math.min(sc * 1700 * W/2, 190));   // had saiz — elak blob dekat
+        drawCar(carX, carY, cw, o.color, false, false, 0);
+      }
+    }
+  }
+
+  // ── kereta pemain ──
+  drawCar(W/2 + driftLean*22, H-64, 150, carDef.body, brake(), boosting>0, driftLean);
+  // partikel
+  for (const p of particles){ ctx.fillStyle=p.c; ctx.fillRect(p.x, p.y, 4, 4); }
+
+  ctx.restore();
+  drawHUD();
+  if (state==='countdown') drawCountdown();
+  if (state==='result') drawResult();
+  if (paused) drawPause();
+}
+
+function drawSegment(seg, t) {
+  const dark = seg.dark;
+  const grass = dark ? t.grassD : t.grassL;
+  const road  = dark ? t.roadD : t.roadL;
+  const rumble= dark ? t.rumbleD : t.rumbleL;
+  const x1=seg._x1,y1=seg._y1,w1=seg._w1, x2=seg._x2,y2=seg._y2,w2=seg._w2;
+  // rumput
+  ctx.fillStyle = grass; ctx.fillRect(0, y2, W, y1-y2);
+  const r1=w1/6, r2=w2/6, l1=w1/26, l2=w2/26;
+  // garis mula/penamat (papan dam)
+  if (seg.start) { road && 0; }
+  // rumble kiri & kanan
+  poly(x1-w1-r1,y1, x1-w1,y1, x2-w2,y2, x2-w2-r2,y2, rumble);
+  poly(x1+w1+r1,y1, x1+w1,y1, x2+w2,y2, x2+w2+r2,y2, rumble);
+  // jalan
+  poly(x1-w1,y1, x1+w1,y1, x2+w2,y2, x2-w2,y2, seg.start ? (dark?'#111':'#eee') : road);
+  // papan dam garisan penamat
+  if (seg.start) {
+    ctx.fillStyle = '#fff';
+    const cols=8; for(let i=0;i<cols;i++){ if(i%2===0){ const xa=x1-w1+(2*w1)*(i/cols), xb=x1-w1+(2*w1)*((i+1)/cols); poly(xa,y1,xb,y1,xb,y2,xa,y2,'#111'); } }
+  }
+  // garis lorong (hanya segmen terang, jalan cukup lebar)
+  if (!dark && w1 > 12) {
+    for (let li=1; li<LANES; li++) {
+      const p = -1 + (2*li/LANES);
+      poly(x1+p*w1-l1, y1, x1+p*w1+l1, y1, x2+p*w2+l2, y2, x2+p*w2-l2, y2, t.lane);
+    }
+  }
+}
+
+function drawDeco(seg, t) {
+  const w = seg._w1;
+  if (w < 10 || w > 520) return;             // terlalu jauh / terlalu dekat (blob)
+  const side = seg.deco.side;
+  const baseX = seg._x1 + side * (w * 1.7);  // di luar tepi jalan, ikut lengkung
+  const baseY = seg._y1;
+  const h = Math.min(w * 0.5, 150);          // saiz relatif lebar jalan, dihadkan
+  if (baseX < -h || baseX > W + h || h < 5) return;
+  const type = seg.deco.type;
+  if (type==='tree'){ ctx.fillStyle='#6b4423'; ctx.fillRect(baseX-h*0.06, baseY-h*0.4, h*0.12, h*0.4);
+    ctx.fillStyle='#2e8b2e'; ctx.beginPath(); ctx.arc(baseX, baseY-h*0.5, h*0.28, 0, 7); ctx.fill(); }
+  else if (type==='cactus'){ ctx.fillStyle='#2e8b57'; ctx.fillRect(baseX-h*0.05, baseY-h*0.5, h*0.10, h*0.5);
+    ctx.fillRect(baseX-h*0.05, baseY-h*0.4, -h*0.14, h*0.05); ctx.fillRect(baseX+h*0.05, baseY-h*0.34, h*0.14, h*0.05); }
+  else if (type==='pine'){ ctx.fillStyle='#6b4423'; ctx.fillRect(baseX-h*0.03, baseY-h*0.2, h*0.06, h*0.2);
+    ctx.fillStyle='#2f6b3a'; ctx.beginPath(); ctx.moveTo(baseX, baseY-h*0.6); ctx.lineTo(baseX-h*0.2, baseY-h*0.15); ctx.lineTo(baseX+h*0.2, baseY-h*0.15); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.fillRect(baseX-h*0.2, baseY-h*0.15, h*0.4, h*0.03); }
+  else if (type==='neon'){ const cols=['#ff3df0','#00e5ff','#ffe14a']; ctx.fillStyle='#222';
+    ctx.fillRect(baseX-h*0.05, baseY-h*0.55, h*0.10, h*0.55);
+    ctx.fillStyle=cols[seg.index%3]; ctx.fillRect(baseX-h*0.18, baseY-h*0.6, h*0.36, h*0.2); }
+}
+
+function drawCar(cx, cy, w, color, braking, boost, lean) {
+  const h = w*0.62;
+  ctx.save(); ctx.translate(cx, cy);
+  if (lean) ctx.rotate(lean*0.05);
+  // bayang
+  ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(0, h*0.12, w*0.55, h*0.14, 0,0,7); ctx.fill();
+  // nyala boost
+  if (boost){ ctx.fillStyle='#ffb000'; ctx.beginPath(); ctx.moveTo(-w*0.3, h*0.05); ctx.lineTo(0, h*0.05+w*0.5); ctx.lineTo(w*0.3, h*0.05); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff2b0'; ctx.beginPath(); ctx.moveTo(-w*0.15, h*0.05); ctx.lineTo(0, h*0.05+w*0.32); ctx.lineTo(w*0.15, h*0.05); ctx.closePath(); ctx.fill(); }
+  // tayar
+  ctx.fillStyle='#111';
+  ctx.fillRect(-w*0.52, -h*0.18, w*0.22, h*0.5);
+  ctx.fillRect( w*0.30, -h*0.18, w*0.22, h*0.5);
+  // sayap belakang
+  ctx.fillStyle = shade(color,-40); ctx.fillRect(-w*0.5, -h*0.42, w, h*0.14);
+  ctx.fillRect(-w*0.45,-h*0.42, w*0.05, h*0.2); ctx.fillRect(w*0.4,-h*0.42, w*0.05, h*0.2);
+  // badan
+  ctx.fillStyle = color; ctx.beginPath();
+  ctx.moveTo(-w*0.28, h*0.28); ctx.lineTo(-w*0.34,-h*0.2); ctx.lineTo(-w*0.14,-h*0.36);
+  ctx.lineTo(w*0.14,-h*0.36); ctx.lineTo(w*0.34,-h*0.2); ctx.lineTo(w*0.28, h*0.28); ctx.closePath(); ctx.fill();
+  // jalur
+  ctx.fillStyle = shade(color,45); ctx.fillRect(-w*0.05,-h*0.36, w*0.1, h*0.6);
+  // kokpit + helmet
+  ctx.fillStyle='#111'; ctx.beginPath(); ctx.ellipse(0,-h*0.1, w*0.14, h*0.16, 0,0,7); ctx.fill();
+  ctx.fillStyle='#ffd24d'; ctx.beginPath(); ctx.arc(0,-h*0.12, w*0.09, 0, 7); ctx.fill();
+  // lampu brek
+  ctx.fillStyle = braking ? '#ff2a2a' : '#7a1414';
+  ctx.fillRect(-w*0.26, h*0.16, w*0.14, h*0.1); ctx.fillRect(w*0.12, h*0.16, w*0.14, h*0.1);
+  ctx.restore();
+}
+function shade(hex, amt){
+  const n = parseInt(hex.slice(1),16); let r=(n>>16)+amt, g=((n>>8)&255)+amt, b=(n&255)+amt;
+  r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+// ─── HUD ───────────────────────────────────────────────────────
+function fmtT(s){ const m=Math.floor(s/60), ss=(s%60); return m+':'+ss.toFixed(1).padStart(4,'0'); }
+function drawHUD() {
+  if (state==='menu'||state==='tracks'||state==='cars') return;
+  ctx.textAlign='left';
+  // atas kiri: laju
+  panel(8,8,150,54);
+  ctx.fillStyle='#8fd0ff'; ctx.font='bold 12px Trebuchet MS'; ctx.fillText('LAJU', 16, 24);
+  ctx.fillStyle='#fff'; ctx.font='bold 24px Trebuchet MS';
+  ctx.fillText(Math.round(speed/maxSpeed*260) + '', 16, 50);
+  ctx.font='bold 12px Trebuchet MS'; ctx.fillStyle='#8fd0ff'; ctx.fillText('km/j', 70, 50);
+  // atas tengah: masa + pusingan
+  panel(W/2-90, 8, 180, 40);
+  ctx.textAlign='center'; ctx.fillStyle='#fff'; ctx.font='bold 18px Trebuchet MS';
+  ctx.fillText('⏱ ' + fmtT(raceTime), W/2, 34);
+  // atas kanan: kedudukan + pusingan
+  panel(W-158, 8, 150, 54); ctx.textAlign='left';
+  ctx.fillStyle='#ffd24d'; ctx.font='bold 12px Trebuchet MS'; ctx.fillText('KEDUDUKAN', W-150, 24);
+  ctx.fillStyle='#fff'; ctx.font='bold 22px Trebuchet MS'; ctx.fillText(place + '/' + (opponents.length+1), W-150, 48);
+  ctx.fillStyle='#8fd0ff'; ctx.font='bold 14px Trebuchet MS'; ctx.textAlign='right';
+  ctx.fillText('PUSINGAN ' + Math.min(lap,totalLaps) + '/' + totalLaps, W-14, 44);
+  // bawah kanan: boost
+  panel(W-158, H-40, 150, 30);
+  ctx.textAlign='left'; ctx.fillStyle='#ff8c00'; ctx.font='bold 11px Trebuchet MS'; ctx.fillText('BOOST', W-150, H-27);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(W-150, H-22, 132, 8);
+  ctx.fillStyle = boostEnergy>0.3?'#ff8c00':'#e74c3c'; ctx.fillRect(W-150, H-22, 132*boostEnergy, 8);
+  // bawah kiri: kerosakan
+  panel(8, H-40, 150, 30);
+  ctx.fillStyle='#8fd0ff'; ctx.font='bold 11px Trebuchet MS'; ctx.fillText('KONDISI', 16, H-27);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(16, H-22, 132, 8);
+  const cond = 1-damage; ctx.fillStyle = cond>0.5?'#2ecc71':cond>0.25?'#ffd24d':'#e74c3c';
+  ctx.fillRect(16, H-22, 132*cond, 8);
+  // mesej sementara
+  if (msgT>0){ ctx.textAlign='center'; ctx.fillStyle=msgCol; ctx.font='bold 30px Trebuchet MS';
+    ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=6; ctx.fillText(msg, W/2, 100); ctx.shadowBlur=0; }
+  // pause butang (sentuh)
+  ctx.textAlign='left';
+}
+function panel(x,y,w,h){ ctx.fillStyle='rgba(10,14,30,0.55)'; ctx.fillRect(x,y,w,h); ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,w-1,h-1); }
+
+function drawCountdown() {
+  const n = 3 - Math.floor(countT);
+  ctx.textAlign='center';
+  if (countT < 3) {
+    // lampu
+    for (let i=0;i<3;i++){ ctx.fillStyle = (i < Math.floor(countT)+1) ? '#ff2a2a' : '#4a1010';
+      ctx.beginPath(); ctx.arc(W/2 - 60 + i*60, 120, 20, 0, 7); ctx.fill(); }
+    ctx.fillStyle='#fff'; ctx.font='bold 90px Trebuchet MS'; ctx.fillText(n>0?n:'', W/2, H/2+30);
+    if (Math.floor(countT) !== lastBeep){ lastBeep = Math.floor(countT); SFX.beep(); }
+  } else {
+    ctx.fillStyle='#2ecc71'; ctx.font='bold 90px Trebuchet MS'; ctx.fillText('GO!', W/2, H/2+30);
+  }
+}
+let lastBeep = -1;
+
+function drawPause() {
+  ctx.fillStyle='rgba(8,10,24,0.72)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center'; ctx.fillStyle='#ffe36e'; ctx.font='bold 46px Trebuchet MS';
+  ctx.fillText('⏸️ REHAT', W/2, H/2-10);
+  ctx.fillStyle='#cfe0ff'; ctx.font='bold 18px Trebuchet MS';
+  ctx.fillText('Tekan P untuk sambung · ketuk 🏠 untuk keluar', W/2, H/2+30);
+  ctx.fillText('[ 🏠 KELUAR ]', W/2, H/2+70);
+}
+
+// ─── SKRIN MENU / PILIH ────────────────────────────────────────
+let tapRects = [];
+function bg(c1,c2){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,c1); g.addColorStop(1,c2); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+function btn(x,y,w,h,label,id,col){ tapRects.push({x,y,w,h,id});
+  ctx.fillStyle=col||'rgba(255,255,255,0.12)'; roundRect(x,y,w,h,10); ctx.fill();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2; roundRect(x,y,w,h,10); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font='bold 22px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(label, x+w/2, y+h/2+8); }
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawMenu() {
+  tapRects=[]; bg('#12244a','#0b1226');
+  // bendera
+  ctx.textAlign='center';
+  ctx.fillStyle='#ffe36e'; ctx.font='bold 52px Trebuchet MS';
+  ctx.fillText('🏎️ LUMBA PANTAS', W/2, 130);
+  ctx.fillStyle='#8fd0ff'; ctx.font='bold 20px Trebuchet MS';
+  ctx.fillText('EDRIS & ENISA — Grand Circuit', W/2, 165);
+  // kereta hiasan
+  drawCar(W/2, 300, 150, CARS.find(c=>c.id===prog.car)?.body||'#39b54a', false, false, 0);
+  btn(W/2-130, 360, 260, 60, '▶ MULA LUMBA', 'play', 'rgba(46,204,113,0.35)');
+  ctx.fillStyle='#8fa6d8'; ctx.font='14px Trebuchet MS';
+  ctx.fillText('Ketuk MULA · pandu dengan ◀ ▶ · 🚀 boost', W/2, 445);
+  if (!muted && MUSIC.current!=='menu') MUSIC.start('menu');
+}
+
+function drawTrackSelect() {
+  tapRects=[]; bg('#0d1830','#0a1020');
+  ctx.textAlign='center'; ctx.fillStyle='#ffe36e'; ctx.font='bold 34px Trebuchet MS';
+  ctx.fillText('🏁 PILIH LITAR', W/2, 56);
+  const cw=180, gap=16, x0=(W-(2*cw+gap))/2;
+  for (let i=0;i<TRACKS.length;i++) {
+    const col = i%2, row=Math.floor(i/2);
+    const x = x0 + col*(cw+gap), y = 90 + row*160;
+    const tk = TRACKS[i], unlocked = trackUnlocked(i);
+    tapRects.push({x,y,w:cw,h:140,id:'track'+i});
+    ctx.save(); if(!unlocked) ctx.globalAlpha=0.5;
+    const g=ctx.createLinearGradient(x,y,x,y+140); g.addColorStop(0,tk.sky); g.addColorStop(1,tk.night?'#241247':tk.grassD);
+    ctx.fillStyle=g; roundRect(x,y,cw,140,12); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3; roundRect(x,y,cw,140,12); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillText(unlocked?tk.name:'🔒 TERKUNCI', x+cw/2, y+30);
+    ctx.font='13px Trebuchet MS'; ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.fillText(tk.laps+' pusingan · '+tk.len, x+cw/2, y+54);
+    // bintang
+    const st = prog.stars[tk.id]||0; ctx.font='22px serif';
+    ctx.fillText((st>=1?'⭐':'☆')+(st>=2?'⭐':'☆')+(st>=3?'⭐':'☆'), x+cw/2, y+92);
+    if (prog.bestLap[tk.id]) { ctx.font='12px Trebuchet MS'; ctx.fillStyle='#fff';
+      ctx.fillText('Lap: '+fmtT(prog.bestLap[tk.id]), x+cw/2, y+120); }
+    ctx.restore();
+  }
+  btn(W/2-90, H-46, 180, 38, '◀ KEMBALI', 'backMenu');
+}
+
+function drawCarSelect() {
+  tapRects=[]; bg('#181026','#0c0818');
+  ctx.textAlign='center'; ctx.fillStyle='#ffe36e'; ctx.font='bold 34px Trebuchet MS';
+  ctx.fillText('🚗 PILIH KERETA', W/2, 52);
+  ctx.fillStyle='#8fd0ff'; ctx.font='14px Trebuchet MS';
+  ctx.fillText('Litar: ' + TRACKS[trackIndex].name, W/2, 76);
+  const cw=210, gap=20, x0=(W-(3*cw+2*gap))/2;
+  const labels=[['laju','Laju'],['pecut','Pecut'],['kendali','Kendali'],['brek','Brek'],['boost','Boost']];
+  for (let i=0;i<CARS.length;i++) {
+    const c=CARS[i], x=x0+i*(cw+gap), y=96, unlocked=carUnlocked(c);
+    tapRects.push({x,y,w:cw,h:300,id:'car'+i});
+    ctx.save(); if(!unlocked) ctx.globalAlpha=0.5;
+    ctx.fillStyle='rgba(255,255,255,0.08)'; roundRect(x,y,cw,300,12); ctx.fill();
+    ctx.strokeStyle = c.id===prog.car ? '#ffe36e' : '#fff'; ctx.lineWidth = c.id===prog.car?4:2; roundRect(x,y,cw,300,12); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillText(unlocked?c.name:'🔒 TERKUNCI', x+cw/2, y+26);
+    drawCar(x+cw/2, y+90, 120, c.body, false, false, 0);
+    // stat bars
+    let sy=y+130; ctx.textAlign='left';
+    for (const [k,lab] of labels) {
+      ctx.fillStyle='#9fb4e8'; ctx.font='11px Trebuchet MS'; ctx.fillText(lab, x+16, sy+8);
+      ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(x+80, sy, 110, 8);
+      ctx.fillStyle='#4ea1ff'; ctx.fillRect(x+80, sy, 110*(c.stats[k]/10), 8);
+      sy += 20;
+    }
+    ctx.fillStyle='#ffd24d'; ctx.font='11px Trebuchet MS'; ctx.textAlign='center';
+    wrapText(c.note, x+cw/2, y+274, cw-24, 13);
+    ctx.restore();
+  }
+  btn(W/2-90, H-40, 180, 34, '◀ KEMBALI', 'backTracks');
+}
+function wrapText(t,cx,cy,maxw,lh){ const words=t.split(' '); let line='',yy=cy;
+  for(const w of words){ const test=line+w+' '; if(ctx.measureText(test).width>maxw){ ctx.fillText(line,cx,yy); line=w+' '; yy+=lh; } else line=test; } ctx.fillText(line,cx,yy); }
+
+function drawResult() {
+  ctx.fillStyle='rgba(8,10,24,0.82)'; ctx.fillRect(0,0,W,H);
+  tapRects=[]; ctx.textAlign='center';
+  const r = resultData;
+  ctx.fillStyle = r.win?'#ffe36e':'#8fd0ff'; ctx.font='bold 44px Trebuchet MS';
+  ctx.fillText(r.win?'🏆 MENANG!':'HABIS #'+r.place, W/2, 90);
+  ctx.font='34px serif';
+  ctx.fillText((r.stars>=1?'⭐':'☆')+(r.stars>=2?'⭐':'☆')+(r.stars>=3?'⭐':'☆'), W/2, 140);
+  ctx.fillStyle='#fff'; ctx.font='bold 20px Trebuchet MS';
+  ctx.fillText('Kedudukan: ' + r.place + ' / ' + (opponents.length+1), W/2, 190);
+  ctx.fillText('Lap terbaik: ' + fmtT(r.bestLap) + (r.newRecord?'  ✨ REKOD!':''), W/2, 222);
+  ctx.fillText('Masa: ' + fmtT(r.time), W/2, 254);
+  if (r.unlockedMsg){ ctx.fillStyle='#7cff5c'; ctx.font='bold 18px Trebuchet MS'; ctx.fillText('🔓 ' + r.unlockedMsg, W/2, 292); }
+  btn(W/2-210, 320, 200, 52, '🔄 MAIN LAGI', 'again', 'rgba(46,204,113,0.35)');
+  btn(W/2+10, 320, 200, 52, '🏁 LITAR LAIN', 'toTracks', 'rgba(78,161,255,0.35)');
+  btn(W/2-100, 388, 200, 44, '🏠 MENU', 'toMenu');
+}
+
+// ─── HANDLER KETUK / SAHKAN ────────────────────────────────────
+function onCanvasTap(e) {
+  const p = tapPos(e);
+  // pause overlay: ketuk bahagian bawah = keluar
+  if (state==='race' && paused) {
+    if (p.y > H/2+50) { leaveToMenu(); } else togglePause();
+    return;
+  }
+  for (const r of tapRects) {
+    if (p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h) { hit(r.id); return; }
+  }
+}
+function hit(id) {
+  SFX.pick();
+  if (id==='play'){ state='tracks'; return; }
+  if (id==='backMenu'){ state='menu'; return; }
+  if (id==='backTracks'){ state='tracks'; return; }
+  if (id.startsWith('track')){ const i=+id.slice(5); if(trackUnlocked(i)){ trackIndex=i; state='cars'; } return; }
+  if (id.startsWith('car')){ const i=+id.slice(3); if(carUnlocked(CARS[i])){ carDef=CARS[i]; prog.car=CARS[i].id; saveProg(); startRace(); } return; }
+  if (id==='again'){ startRace(); return; }
+  if (id==='toTracks'){ state='tracks'; MUSIC.start('menu'); return; }
+  if (id==='toMenu'){ state='menu'; MUSIC.start('menu'); return; }
+}
+function onConfirm() {
+  if (state==='menu') hit('play');
+  else if (state==='result') hit('again');
+}
+function leaveToMenu(){ paused=false; ENGINE.stop(); state='menu'; MUSIC.start('menu'); }
+
+// ─── LOOP ──────────────────────────────────────────────────────
+function frame(ts) {
+  if (!lastT) lastT = ts;
+  let dt = (ts - lastT) / 1000; lastT = ts;
+  if (dt > 0.05) dt = 0.05;   // clamp selepas tab switch
+  update(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+<script src="reward-timer.js"></script>
+</body>
+</html>
