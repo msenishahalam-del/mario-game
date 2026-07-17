@@ -124,6 +124,8 @@ const SFX = {
   lose:  () => { [440,349,262].forEach((f,i)=>tone(f,0.22,'square',0.15,i*0.16)); },
   pick:  () => tone(720, 0.09, 'square', 0.14),
   star:  () => { tone(988,0.09,'square',0.15); tone(1319,0.14,'square',0.14,0.08); },
+  honk:  () => { tone(440,0.12,'square',0.11); tone(349,0.14,'square',0.11,0.10); },
+  over:  () => { tone(784,0.08,'square',0.12); tone(1046,0.1,'square',0.12,0.06); },
 };
 // Enjin — oscillator gelung, pitch ikut laju
 const ENGINE = (function () {
@@ -201,36 +203,71 @@ const CARS = [
     stats:{ laju:10, pecut:6, kendali:5, brek:5, boost:7 }, note:'Laju tertinggi di jalan lurus' },
   { id:'belalang', name:'SI BELALANG', body:'#b06bff', unlock:4,
     stats:{ laju:7, pecut:8, kendali:10, brek:9, boost:6 }, note:'Kawalan selekoh terbaik' },
+  { id:'helang',   name:'SI HELANG',   body:'#ffb000', unlock:6,
+    stats:{ laju:8, pecut:9, kendali:7, brek:7, boost:10 }, note:'Raja boost — pecutan padu!' },
 ];
 
-// ─── DATA LITAR (4 bertema) ────────────────────────────────────
+// ─── DATA LITAR (8 bertema, race panjang) ──────────────────────
 const TRACKS = [
-  { id:'padang', name:'PADANG HIJAU', laps:2, len:'pendek',
+  { id:'padang', name:'PADANG HIJAU', laps:2, len:'mudah',
     sky:'#79c0ff', hill:'#8fd48a', grassL:'#4caf50', grassD:'#43a047',
     roadL:'#6b6f75', roadD:'#63676d', rumbleL:'#e8e8e8', rumbleD:'#cf2b2b', lane:'#ffffff',
     deco:'tree', grip:1.0,
-    build(a){ a.straight(30); a.curve(40,2,10); a.straight(20); a.hill(40,-30,20); a.curve(40,-2,10); a.straight(30); } },
-  { id:'gurun', name:'GURUN EMAS', laps:2, len:'panjang',
+    build(a){ for(let i=0;i<2;i++){ a.straight(50); a.curve(60,2,10); a.straight(40); a.hill(60,-30,1); a.curve(60,-2,10); a.straight(40); }
+              a.hill(50,40,0); a.curve(50,1.5,-15); a.straight(40); } },
+  { id:'gurun', name:'GURUN EMAS', laps:2, len:'laju',
     sky:'#ffd27a', hill:'#c99a5b', grassL:'#e6c07a', grassD:'#d9b16b',
     roadL:'#7a736a', roadD:'#726b62', rumbleL:'#fff2cf', rumbleD:'#b5651d', lane:'#fff6df',
     deco:'cactus', grip:0.95,
-    build(a){ a.straight(60); a.curve(30,2.5,8); a.straight(50); a.hill(30,40,15); a.curve(30,-2.5,8); a.straight(40); } },
-  { id:'salji', name:'SALJI FROSTPEAK', laps:3, len:'sederhana',
+    build(a){ for(let i=0;i<2;i++){ a.straight(80); a.curve(40,2.5,8); a.straight(70); a.hill(40,40,1.5); a.curve(40,-2.5,8); a.straight(50); }
+              a.hill(50,-40,0); a.straight(60); } },
+  { id:'salji', name:'SALJI FROSTPEAK', laps:3, len:'licin',
     sky:'#cfe8ff', hill:'#dfeaf5', grassL:'#f2f7fb', grassD:'#e3edf5',
     roadL:'#8a97a6', roadD:'#828f9e', rumbleL:'#ffffff', rumbleD:'#4f6fb0', lane:'#dfe9f5',
     deco:'pine', grip:0.78,
-    build(a){ a.straight(20); a.curve(24,3.2,6); a.curve(24,-3.2,6); a.hill(30,50,12); a.curve(30,3,7); a.straight(25); } },
+    build(a){ for(let i=0;i<2;i++){ a.straight(30); a.curve(32,3.2,6); a.curve(32,-3.2,6); a.hill(36,50,1.5); a.curve(36,3,7); a.straight(30); }
+              a.curve(32,-3.4,0); a.hill(36,-50,1); a.curve(32,3.2,-6); a.straight(30); } },
   { id:'neon', name:'BANDAR NEON', laps:3, len:'teknikal', night:true,
     sky:'#120a2a', hill:'#241247', grassL:'#1b1030', grassD:'#160c28',
     roadL:'#3a3550', roadD:'#332f48', rumbleL:'#ff3df0', rumbleD:'#00e5ff', lane:'#7cf6ff',
     deco:'neon', grip:0.92,
-    build(a){ a.straight(20); a.curve(26,3,6); a.straight(16); a.curve(26,-3.4,6); a.hill(24,-30,10); a.curve(24,3.2,6); a.straight(20); } },
+    build(a){ for(let i=0;i<2;i++){ a.straight(30); a.curve(34,3,6); a.straight(24); a.curve(34,-3.4,6); a.hill(30,-30,1.5); a.curve(30,3.2,6); a.straight(30); }
+              a.curve(34,-3,0); a.hill(30,30,-1); a.curve(30,3.4,0); a.straight(30); } },
+  { id:'pantai', name:'PANTAI SENJA', laps:2, len:'indah',
+    sky:'#ff9e5e', hill:'#b0567a', grassL:'#e8c98a', grassD:'#dbbc7d',
+    roadL:'#6e6a70', roadD:'#666268', rumbleL:'#fff2cf', rumbleD:'#e05a3a', lane:'#ffe9c9',
+    deco:'palm', grip:0.97,
+    build(a){ for(let i=0;i<2;i++){ a.straight(60); a.curve(50,2.2,8); a.straight(40); a.curve(50,-2.6,6); a.hill(44,30,1); a.straight(50); }
+              a.curve(50,2.8,-10); a.straight(50); a.hill(40,-30,0); a.straight(40); } },
+  { id:'hutan', name:'HUTAN RIMBA', laps:3, len:'berliku',
+    sky:'#a8e0c0', hill:'#2e6b3a', grassL:'#2f7d3a', grassD:'#2a7034',
+    roadL:'#5a5f57', roadD:'#52574f', rumbleL:'#e8e8e8', rumbleD:'#7a4a20', lane:'#e8f5d0',
+    deco:'jungle', grip:0.9,
+    build(a){ for(let i=0;i<2;i++){ a.straight(26); a.curve(30,3.2,5); a.curve(30,-3,5); a.straight(24); a.curve(30,2.8,6); a.hill(34,40,1.5); a.curve(30,-3.2,5); }
+              a.straight(30); a.hill(34,-40,1); a.curve(30,3,0); a.straight(26); } },
+  { id:'berapi', name:'GUNUNG BERAPI', laps:3, len:'panas', night:true,
+    sky:'#3a1414', hill:'#6b2417', grassL:'#4a3a36', grassD:'#41332f',
+    roadL:'#5c5650', roadD:'#544e48', rumbleL:'#ffd040', rumbleD:'#c0392b', lane:'#ffcf7a',
+    deco:'rock', grip:0.92,
+    build(a){ for(let i=0;i<2;i++){ a.straight(34); a.hill(44,55,1.5); a.curve(36,3,7); a.straight(26); a.curve(36,-3.2,6); a.hill(44,-55,1); a.straight(30); }
+              a.curve(36,3.4,8); a.curve(36,-3.4,-8); a.straight(34); } },
+  { id:'awan', name:'LEBUHRAYA AWAN', laps:3, len:'finale',
+    sky:'#8fd0ff', hill:'#ffffff', grassL:'#cfe8ff', grassD:'#c2ddf5',
+    roadL:'#7a86c8', roadD:'#727ec0', rumbleL:'#ffffff', rumbleD:'#ffb84d', lane:'#ffffff',
+    deco:'cloud', grip:1.0,
+    build(a){ for(let i=0;i<3;i++){ a.straight(60); a.curve(44,2.6,10); a.straight(44); a.hill(44,50,1); a.curve(44,-2.8,8); a.hill(40,-50,0); }
+              a.straight(60); } },
 ];
 
 // ─── SIMPAN KEMAJUAN ───────────────────────────────────────────
 const PKEY = 'lumbapantas_progress';
-function loadProg(){ try { return JSON.parse(localStorage.getItem(PKEY) || '{"unlocked":1,"stars":{},"bestLap":{},"car":"pipit"}'); }
-  catch { return { unlocked:1, stars:{}, bestLap:{}, car:'pipit' }; } }
+function loadProg(){
+  let p;
+  try { p = JSON.parse(localStorage.getItem(PKEY) || '{"unlocked":1,"stars":{},"bestLap":{},"car":"pipit"}'); }
+  catch { p = { unlocked:1, stars:{}, bestLap:{}, car:'pipit' }; }
+  p.bestPlace = p.bestPlace || {};   // serasi save lama
+  return p;
+}
 function saveProg(){ try { localStorage.setItem(PKEY, JSON.stringify(prog)); } catch {} }
 let prog = loadProg();
 function carUnlocked(c){ return c.unlock <= (prog.unlocked - 1); }
@@ -304,6 +341,8 @@ let playerDist = 0, lap = 1, place = 1;
 let boostEnergy = 1, boosting = 0, damage = 0;
 let raceTime = 0, lapTime = 0, bestLapThis = 0, offT = 0, driftLean = 0;
 let opponents = [];
+let traffic = [];        // 🚗 kereta awam (bukan pesaing)
+let prevPlace = 1;       // untuk mesej "Naik #X!"
 let particles = [];
 let countT = 0, resultData = null, msg = '', msgT = 0;
 
@@ -359,19 +398,34 @@ function startRace() {
   position = 0; playerX = 0; speed = 0; playerDist = 0; lap = 1; place = 1;
   boostEnergy = 1; boosting = 0; damage = 0; raceTime = 0; lapTime = 0; bestLapThis = 0; offT = 0; driftLean = 0;
   particles = []; msg=''; msgT=0;
-  // lawan AI
+  // lawan AI — 8 pesaing
   opponents = [];
-  const rivalColors = ['#ff8c00','#00b8d4','#ffd000','#ff4da6','#7cff5c'];
-  const rivalNames  = ['MILO','SORA','ZANE','KIRA','VEGA'];
-  const nAI = 5;
+  const rivalColors = ['#ff8c00','#00b8d4','#ffd000','#ff4da6','#7cff5c','#ffffff','#3d5afe','#212121'];
+  const rivalNames  = ['MILO','SORA','ZANE','KIRA','VEGA','TALIA','IVAN','REX'];
+  const nAI = 8;
   for (let i=0;i<nAI;i++) {
     opponents.push({
-      dist: -(i+1)*SEG_LEN*2.2,       // bermula sedikit di hadapan/grid
+      dist: -(i+1)*SEG_LEN*2.2,       // grid mula berperingkat
       offset: ((i%LANES)-1) * 0.6,
       targetOff: ((i%LANES)-1) * 0.6,
-      speed: maxSpeed * (0.74 + Math.random()*0.05),
+      speed: maxSpeed * (0.74 + (i/nAI)*0.06 + Math.random()*0.03),
       color: rivalColors[i], name: rivalNames[i],
       skill: 0.85 + Math.random()*0.12,
+    });
+  }
+  prevPlace = 1;   // pemain mula P1 ikut jarak (grid AI di belakang)
+  // 🚗 traffic — kereta awam perlahan, tersebar sepanjang litar
+  traffic = [];
+  const nTraffic = 10 + Math.floor(segments.length / 120);
+  const tCols = ['#a8c6e8','#e8b8a8','#c8e8b0','#e8dfa8','#d8b8e8','#b0e0e0'];
+  for (let i=0;i<nTraffic;i++) {
+    traffic.push({
+      dist: SEG_LEN*30 + Math.random() * (trackLength - SEG_LEN*40),   // elak grid mula
+      offset: [-0.66, 0, 0.66][i % 3],
+      speed: maxSpeed * (0.30 + Math.random()*0.16),
+      color: tCols[i % tCols.length],
+      van: i % 3 === 0,
+      honked: false,
     });
   }
   state = 'countdown'; countT = 0;
@@ -444,7 +498,9 @@ function update(dt) {
   if (newLap > lap && newLap <= totalLaps) {
     lap = newLap; SFX.lap();
     if (bestLapThis===0 || lapTime<bestLapThis) bestLapThis = lapTime;
-    flash('PUSINGAN ' + lap + '/' + totalLaps, '#7cf6ff'); lapTime = 0;
+    if (lap === totalLaps) flash('PUSINGAN AKHIR! 🏁', '#ffd24d');
+    else flash('PUSINGAN ' + lap + '/' + totalLaps, '#7cf6ff');
+    lapTime = 0;
     boostEnergy = Math.min(1, boostEnergy + 0.25);
   }
   // recas boost perlahan bila di jalan & laju
@@ -468,6 +524,15 @@ function update(dt) {
     o.targetOff = -Math.sign(oseg.curve)*0.35;
     const rel = ((o.dist - playerDist) % trackLength + trackLength) % trackLength;
     if (rel < SEG_LEN*6 && rel > 0 && Math.abs(o.offset - playerX) < 0.5) o.targetOff = playerX > 0 ? -0.7 : 0.7;
+    // elak kereta awam di hadapan
+    for (const tr of traffic) {
+      const trel = ((tr.dist - o.dist) % trackLength + trackLength) % trackLength;
+      if (trel < SEG_LEN*6 && Math.abs(tr.offset - o.offset) < 0.45) {
+        o.targetOff = tr.offset > 0 ? tr.offset - 0.9 : tr.offset + 0.9;
+        if (trel < SEG_LEN*2.5) o.speed *= 0.995;
+        break;
+      }
+    }
     o.offset += (o.targetOff - o.offset) * dt * 2;
     o.offset = Math.max(-1, Math.min(1, o.offset));
     // perlanggaran dengan pemain
@@ -483,8 +548,29 @@ function update(dt) {
   }
   if (draftGain && speed < effMax) { speed = Math.min(effMax*1.04, speed + accel*0.3*dt); boostEnergy = Math.min(1, boostEnergy+dt*0.08); }
 
-  // kedudukan (ranking ikut jumlah jarak)
+  // ── 🚗 TRAFFIC (kereta awam) ──
+  for (const tr of traffic) {
+    tr.dist += tr.speed * dt;
+    const rel = ((tr.dist - playerDist) % trackLength + trackLength) % trackLength;
+    const near = rel < SEG_LEN*1.4 || rel > trackLength - SEG_LEN*0.7;
+    // langgar pemain
+    if (near && Math.abs(tr.offset - playerX) < 0.4) {
+      speed *= 0.68; playerX += (playerX > tr.offset ? 1 : -1) * 0.3;
+      tr.dist -= SEG_LEN*0.3;
+      damage = Math.min(1, damage + 0.05);
+      SFX.hit(); shake();
+      for (let i=0;i<6;i++) particles.push({ x:W/2, y:H-70, vx:(Math.random()-0.5)*4, vy:-Math.random()*3, life:18, c:'#ffd24d' });
+    }
+    // hon 📯 bila pemain rapat dari belakang (near-miss)
+    if (rel > SEG_LEN*1.4 && rel < SEG_LEN*5 && Math.abs(tr.offset - playerX) < 0.35) {
+      if (!tr.honked) { tr.honked = true; SFX.honk(); }
+    } else if (rel > SEG_LEN*8 && rel < trackLength - SEG_LEN*8) tr.honked = false;
+  }
+
+  // kedudukan (ranking ikut jumlah jarak — traffic TIDAK dikira)
   place = 1; for (const o of opponents) if (o.dist > playerDist) place++;
+  if (place < prevPlace && msgT <= 0 && raceTime > 3) { flash('Naik #' + place + '! 🎉', '#7cff5c'); SFX.over(); }
+  prevPlace = place;
 
   // partikel
   for (let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life--; if(p.life<=0) particles.splice(i,1); }
@@ -509,6 +595,7 @@ function finishRace() {
   const prevBest = prog.bestLap[tk] || 0;
   const newRecord = (prevBest===0 || bestLapThis < prevBest);
   if (newRecord) prog.bestLap[tk] = bestLapThis;
+  if (!prog.bestPlace[tk] || place < prog.bestPlace[tk]) prog.bestPlace[tk] = place;
   // buka kunci litar & kereta seterusnya bila menang (place 1)
   let unlockedMsg = null;
   if (place === 1 && trackIndex + 1 >= prog.unlocked && prog.unlocked < TRACKS.length) {
@@ -588,6 +675,17 @@ function render() {
     if (!seg._draw) continue;
     // hiasan tepi
     if (seg.deco) drawDeco(seg, t);
+    // kereta awam atas segmen ini
+    for (const tr of traffic) {
+      const td = ((tr.dist % trackLength) + trackLength) % trackLength;
+      if (findSeg(td).index === seg.index) {
+        const sc = seg._scale;
+        const carX = seg._x1 + sc * (tr.offset*ROAD_W) * W/2;
+        const carY = Math.min(seg._y1, H-10);
+        const cw = Math.max(8, Math.min(sc * 1500 * W/2, 170));
+        drawTrafficCar(carX, carY, cw, tr.color, tr.van);
+      }
+    }
     // kereta AI atas segmen ini
     for (const o of opponents) {
       const od = ((o.dist % trackLength) + trackLength) % trackLength;
@@ -598,6 +696,19 @@ function render() {
         const cw = Math.max(8, Math.min(sc * 1700 * W/2, 190));   // had saiz — elak blob dekat
         drawCar(carX, carY, cw, o.color, false, false, 0);
       }
+    }
+  }
+
+  // 💨 garis laju semasa boost
+  if (boosting > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2;
+    const tnow = Date.now();
+    for (let i=0;i<12;i++) {
+      const a = (i/12) * Math.PI*2 + (i%2)*0.26;
+      const r1 = 150 + ((tnow/2 + i*47) % 140);
+      const x1 = W/2 + Math.cos(a)*r1, y1 = H/2 + Math.sin(a)*r1*0.62;
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 + Math.cos(a)*46, y1 + Math.sin(a)*28); ctx.stroke();
     }
   }
 
@@ -662,6 +773,22 @@ function drawDeco(seg, t) {
   else if (type==='neon'){ const cols=['#ff3df0','#00e5ff','#ffe14a']; ctx.fillStyle='#222';
     ctx.fillRect(baseX-h*0.05, baseY-h*0.55, h*0.10, h*0.55);
     ctx.fillStyle=cols[seg.index%3]; ctx.fillRect(baseX-h*0.18, baseY-h*0.6, h*0.36, h*0.2); }
+  else if (type==='palm'){ ctx.fillStyle='#8a5a2c';
+    ctx.fillRect(baseX-h*0.035, baseY-h*0.5, h*0.07, h*0.5);
+    ctx.fillStyle='#2e8b3e';
+    for (let a=0;a<5;a++){ const ang=Math.PI*(0.15+a*0.175);
+      ctx.beginPath(); ctx.ellipse(baseX+Math.cos(ang)*h*0.16, baseY-h*0.52-Math.sin(ang)*h*0.1, h*0.17, h*0.05, -ang+Math.PI/2, 0, 7); ctx.fill(); } }
+  else if (type==='jungle'){ ctx.fillStyle='#4a3418';
+    ctx.fillRect(baseX-h*0.06, baseY-h*0.45, h*0.12, h*0.45);
+    ctx.fillStyle='#1f6b2a'; ctx.beginPath(); ctx.arc(baseX, baseY-h*0.52, h*0.3, 0, 7); ctx.fill();
+    ctx.fillStyle='#2f8b3a'; ctx.beginPath(); ctx.arc(baseX-h*0.16, baseY-h*0.42, h*0.2, 0, 7); ctx.arc(baseX+h*0.16, baseY-h*0.44, h*0.22, 0, 7); ctx.fill(); }
+  else if (type==='rock'){ ctx.fillStyle='#5a4a44';
+    ctx.beginPath(); ctx.moveTo(baseX-h*0.28, baseY); ctx.lineTo(baseX-h*0.08, baseY-h*0.42); ctx.lineTo(baseX+h*0.1, baseY-h*0.28); ctx.lineTo(baseX+h*0.3, baseY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ff6a2a'; ctx.fillRect(baseX-h*0.05, baseY-h*0.5, h*0.08, h*0.08); }  // bara
+  else if (type==='cloud'){ ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(baseX, baseY-h*0.3, h*0.18, 0, 7);
+    ctx.arc(baseX-h*0.18, baseY-h*0.24, h*0.13, 0, 7);
+    ctx.arc(baseX+h*0.18, baseY-h*0.24, h*0.13, 0, 7); ctx.fill(); }
 }
 
 function drawCar(cx, cy, w, color, braking, boost, lean) {
@@ -692,6 +819,32 @@ function drawCar(cx, cy, w, color, braking, boost, lean) {
   // lampu brek
   ctx.fillStyle = braking ? '#ff2a2a' : '#7a1414';
   ctx.fillRect(-w*0.26, h*0.16, w*0.14, h*0.1); ctx.fillRect(w*0.12, h*0.16, w*0.14, h*0.1);
+  ctx.restore();
+}
+// 🚗 kereta awam — bentuk kotak (hatchback / van), bukan kereta lumba
+function drawTrafficCar(cx, cy, w, color, van) {
+  const h = w * (van ? 0.78 : 0.62);
+  ctx.save(); ctx.translate(cx, cy);
+  // bayang
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0, h*0.1, w*0.5, h*0.12, 0,0,7); ctx.fill();
+  // tayar
+  ctx.fillStyle='#222';
+  ctx.fillRect(-w*0.46, -h*0.08, w*0.16, h*0.34);
+  ctx.fillRect( w*0.30, -h*0.08, w*0.16, h*0.34);
+  // badan kotak
+  ctx.fillStyle = color;
+  roundRect(-w*0.42, -h*0.34, w*0.84, h*0.56, w*0.08); ctx.fill();
+  // bumbung
+  ctx.fillStyle = shade(color, -30);
+  roundRect(-w*0.34, -h*(van?0.62:0.56), w*0.68, h*0.3, w*0.06); ctx.fill();
+  // tingkap belakang
+  ctx.fillStyle = '#28303c';
+  ctx.fillRect(-w*0.28, -h*(van?0.56:0.5), w*0.56, h*0.2);
+  // bumper + lampu brek
+  ctx.fillStyle = shade(color, -50); ctx.fillRect(-w*0.42, h*0.1, w*0.84, h*0.1);
+  ctx.fillStyle = '#c0392b';
+  ctx.fillRect(-w*0.38, -h*0.02, w*0.12, h*0.08);
+  ctx.fillRect( w*0.26, -h*0.02, w*0.12, h*0.08);
   ctx.restore();
 }
 function shade(hex, amt){
@@ -732,6 +885,20 @@ function drawHUD() {
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(16, H-22, 132, 8);
   const cond = 1-damage; ctx.fillStyle = cond>0.5?'#2ecc71':cond>0.25?'#ffd24d':'#e74c3c';
   ctx.fillRect(16, H-22, 132*cond, 8);
+  // bawah tengah: bar kemajuan pusingan (titik = kereta)
+  panel(W/2-130, H-32, 260, 24);
+  const bx0 = W/2-118, bw = 236;
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(bx0, H-20); ctx.lineTo(bx0+bw, H-20); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.fillRect(bx0+bw-2, H-27, 3, 14);   // garisan penamat
+  for (const o of opponents) {
+    const of_ = (((o.dist % trackLength) + trackLength) % trackLength) / trackLength;
+    ctx.fillStyle='rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(bx0 + bw*of_, H-20, 3, 0, 7); ctx.fill();
+  }
+  const pf = (position % trackLength) / trackLength;
+  ctx.fillStyle='#2ecc71'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(bx0 + bw*pf, H-20, 5, 0, 7); ctx.fill(); ctx.stroke();
   // mesej sementara
   if (msgT>0){ ctx.textAlign='center'; ctx.fillStyle=msgCol; ctx.font='bold 30px Trebuchet MS';
     ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=6; ctx.fillText(msg, W/2, 100); ctx.shadowBlur=0; }
@@ -792,26 +959,30 @@ function drawMenu() {
 function drawTrackSelect() {
   tapRects=[]; bg('#0d1830','#0a1020');
   ctx.textAlign='center'; ctx.fillStyle='#ffe36e'; ctx.font='bold 34px Trebuchet MS';
-  ctx.fillText('🏁 PILIH LITAR', W/2, 56);
-  const cw=180, gap=16, x0=(W-(2*cw+gap))/2;
+  ctx.fillText('🏁 PILIH LITAR', W/2, 52);
+  const cw=182, gap=10, ch=148, x0=(W-(4*cw+3*gap))/2;
   for (let i=0;i<TRACKS.length;i++) {
-    const col = i%2, row=Math.floor(i/2);
-    const x = x0 + col*(cw+gap), y = 90 + row*160;
+    const col = i%4, row=Math.floor(i/4);
+    const x = x0 + col*(cw+gap), y = 76 + row*(ch+12);
     const tk = TRACKS[i], unlocked = trackUnlocked(i);
-    tapRects.push({x,y,w:cw,h:140,id:'track'+i});
+    tapRects.push({x,y,w:cw,h:ch,id:'track'+i});
     ctx.save(); if(!unlocked) ctx.globalAlpha=0.5;
-    const g=ctx.createLinearGradient(x,y,x,y+140); g.addColorStop(0,tk.sky); g.addColorStop(1,tk.night?'#241247':tk.grassD);
-    ctx.fillStyle=g; roundRect(x,y,cw,140,12); ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=3; roundRect(x,y,cw,140,12); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
-    ctx.fillText(unlocked?tk.name:'🔒 TERKUNCI', x+cw/2, y+30);
-    ctx.font='13px Trebuchet MS'; ctx.fillStyle='rgba(255,255,255,0.9)';
-    ctx.fillText(tk.laps+' pusingan · '+tk.len, x+cw/2, y+54);
+    const g=ctx.createLinearGradient(x,y,x,y+ch); g.addColorStop(0,tk.sky); g.addColorStop(1,tk.night?'#241247':tk.grassD);
+    ctx.fillStyle=g; roundRect(x,y,cw,ch,12); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3; roundRect(x,y,cw,ch,12); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Trebuchet MS'; ctx.textAlign='center';
+    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=3;
+    ctx.fillText(unlocked ? (i+1)+'. '+tk.name : '🔒 TERKUNCI', x+cw/2, y+26);
+    ctx.font='11px Trebuchet MS'; ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.fillText(tk.laps+' pusingan · '+tk.len, x+cw/2, y+46);
+    ctx.shadowBlur=0;
     // bintang
-    const st = prog.stars[tk.id]||0; ctx.font='22px serif';
-    ctx.fillText((st>=1?'⭐':'☆')+(st>=2?'⭐':'☆')+(st>=3?'⭐':'☆'), x+cw/2, y+92);
-    if (prog.bestLap[tk.id]) { ctx.font='12px Trebuchet MS'; ctx.fillStyle='#fff';
-      ctx.fillText('Lap: '+fmtT(prog.bestLap[tk.id]), x+cw/2, y+120); }
+    const st = prog.stars[tk.id]||0; ctx.font='19px serif';
+    ctx.fillText((st>=1?'⭐':'☆')+(st>=2?'⭐':'☆')+(st>=3?'⭐':'☆'), x+cw/2, y+82);
+    if (unlocked && prog.bestPlace[tk.id]) { ctx.font='11px Trebuchet MS'; ctx.fillStyle='#ffe36e';
+      ctx.fillText('Terbaik: #' + prog.bestPlace[tk.id], x+cw/2, y+108); }
+    if (unlocked && prog.bestLap[tk.id]) { ctx.font='11px Trebuchet MS'; ctx.fillStyle='#fff';
+      ctx.fillText('Lap: '+fmtT(prog.bestLap[tk.id]), x+cw/2, y+128); }
     ctx.restore();
   }
   btn(W/2-90, H-46, 180, 38, '◀ KEMBALI', 'backMenu');
@@ -823,7 +994,7 @@ function drawCarSelect() {
   ctx.fillText('🚗 PILIH KERETA', W/2, 52);
   ctx.fillStyle='#8fd0ff'; ctx.font='14px Trebuchet MS';
   ctx.fillText('Litar: ' + TRACKS[trackIndex].name, W/2, 76);
-  const cw=210, gap=20, x0=(W-(3*cw+2*gap))/2;
+  const cw=182, gap=12, x0=(W-(4*cw+3*gap))/2;
   const labels=[['laju','Laju'],['pecut','Pecut'],['kendali','Kendali'],['brek','Brek'],['boost','Boost']];
   for (let i=0;i<CARS.length;i++) {
     const c=CARS[i], x=x0+i*(cw+gap), y=96, unlocked=carUnlocked(c);
@@ -831,19 +1002,19 @@ function drawCarSelect() {
     ctx.save(); if(!unlocked) ctx.globalAlpha=0.5;
     ctx.fillStyle='rgba(255,255,255,0.08)'; roundRect(x,y,cw,300,12); ctx.fill();
     ctx.strokeStyle = c.id===prog.car ? '#ffe36e' : '#fff'; ctx.lineWidth = c.id===prog.car?4:2; roundRect(x,y,cw,300,12); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold 18px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillStyle='#fff'; ctx.font='bold 15px Trebuchet MS'; ctx.textAlign='center';
     ctx.fillText(unlocked?c.name:'🔒 TERKUNCI', x+cw/2, y+26);
-    drawCar(x+cw/2, y+90, 120, c.body, false, false, 0);
+    drawCar(x+cw/2, y+88, 100, c.body, false, false, 0);
     // stat bars
-    let sy=y+130; ctx.textAlign='left';
+    let sy=y+128; ctx.textAlign='left';
     for (const [k,lab] of labels) {
-      ctx.fillStyle='#9fb4e8'; ctx.font='11px Trebuchet MS'; ctx.fillText(lab, x+16, sy+8);
-      ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(x+80, sy, 110, 8);
-      ctx.fillStyle='#4ea1ff'; ctx.fillRect(x+80, sy, 110*(c.stats[k]/10), 8);
+      ctx.fillStyle='#9fb4e8'; ctx.font='11px Trebuchet MS'; ctx.fillText(lab, x+12, sy+8);
+      ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(x+68, sy, cw-84, 8);
+      ctx.fillStyle='#4ea1ff'; ctx.fillRect(x+68, sy, (cw-84)*(c.stats[k]/10), 8);
       sy += 20;
     }
     ctx.fillStyle='#ffd24d'; ctx.font='11px Trebuchet MS'; ctx.textAlign='center';
-    wrapText(c.note, x+cw/2, y+274, cw-24, 13);
+    wrapText(c.note, x+cw/2, y+262, cw-20, 13);
     ctx.restore();
   }
   btn(W/2-90, H-40, 180, 34, '◀ KEMBALI', 'backTracks');
