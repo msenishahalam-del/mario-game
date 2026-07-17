@@ -255,8 +255,10 @@ let score = 0, coins = 0, lives = 5;   // mod mudah — lebih nyawa untuk 6 tahu
 let gameState = 'name'; // name | cutscene | playing | dead | gameover | win | clear | ending
 let cameraX = 0, shake = 0;
 let spawnX = 60, currentLevel = 1;
-const MAX_LEVEL = 4;            // Api(1) · Laut(2) · Hutan(3) · Kubu Raja Gergasi(4)
-const LEVEL_NAMES = { 1: 'DUNIA API', 2: 'DUNIA LAUT', 3: 'DUNIA HUTAN', 4: 'KUBU RAJA GERGASI' };
+const MAX_LEVEL = 6;            // Api(1) · Laut(2) · Hutan(3) · Kubu(4) · Berapi(5) · Dino(6)
+const LEVEL_NAMES = { 1: 'DUNIA API', 2: 'DUNIA LAUT', 3: 'DUNIA HUTAN', 4: 'KUBU RAJA GERGASI', 5: 'GUNUNG BERAPI', 6: 'LEMBAH DINO' };
+const MUSIC_THEME = { berapi: 'api', dino: 'hutan' };   // tema baru pinjam muzik sedia ada
+let homecoming = false;         // habis Dunia 6 → babak sampai rumah
 let snowflakes = [];            // untuk Level 2 background
 let embers = [];                // untuk Level 4 background (bara api naik)
 let cut = null;                 // cutscene timeline {t, kind:'intro'|'ending'}
@@ -270,12 +272,18 @@ let paused = false;       // rehat — bekukan permainan (cth anak nak ke tandas
 
 // ── v2: simpan kemajuan + bintang ──
 const PROGRESS_KEY = 'edriswira_progress';
-function loadProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{"unlocked":1,"stars":{}}'); } catch { return { unlocked: 1, stars: {} }; } }
+function loadProgress() {
+  let p;
+  try { p = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{"unlocked":1,"stars":{}}'); } catch { p = { unlocked: 1, stars: {} }; }
+  // Migrasi: pemain lama yg dah tewaskan Kubu (L4) terus buka Dunia 5
+  if (p.stars && p.stars[4] && p.unlocked < 5) p.unlocked = 5;
+  return p;
+}
 function saveProgress() { try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch {} }
 let progress = loadProgress();
 let levelDeaths = 0;          // mati dalam level semasa → penilaian bintang
 let bossTalk = 0;             // pemasa gelembung dialog bos
-const BOSS_LINES = { gergasiapi: 'Kamu akan hangus!', ularlaut: 'Tenggelam kamu!', rajamonyet: 'Hihihi, tangkap pisang ni!', rajagergasi: 'Puteri Peach milik aku!', rajagergasi2: 'Belum tamat! Rasakan kuasa bayang!' };
+const BOSS_LINES = { gergasiapi: 'Kamu akan hangus!', ularlaut: 'Tenggelam kamu!', rajamonyet: 'Hihihi, tangkap pisang ni!', rajagergasi: 'Puteri Peach milik aku!', rajagergasi2: 'Belum tamat! Rasakan kuasa bayang!', kaktusboss: 'Jangan sentuh duri aku!', rajatrex: 'ROARRR! Kamu makan malam aku!' };
 // Bintang ikut kematian dalam level
 function awardStars() {
   const s = levelDeaths === 0 ? 3 : levelDeaths === 1 ? 2 : 1;
@@ -304,7 +312,7 @@ document.addEventListener('keydown', e => {
   if ((e.code === 'KeyP' || e.code === 'Escape') && gameState === 'playing') togglePause();
   // Peta Dunia: buka dengan M; pilih dunia 1-4 (tak boleh masa rehat)
   if (e.code === 'KeyM' && !paused && (gameState === 'playing' || gameState === 'gameover' || gameState === 'win')) openMap();
-  if (gameState === 'map' && ['Digit1','Digit2','Digit3','Digit4'].includes(e.code)) {
+  if (gameState === 'map' && ['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6'].includes(e.code)) {
     const n = parseInt(e.code.slice(5), 10);
     if (n <= progress.unlocked) { SFX.power(); score = 0; coins = 0; lives = 5; startLevelAt(n); }
   }
@@ -368,8 +376,8 @@ function defeatBoss(bs, bonus) {
   burst(bs.x + bs.w/2, bs.y + bs.h/2, '#FFD700', 30);
   burst(bs.x + bs.w/2, bs.y + bs.h/2, '#FF4400', 20);
   shake = 14; SFX.clear();
-  // 👹 Dunia 4: selepas Raja Gergasi kalah → bos kedua muncul (lebih kuat)
-  if (currentLevel === MAX_LEVEL && level.bossWave === 1) {
+  // 👹 Dunia 4 (Kubu): selepas Raja Gergasi kalah → bos kedua muncul (lebih kuat)
+  if (currentLevel === 4 && level.bossWave === 1) {
     level.bossWave = 2;
     const b2 = mkBoss('rajagergasi2', 2560, 9, 2180, 2800);
     b2.w = 96; b2.h = 108; b2.y = GROUND_Y - b2.h;
@@ -385,7 +393,7 @@ function defeatBoss(bs, bonus) {
 
 function buildLevel(num) {
   const blocks = [], coinList = [], enemies = [], powerups = [], decos = [], lavas = [];
-  const firePipes = [], logZones = []; let tsunami = null;
+  const firePipes = [], logZones = []; let tsunami = null, volcano = null, trex = null;
   let lengthX, boss = null;
 
   if (num === 1) {
@@ -486,7 +494,7 @@ function buildLevel(num) {
     blocks.push(B(2860, GROUND_Y-220, 40, 220, 'solid'));
     boss = mkBoss('rajamonyet', 2560, 5, 2200, 2800);
 
-  } else {
+  } else if (num === 4) {
     // ── LEVEL 4 — KUBU RAJA GERGASI 👹 (jambatan, ikan dari pipe) + BOS AKHIR ──
     lengthX = 2900;
     blocks.push(B(0, GROUND_Y, 480, 48, 'ground'));       // air 480-620
@@ -517,6 +525,58 @@ function buildLevel(num) {
 
     blocks.push(B(2860, GROUND_Y-220, 40, 220, 'solid'));
     boss = mkBoss('rajagergasi', 2560, 7, 2180, 2800);
+
+  } else if (num === 5) {
+    // ── LEVEL 5 — GUNUNG BERAPI 🌋 (letusan hujan api + kaktus berduri) ──
+    lengthX = 2900;
+    blocks.push(B(0, GROUND_Y, 620, 48, 'ground'));       // lava 620-760
+    blocks.push(B(760, GROUND_Y, 560, 48, 'ground'));     // lava 1320-1440
+    blocks.push(B(1440, GROUND_Y, 700, 48, 'ground'));
+    blocks.push(B(2140, GROUND_Y, 760, 48, 'ground'));    // arena bos
+    lavas.push({ x: 620, w: 140 }, { x: 1320, w: 120 });
+    blocks.push(B(660, 335, 90, 20, 'solid'));            // platform atas lava
+    blocks.push(B(1350, 330, 90, 20, 'solid'));
+
+    blocks.push(B(340, 290, 32, 32, 'question', 'mushroom'));
+    blocks.push(B(400, 290, 32, 32, 'question', 'ice'));
+    blocks.push(B(1050, 260, 32, 32, 'question', 'fire'));
+    blocks.push(B(1800, 250, 32, 32, 'question', 'star'));
+
+    // 🌵 KAKTUS BERDURI — jangan pijak, jangan sentuh! (baling api/ais sahaja)
+    [300, 560, 900, 1150, 1600, 1900, 2050].forEach(x => enemies.push(mkEnemy(x, 'kaktus')));
+    [480, 1000, 1700, 2300].forEach(x => enemies.push(mkEnemy(x, 'apikecil')));
+    [[350,240],[700,230],[1100,220],[1650,230],[2200,240]].forEach(([x,y]) => coinList.push(mkCoin(x,y)));
+    decos.push(...[150,1250,2450].map(x => ({x, type:'firerock'})));
+
+    // 🌋 letusan berkala — hujan bola api dari langit
+    volcano = { t: 0, interval: 300, warn: 70 };
+
+    blocks.push(B(2860, GROUND_Y-220, 40, 220, 'solid'));
+    boss = mkBoss('kaktusboss', 2560, 5, 2200, 2800);
+
+  } else {
+    // ── LEVEL 6 — LEMBAH DINO 🦖 (burung menjunam + T-REX KEJAR!) ──
+    lengthX = 3100;
+    blocks.push(B(0, GROUND_Y, 900, 48, 'ground'));       // gaung 900-1000
+    blocks.push(B(1000, GROUND_Y, 700, 48, 'ground'));    // gaung 1700-1800
+    blocks.push(B(1800, GROUND_Y, 1300, 48, 'ground'));   // arena bos
+
+    blocks.push(B(420, 290, 32, 32, 'question', 'mushroom'));
+    blocks.push(B(760, 260, 32, 32, 'question', 'fire'));
+    blocks.push(B(1400, 260, 32, 32, 'question', 'star'));
+    blocks.push(B(2050, 250, 32, 32, 'question', 'ice'));
+
+    // 🐦 burung terbang buai + api kecil
+    [500, 950, 1450, 1950, 2350].forEach(x => enemies.push(mkEnemy(x, 'burung')));
+    [700, 1600, 2200].forEach(x => enemies.push(mkEnemy(x, 'apikecil')));
+    [[300,240],[800,230],[1300,240],[1900,230],[2400,240]].forEach(([x,y]) => coinList.push(mkCoin(x,y)));
+    decos.push(...[200,900,1700,2500].map(x => ({x, type:'palmtree'})));
+
+    // 🦖 T-REX mengejar dari belakang — LARI!
+    trex = { x: -420, animT: 0, roarT: 120, done: false };
+
+    blocks.push(B(3060, GROUND_Y-220, 40, 220, 'solid'));
+    boss = mkBoss('rajatrex', 2760, 6, 2380, 3000);
   }
 
   // ── Si Comel (mount) — hanya Dunia Hutan ──
@@ -526,12 +586,12 @@ function buildLevel(num) {
               taken: false, animT: 0, animF: 0, bob: 0 };
   }
 
-  const theme = num === 1 ? 'api' : num === 2 ? 'laut' : num === 3 ? 'hutan' : 'kubu';
+  const theme = num === 1 ? 'api' : num === 2 ? 'laut' : num === 3 ? 'hutan' : num === 4 ? 'kubu' : num === 5 ? 'berapi' : 'dino';
   // Checkpoint mesti atas tanah pejal — bukan atas longkang/lava/air, jauh dari pipe api & musuh
   const cpX = safeCheckpointX(blocks, lavas, firePipes, enemies, Math.floor(lengthX * 0.52));
   return { blocks, coinList, enemies, powerups, decos, flag: null, boss, yoshi,
            fireballs: [], playerFireballs: [], theme, lengthX, lavas,
-           firePipes, logZones, tsunami, fallers: [], hazT: 0, bossWave: 1,
+           firePipes, logZones, tsunami, volcano, trex, fallers: [], hazT: 0, bossWave: 1,
            checkpoint: { x: cpX, reached: false } };
 }
 
@@ -579,6 +639,17 @@ function mkEnemy(x, kind, opts) {
              hideY, showY, baseY: hideY,
              alive: true, kind, stateT: kind === 'fish' ? 60 : 90, phase: 'hidden',
              squished: false, squishT: 0, animT: 0, animF: 0, onGround: false };
+  }
+  if (kind === 'kaktus') {
+    // 🌵 statik & berduri — sentuh dari mana-mana arah = sakit
+    return { x, y: GROUND_Y - 34, w: 26, h: 34, vx: 0, vy: 0, speed: 0, dir: 1,
+             alive: true, kind, squished: false, squishT: 0, animT: 0, animF: 0, onGround: true };
+  }
+  if (kind === 'burung') {
+    // 🐦 terbang buai sinus, mengejar arah pemain
+    const baseY = GROUND_Y - 150 - Math.random()*40;
+    return { x, y: baseY, baseY, w: 34, h: 26, vx: 0, vy: 0, speed: 1.6, dir: -1,
+             alive: true, kind, squished: false, squishT: 0, animT: Math.floor(Math.random()*100), animF: 0, onGround: false };
   }
   return { x, y: GROUND_Y - 30, w: 30, h: 30, vx: 0, vy: 0,
            speed: (kind === 'apikecil' ? 1.0 : 1.2) + Math.random()*0.5, dir: -1,
@@ -695,13 +766,13 @@ function startGame() {
 }
 // v2: mula terus di mana-mana level (dari peta dunia)
 function startLevelAt(n) {
-  paused = false;
+  paused = false; homecoming = false;
   currentLevel = n; spawnX = 60; bonusReturn = null; levelDeaths = 0;
   level = buildLevel(n); player = makePlayer();
   cameraX = 0; particles = []; floaters = [];
   initSnowflakes();
   gameState = 'playing'; updateHUD();
-  MUSIC.start(level.theme);
+  MUSIC.start(MUSIC_THEME[level.theme] || level.theme);
   floatText(player.x - 10, player.y - 46, 'LEVEL ' + n + ' — ' + LEVEL_NAMES[n], '#FFD700');
 }
 // Bawa power-up ke level seterusnya — Edris tak kecil semula bila naik level
@@ -720,7 +791,7 @@ function nextLevel() {
   cameraX = 0; particles = []; floaters = [];
   initSnowflakes();
   gameState = 'playing'; updateHUD();
-  MUSIC.start(level.theme);
+  MUSIC.start(MUSIC_THEME[level.theme] || level.theme);
   floatText(player.x - 10, player.y - 46, 'LEVEL ' + currentLevel + ' — ' + LEVEL_NAMES[currentLevel], '#FFD700');
 }
 
@@ -740,7 +811,7 @@ function initSnowflakes() {
       });
     }
   }
-  if (level && (level.theme === 'castle' || level.theme === 'api')) {
+  if (level && (level.theme === 'castle' || level.theme === 'api' || level.theme === 'berapi')) {
     for (let i = 0; i < 40; i++) {
       embers.push({
         x: Math.random() * W,
@@ -832,8 +903,9 @@ function update() {
     clearTimer--;
     if (level.flag && player.y + player.h < GROUND_Y) { player.y += 2.2; level.flag.slide = Math.min(1, level.flag.slide + 0.012); }
     if (clearTimer <= 0) {
-      if (currentLevel < MAX_LEVEL) nextLevel();
-      else startEnding();   // Raja Gergasi tewas → babak selamatkan Puteri Peach!
+      if (currentLevel === 4) startEnding();   // Raja Gergasi tewas → babak selamatkan Puteri Peach!
+      else if (currentLevel < MAX_LEVEL) nextLevel();
+      else { homecoming = true; gameState = 'win'; MUSIC.start('menang'); updateHUD(); }   // habis Dunia 6 → sampai rumah!
     }
     stepParticles();
     return;
@@ -985,6 +1057,36 @@ function update() {
       if (f.y > GROUND_Y) { burst(f.x+13, GROUND_Y, '#7a4a20', 8); level.fallers.splice(i,1); }
     }
   }
+  // 🌋 Gunung berapi meletus (Dunia 5) — hujan bola api!
+  if (level.volcano) {
+    const v = level.volcano; v.t++;
+    if (v.t === v.interval - v.warn) SFX.bump();   // desis amaran
+    if (v.t >= v.interval) {
+      v.t = 0;
+      for (let i = 0; i < 4; i++)
+        level.fireballs.push({ x: cameraX + 80 + Math.random()*(W-140), y: -20 - i*50, vx: (Math.random()-0.5)*1.6, vy: 2 + Math.random()*2, life: 240 });
+      shake = 8; SFX.brk();
+    }
+  }
+  // 🦖 T-REX KEJAR (Dunia 6) — lari, dia mengejar dari belakang!
+  if (level.trex && !level.trex.done) {
+    const tx = level.trex;
+    tx.animT++;
+    const gap = player.x - tx.x;
+    const spd = gap > 800 ? 4.6 : gap > 350 ? 3.2 : 2.3;   // rubber-band mesra kanak
+    tx.x += spd;
+    // sampai arena bos → chaser berhenti (Raja T-Rex ambil alih!)
+    if (level.boss && tx.x > level.boss.minX - 620) tx.done = true;
+    // rauman sesekali bila dekat
+    tx.roarT--;
+    if (tx.roarT <= 0) { tx.roarT = 240 + Math.floor(Math.random()*120); if (Math.abs(gap) < 700) SFX.hurt(); }
+    // kena gigit → cedera + terlempar ke hadapan (peluang lari, bukan mati terus)
+    const box = { x: tx.x, y: GROUND_Y - 92, w: 74, h: 92 };
+    if (!player.dead && player.inv === 0 && player.starT === 0 && overlap(player, box)) {
+      hurtPlayer();
+      player.vx = 9; player.vy = -7;
+    }
+  }
 
   // enemies
   for (const e of enemies) {
@@ -1024,6 +1126,13 @@ function update() {
       e.animT++; if (e.animT>15){ e.animT=0; e.animF=(e.animF+1)%2; }
       // Tak collision bila tersembunyi
       if (e.phase === 'hidden') continue;
+    } else if (e.kind === 'burung') {
+      // 🐦 burung terbang — buai sinus, terbang ke arah pemain
+      e.animT++;
+      if (Math.abs(e.x - player.x) > 60) e.dir = e.x > player.x ? -1 : 1;
+      e.x += e.dir * e.speed;
+      e.y = e.baseY + Math.sin(e.animT * 0.05) * 36;
+      if (e.animT % 8 === 0) e.animF = (e.animF + 1) % 2;
     } else {
       e.vy += GRAV; if (e.vy > MAX_FALL) e.vy = MAX_FALL;
       e.vx = e.dir * e.speed;
@@ -1066,8 +1175,8 @@ function update() {
         continue;
       }
       if (player.inv > 0) continue;
-      // Piranha — tak boleh stomp dari atas (kepala berduri tersirat)
-      if (e.kind === 'piranha') {
+      // Piranha & Kaktus — berduri! Tak boleh stomp, sentuh mana-mana pun sakit
+      if (e.kind === 'piranha' || e.kind === 'kaktus') {
         hurtPlayer();
         continue;
       }
@@ -1468,6 +1577,53 @@ function drawBackground() {
     for (const wx0 of [300,700,1100,1500,1900,2300]) { const x=wx0-cameraX*0.5; if(x<-40||x>W+40)continue; const fl=0.5+0.2*Math.sin(Date.now()/300+wx0); ctx.fillStyle=`rgba(160,90,220,${fl})`; ctx.fillRect(x,130,24,42); }
     return;
   }
+  // ── GUNUNG BERAPI 🌋 (Dunia 5) ──
+  if (level.theme === 'berapi') {
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#2a0a0a'); g.addColorStop(0.5,'#6a1e0a'); g.addColorStop(1,'#b04a14');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // gunung berapi BESAR di tengah pemandangan (parallax 0.25)
+    for (const mx of [400, 1400, 2400]) {
+      const x = mx - cameraX*0.25;
+      ctx.fillStyle = '#33130c';
+      ctx.beginPath(); ctx.moveTo(x-220, GROUND_Y); ctx.lineTo(x-40, GROUND_Y-230); ctx.lineTo(x+40, GROUND_Y-230); ctx.lineTo(x+220, GROUND_Y); ctx.closePath(); ctx.fill();
+      // kawah bercahaya + lava mengalir
+      const gl = 0.6 + 0.3*Math.sin(Date.now()/250 + mx);
+      ctx.fillStyle = `rgba(255,120,20,${gl})`;
+      ctx.fillRect(x-40, GROUND_Y-234, 80, 8);
+      ctx.fillStyle = '#ff6a1e';
+      ctx.beginPath(); ctx.moveTo(x-10, GROUND_Y-230); ctx.lineTo(x-24, GROUND_Y-120); ctx.lineTo(x-14, GROUND_Y-118); ctx.lineTo(x-2, GROUND_Y-228); ctx.closePath(); ctx.fill();
+      // asap kelabu berkepul
+      ctx.fillStyle = 'rgba(90,80,80,0.5)';
+      const sm = (Date.now()/900 + mx) % 5;
+      ctx.beginPath(); ctx.arc(x + sm*6, GROUND_Y-250-sm*16, 14+sm*4, 0, 7); ctx.fill();
+    }
+    // bara naik (kongsi embers)
+    for (const em of embers) { em.y += em.vy; em.sway += 0.05; em.x += Math.sin(em.sway)*0.4; if (em.y<-5){ em.y=H+5; em.x=Math.random()*W; } ctx.fillStyle=`rgba(255,${140+Math.floor(80*em.glow)},40,${em.glow})`; ctx.beginPath(); ctx.arc(em.x, em.y, em.size, 0, 7); ctx.fill(); }
+    return;
+  }
+  // ── LEMBAH DINO 🦖 (Dunia 6) ──
+  if (level.theme === 'dino') {
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#ffd9a0'); g.addColorStop(0.55,'#ffeccb'); g.addColorStop(1,'#d8f4c0');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#ffde6a'; ctx.beginPath(); ctx.arc(100, 76, 38, 0, 7); ctx.fill();
+    // gunung purba jauh
+    ctx.fillStyle = '#a8b88a';
+    for (const mx of [200,700,1250,1800,2350,2900]) { const x=mx-cameraX*0.25;
+      ctx.beginPath(); ctx.moveTo(x-140,GROUND_Y); ctx.lineTo(x,GROUND_Y-170); ctx.lineTo(x+140,GROUND_Y); ctx.closePath(); ctx.fill(); }
+    // pterodactyl siluet berlegar (bukan musuh — hiasan)
+    ctx.strokeStyle = '#6a5a3a'; ctx.lineWidth = 2.5;
+    for (let i=0;i<3;i++) {
+      const px = ((i*420 + Date.now()/40) % (W+200)) - 100;
+      const py = 70 + i*36 + Math.sin(Date.now()/500 + i)*10;
+      const fl = Math.sin(Date.now()/180 + i*2) * 6;
+      ctx.beginPath(); ctx.moveTo(px-12, py-fl); ctx.lineTo(px, py); ctx.lineTo(px+12, py-fl); ctx.stroke();
+    }
+    // bukit paku-pakis hijau
+    ctx.fillStyle = '#8fc85a'; for (const hx of [180,650,1150,1650,2150,2650]) { const x=hx-cameraX*0.5; ctx.beginPath(); ctx.arc(x, GROUND_Y, 120, Math.PI, 0); ctx.fill(); }
+    return;
+  }
   if (level.theme === 'ice') {
     // Langit ais — gradient biru-putih
     const g = ctx.createLinearGradient(0,0,0,H);
@@ -1711,6 +1867,8 @@ function drawBlock(b) {
     else if (level.theme === 'laut') { soil = '#c8a86a'; top1 = '#e6d29a'; top2 = '#c8a86a'; }
     else if (level.theme === 'hutan') { soil = '#8a5a2a'; top1 = '#5ac85a'; top2 = '#3a9a3a'; }
     else if (level.theme === 'kubu') { soil = '#33283f'; top1 = '#4a3a5a'; top2 = '#2a2035'; }
+    else if (level.theme === 'berapi') { soil = '#3a1c14'; top1 = '#8a4a2a'; top2 = '#6a3620'; }
+    else if (level.theme === 'dino') { soil = '#a8763a'; top1 = '#8fc84a'; top2 = '#6aa832'; }
     else if (level.theme === 'castle') { soil = '#4a4a55'; top1 = '#6a6a78'; top2 = '#3a3a44'; }
     else if (level.theme === 'yoshi') { soil = '#c89a4a'; top1 = '#5ac85a'; top2 = '#3a9a3a'; }
     ctx.fillStyle = soil; ctx.fillRect(x, y, b.w, b.h);
@@ -1893,8 +2051,52 @@ function drawEnemy(e) {
 function drawEnemyBody(e, x, y) {
   if (e.squished) {
     if (e.kind === 'piranha' || e.kind === 'fish') return;
-    ctx.fillStyle = e.kind==='apikecil' ? '#ff6a1e' : e.kind==='monkey' ? '#6e4a2f' : e.kind==='koopa' ? '#2a8f2a' : '#7a4a22';
+    ctx.fillStyle = e.kind==='apikecil' ? '#ff6a1e' : e.kind==='monkey' ? '#6e4a2f' : e.kind==='koopa' ? '#2a8f2a' : e.kind==='kaktus' ? '#2e9e4a' : e.kind==='burung' ? '#d05a3a' : '#7a4a22';
     ctx.beginPath(); ctx.ellipse(x+e.w/2, y+e.h-5, e.w/2, 6, 0, 0, 7); ctx.fill();
+    return;
+  }
+  // 🌵 Kaktus berduri (statik — jangan sentuh!)
+  if (e.kind === 'kaktus') {
+    const cx = x+e.w/2;
+    // batang utama
+    ctx.fillStyle = '#2e9e4a';
+    ctx.beginPath(); ctx.roundRect(cx-7, y+4, 14, e.h-4, 6); ctx.fill();
+    // lengan kiri & kanan
+    ctx.beginPath(); ctx.roundRect(cx-17, y+12, 8, 12, 4); ctx.fill();
+    ctx.fillRect(cx-13, y+16, 8, 5);
+    ctx.beginPath(); ctx.roundRect(cx+9, y+8, 8, 14, 4); ctx.fill();
+    ctx.fillRect(cx+5, y+14, 8, 5);
+    // jalur badan
+    ctx.strokeStyle = '#1f7a35'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(cx-3, y+8); ctx.lineTo(cx-3, y+e.h-3); ctx.moveTo(cx+3, y+8); ctx.lineTo(cx+3, y+e.h-3); ctx.stroke();
+    // duri (jelas — amaran bahaya!)
+    ctx.strokeStyle = '#e8f5d0'; ctx.lineWidth = 1.5;
+    for (let i=0;i<4;i++){ const sy2 = y+8+i*7;
+      ctx.beginPath(); ctx.moveTo(cx-7, sy2); ctx.lineTo(cx-12, sy2-3); ctx.moveTo(cx+7, sy2); ctx.lineTo(cx+12, sy2-3); ctx.stroke(); }
+    // bunga merah comel atas
+    ctx.fillStyle = '#e8235a'; ctx.beginPath(); ctx.arc(cx, y+2, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(cx, y+2, 1.6, 0, 7); ctx.fill();
+    // mata mengantuk (comel tapi bahaya)
+    ctx.fillStyle = '#0d3a1a'; ctx.beginPath(); ctx.arc(cx-3, y+13, 1.5, 0, 7); ctx.arc(cx+3, y+13, 1.5, 0, 7); ctx.fill();
+    return;
+  }
+  // 🐦 Burung menjunam
+  if (e.kind === 'burung') {
+    const cx = x+e.w/2, cy = y+e.h/2, d = e.dir<0?-1:1;
+    // sayap kepak (ikut animF)
+    ctx.fillStyle = '#a83a20';
+    const wy = e.animF===0 ? -10 : 4;
+    ctx.beginPath(); ctx.moveTo(cx-2, cy); ctx.lineTo(cx-14, cy+wy); ctx.lineTo(cx-16, cy+wy+6); ctx.closePath(); ctx.fill();
+    // badan
+    ctx.fillStyle = '#d05a3a'; ctx.beginPath(); ctx.ellipse(cx, cy, 13, 9, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f0b090'; ctx.beginPath(); ctx.ellipse(cx, cy+3, 8, 5, 0, 0, 7); ctx.fill();
+    // ekor
+    ctx.fillStyle = '#a83a20'; ctx.beginPath(); ctx.moveTo(cx-d*11, cy); ctx.lineTo(cx-d*19, cy-4); ctx.lineTo(cx-d*17, cy+4); ctx.closePath(); ctx.fill();
+    // kepala + paruh + mata
+    ctx.fillStyle = '#d05a3a'; ctx.beginPath(); ctx.arc(cx+d*10, cy-4, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffb020'; ctx.beginPath(); ctx.moveTo(cx+d*15, cy-5); ctx.lineTo(cx+d*21, cy-3); ctx.lineTo(cx+d*15, cy-1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx+d*11, cy-5, 2.4, 0, 7); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(cx+d*12, cy-5, 1.3, 0, 7); ctx.fill();
     return;
   }
   // 👹 Api Kecil (raksasa kecil api)
@@ -2139,16 +2341,30 @@ function drawOverlay() {
     ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
   } else if (gameState === 'win') {
     dim(0.72);
-    ctx.fillStyle='#FFD700'; ctx.font='bold 56px Trebuchet MS';
-    ctx.fillText('🎉 KAMU MENANG!', W/2, H/2-30);
-    ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
-    ctx.fillText('Skor Akhir: ' + score + '   🪙 ' + coins, W/2, H/2+14);
-    ctx.fillStyle='#FFD700'; ctx.font='18px Trebuchet MS';
-    ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
+    if (homecoming) {
+      // 🏡 Habis Dunia 6 — Edris & Puteri Peach selamat sampai rumah!
+      ctx.fillStyle='#FFD700'; ctx.font='bold 50px Trebuchet MS';
+      ctx.fillText('🏡 SAMPAI RUMAH!', W/2, H/2-50);
+      ctx.fillStyle='#ffb3d1'; ctx.font='bold 24px Trebuchet MS';
+      ctx.fillText('Edris & Puteri Peach selamat pulang! 🎉', W/2, H/2-6);
+      ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
+      ctx.fillText('Skor Akhir: ' + score + '   🪙 ' + coins, W/2, H/2+34);
+      ctx.fillStyle='#FFD700'; ctx.font='bold 20px Trebuchet MS';
+      ctx.fillText('TAMAT — WIRA PULAU PELANGI! 👑🌈', W/2, H/2+70);
+      ctx.font='16px Trebuchet MS';
+      ctx.fillText('ENTER / TAP → Peta Dunia', W/2, H/2+102);
+    } else {
+      ctx.fillStyle='#FFD700'; ctx.font='bold 56px Trebuchet MS';
+      ctx.fillText('🎉 KAMU MENANG!', W/2, H/2-30);
+      ctx.fillStyle='#fff'; ctx.font='22px Trebuchet MS';
+      ctx.fillText('Skor Akhir: ' + score + '   🪙 ' + coins, W/2, H/2+14);
+      ctx.fillStyle='#FFD700'; ctx.font='18px Trebuchet MS';
+      ctx.fillText('ENTER / TAP untuk main lagi', W/2, H/2+48);
+    }
   } else if (gameState === 'clear') {
-    const STONES = { 1: 'BATU API 🔴', 2: 'BATU AIR 🔵', 3: 'BATU HUTAN 🟢', 4: 'BATU PELANGI 🌈' };
+    const CLEAR_T = { 1: '✨ BATU API 🔴 DIRAMPAS!', 2: '✨ BATU AIR 🔵 DIRAMPAS!', 3: '✨ BATU HUTAN 🟢 DIRAMPAS!', 4: '✨ BATU PELANGI 🌈 DIRAMPAS!', 5: '🌵 RAKSASA KAKTUS TEWAS!', 6: '🦖 RAJA T-REX TEWAS!' };
     ctx.fillStyle='#FFD700'; ctx.font='bold 34px Trebuchet MS';
-    ctx.fillText(level.boss ? '✨ ' + STONES[currentLevel] + ' DIRAMPAS!' : 'DUNIA ' + currentLevel + ' SELAMAT!', W/2, 84);
+    ctx.fillText(level.boss ? CLEAR_T[currentLevel] : 'DUNIA ' + currentLevel + ' SELAMAT!', W/2, 84);
     // Bintang diperoleh
     const sg = (level && level.starsGot) || 0;
     ctx.font='30px serif';
@@ -2157,7 +2373,9 @@ function drawOverlay() {
     const beats = {
       1: 'Batu Api selamat! Puteri Peach dibawa ke laut… 🌊',
       2: 'Ombak reda! Jejak menuju hutan gelap… 🌳',
-      3: 'Raja Monyet jadi kawan! Kubu di depan — Puteri Peach dekat! 🌉'
+      3: 'Raja Monyet jadi kawan! Kubu di depan — Puteri Peach dekat! 🌉',
+      4: 'Puteri Peach bebas! Jalan pulang lalu Gunung Berapi… 🌋',
+      5: 'Fuh, panas! Lembah Dino di depan… ada yang mengejar! 🦖'
     };
     if (beats[currentLevel]) {
       ctx.fillStyle='#ffffff'; ctx.font='bold 19px Trebuchet MS';
@@ -2363,6 +2581,78 @@ function drawRajaGergasi(x, y, w, h, dir, enraged) {
   ctx.restore();
 }
 
+// 🌵 RAKSASA KAKTUS (bos Dunia 5)
+function drawRaksasaKaktus(x, y, w, h, dir, enraged) {
+  ctx.save(); ctx.translate(x + w/2, y + h/2); ctx.scale(dir, 1);
+  const body = enraged ? '#1f7a35' : '#2e9e4a';
+  const dark = enraged ? '#0d5a22' : '#1f7a35';
+  // badan tong tegak
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.roundRect(-w*0.24, -h*0.46, w*0.48, h*0.92, w*0.16); ctx.fill();
+  // lengan siku ke atas
+  ctx.beginPath(); ctx.roundRect(-w*0.48, -h*0.26, w*0.14, h*0.3, w*0.06); ctx.fill();
+  ctx.fillRect(-w*0.44, -h*0.02, w*0.22, h*0.1);
+  ctx.beginPath(); ctx.roundRect(w*0.34, -h*0.34, w*0.14, h*0.3, w*0.06); ctx.fill();
+  ctx.fillRect(w*0.22, -h*0.1, w*0.22, h*0.1);
+  // jalur badan
+  ctx.strokeStyle = dark; ctx.lineWidth = Math.max(2, w*0.03);
+  for (const off of [-0.12, 0, 0.12]) { ctx.beginPath(); ctx.moveTo(w*off, -h*0.42); ctx.lineTo(w*off, h*0.44); ctx.stroke(); }
+  // duri putih besar
+  ctx.strokeStyle = '#e8f5d0'; ctx.lineWidth = Math.max(2, w*0.025);
+  for (let i=0;i<5;i++) { const sy = -h*0.36 + i*h*0.17;
+    ctx.beginPath(); ctx.moveTo(-w*0.24, sy); ctx.lineTo(-w*0.34, sy-h*0.04); ctx.moveTo(w*0.24, sy); ctx.lineTo(w*0.34, sy-h*0.04); ctx.stroke(); }
+  // bunga besar atas kepala
+  ctx.fillStyle = enraged ? '#ff3040' : '#e8235a';
+  for (let i=0;i<6;i++){ const a=i*Math.PI/3; ctx.beginPath(); ctx.ellipse(Math.cos(a)*w*0.09, -h*0.52+Math.sin(a)*w*0.09, w*0.07, w*0.045, a, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#ffd24d'; ctx.beginPath(); ctx.arc(0, -h*0.52, w*0.05, 0, 7); ctx.fill();
+  // mata marah + mulut
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-w*0.1, -h*0.2, w*0.06, h*0.045, 0, 0, 7); ctx.ellipse(w*0.1, -h*0.2, w*0.06, h*0.045, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = enraged ? '#ff2a1e' : '#0d3a1a'; ctx.beginPath(); ctx.arc(-w*0.09, -h*0.2, w*0.028, 0, 7); ctx.arc(w*0.11, -h*0.2, w*0.028, 0, 7); ctx.fill();
+  ctx.strokeStyle = dark; ctx.lineWidth = Math.max(2, w*0.03);
+  ctx.beginPath(); ctx.moveTo(-w*0.16, -h*0.28); ctx.lineTo(-w*0.03, -h*0.25); ctx.moveTo(w*0.16, -h*0.28); ctx.lineTo(w*0.03, -h*0.25); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, -h*0.08, w*0.07, 0.15, Math.PI-0.15); ctx.stroke();
+  ctx.restore();
+}
+// 🦖 T-REX (pengejar Dunia 6 + bos RAJA T-REX)
+function drawTRexArt(x, y, w, h, dir, enraged, animT) {
+  ctx.save(); ctx.translate(x + w/2, y + h/2); ctx.scale(dir, 1);
+  const body = enraged ? '#5a7a2a' : '#4a8a3a';
+  const belly = enraged ? '#9aa85a' : '#a8c86a';
+  const step = Math.sin((animT||0) * 0.25) * h*0.04;
+  // ekor tebal
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.moveTo(-w*0.2, -h*0.05); ctx.quadraticCurveTo(-w*0.62, -h*0.1, -w*0.68, h*0.14); ctx.quadraticCurveTo(-w*0.5, h*0.06, -w*0.2, h*0.2); ctx.closePath(); ctx.fill();
+  // kaki (berjalan)
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.roundRect(-w*0.16, h*0.08 + step, w*0.15, h*0.4 - step, w*0.05); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(w*0.04, h*0.08 - step, w*0.15, h*0.4 + step, w*0.05); ctx.fill();
+  // badan condong
+  ctx.beginPath(); ctx.ellipse(-w*0.02, -h*0.04, w*0.3, h*0.26, -0.18, 0, 7); ctx.fill();
+  ctx.fillStyle = belly; ctx.beginPath(); ctx.ellipse(0, h*0.05, w*0.18, h*0.14, -0.18, 0, 7); ctx.fill();
+  // tangan kecil comel
+  ctx.fillStyle = body;
+  ctx.fillRect(w*0.16, -h*0.08, w*0.1, h*0.04); ctx.fillRect(w*0.24, -h*0.08, w*0.03, h*0.08);
+  // kepala BESAR + rahang
+  ctx.beginPath(); ctx.roundRect(w*0.1, -h*0.5, w*0.42, h*0.28, w*0.08); ctx.fill();
+  const jaw = Math.abs(Math.sin((animT||0)*0.06)) * h*0.06;
+  ctx.beginPath(); ctx.roundRect(w*0.14, -h*0.24 + jaw, w*0.36, h*0.12, w*0.05); ctx.fill();
+  // gigi tajam
+  ctx.fillStyle = '#fff';
+  for (let i=0;i<4;i++){ const gx = w*0.18 + i*w*0.08;
+    ctx.beginPath(); ctx.moveTo(gx, -h*0.23); ctx.lineTo(gx+w*0.03, -h*0.16); ctx.lineTo(gx+w*0.06, -h*0.23); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(gx, -h*0.23 + jaw + h*0.0); ctx.lineTo(gx+w*0.03, -h*0.29 + jaw + h*0.06); ctx.lineTo(gx+w*0.06, -h*0.23 + jaw); ctx.closePath(); ctx.fill(); }
+  // mata garang
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(w*0.2, -h*0.42, w*0.045, 0, 7); ctx.fill();
+  ctx.fillStyle = enraged ? '#ff2a1e' : '#111'; ctx.beginPath(); ctx.arc(w*0.215, -h*0.42, w*0.024, 0, 7); ctx.fill();
+  ctx.strokeStyle = enraged ? '#3a4a10' : '#2a5a20'; ctx.lineWidth = Math.max(2, w*0.03);
+  ctx.beginPath(); ctx.moveTo(w*0.13, -h*0.48); ctx.lineTo(w*0.26, -h*0.45); ctx.stroke();
+  // bonjol belakang
+  ctx.fillStyle = body;
+  for (let i=0;i<3;i++){ const bx = -w*0.1 + i*w*0.12;
+    ctx.beginPath(); ctx.moveTo(bx, -h*0.26); ctx.lineTo(bx+w*0.05, -h*0.36); ctx.lineTo(bx+w*0.1, -h*0.26); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+
 function drawBoss() {
   const bs = level.boss; if (!bs || !bs.alive) return;
   const x = Math.round(bs.x - cameraX), y = Math.round(bs.y);
@@ -2373,6 +2663,8 @@ function drawBoss() {
   if (bs.type === 'gergasiapi') drawGergasiApi(x, y, bs.w, bs.h, bs.dir, bs.enraged);
   else if (bs.type === 'ularlaut') drawUlarLaut(x, y, bs.w, bs.h, bs.dir, bs.enraged);
   else if (bs.type === 'rajamonyet') drawRajaMonyet(x, y, bs.w, bs.h, bs.dir, bs.enraged);
+  else if (bs.type === 'kaktusboss') drawRaksasaKaktus(x, y, bs.w, bs.h, bs.dir, bs.enraged);
+  else if (bs.type === 'rajatrex') drawTRexArt(x, y, bs.w, bs.h, bs.dir, bs.enraged, Date.now()/16);
   else drawRajaGergasi(x, y, bs.w, bs.h, bs.dir, bs.enraged);
   // Aura bila enraged
   if (bs.enraged) {
@@ -2384,12 +2676,12 @@ function drawBoss() {
   ctx.restore();
   // HP bar
   ctx.fillStyle = '#000'; ctx.fillRect(x+4, y-14, bs.w-8, 7);
-  const hpColor = bs.enraged ? '#ff3020' : (bs.type === 'ularlaut' ? '#1f9ab0' : bs.type === 'rajamonyet' ? '#6e4a2f' : bs.type === 'rajagergasi' ? '#8a4fc4' : '#ff8a1e');
+  const hpColor = bs.enraged ? '#ff3020' : (bs.type === 'ularlaut' ? '#1f9ab0' : bs.type === 'rajamonyet' ? '#6e4a2f' : bs.type === 'rajagergasi' ? '#8a4fc4' : bs.type === 'kaktusboss' ? '#2e9e4a' : bs.type === 'rajatrex' ? '#4a8a3a' : '#ff8a1e');
   ctx.fillStyle = hpColor; ctx.fillRect(x+5, y-13, (bs.w-10)*(bs.hp/bs.maxHp), 5);
   // Label nama boss
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
-  const NAMES = { gergasiapi:'GERGASI API', ularlaut:'ULAR LAUT', rajamonyet:'RAJA MONYET', rajagergasi:'RAJA GERGASI', rajagergasi2:'GERGASI BAYANG' };
+  const NAMES = { gergasiapi:'GERGASI API', ularlaut:'ULAR LAUT', rajamonyet:'RAJA MONYET', rajagergasi:'RAJA GERGASI', rajagergasi2:'GERGASI BAYANG', kaktusboss:'RAKSASA KAKTUS', rajatrex:'RAJA T-REX' };
   let name = NAMES[bs.type] || 'BOS';
   if (bs.enraged) name = '🔥 ' + name + ' — MENGGILA!';
   ctx.fillText(name, x+bs.w/2, y-16);
@@ -2472,6 +2764,24 @@ function drawHazards() {
       ctx.beginPath(); ctx.arc(wx+4, 66, 14, 0, 7); ctx.arc(wx-14, 74, 12, 0, 7); ctx.fill();
     }
   }
+  // 🌋 Amaran letusan (Dunia 5)
+  if (level.volcano && level.volcano.t > level.volcano.interval - level.volcano.warn) {
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 22px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.shadowColor = '#300'; ctx.shadowBlur = 6;
+    if (Math.floor(Date.now()/250)%2===0) ctx.fillText('🌋 GUNUNG MELETUS! AWAS DARI ATAS! 🌋', W/2, 80);
+    ctx.shadowBlur = 0; ctx.textAlign = 'left';
+  }
+  // 🦖 T-Rex pengejar (Dunia 6)
+  if (level.trex && !level.trex.done) {
+    const tx = level.trex;
+    const sx = tx.x - cameraX;
+    if (sx > -140 && sx < W + 80) drawTRexArt(sx, GROUND_Y - 92, 74, 92, 1, false, tx.animT);
+    // penunjuk bahaya bila T-Rex hampir tapi luar skrin
+    if (sx <= -140 && player.x - tx.x < 900) {
+      ctx.font = '26px serif'; ctx.textAlign = 'left';
+      if (Math.floor(Date.now()/300)%2===0) ctx.fillText('🦖❗', 8, GROUND_Y - 60);
+    }
+  }
 }
 
 function render() {
@@ -2515,7 +2825,7 @@ function togglePause() {
   if (gameState !== 'playing') return;
   paused = !paused;
   if (paused) MUSIC.stop();
-  else MUSIC.start(level && level.boss && level.boss.active ? 'bos' : (level ? level.theme : 'api'));
+  else MUSIC.start(level && level.boss && level.boss.active ? 'bos' : (level ? (MUSIC_THEME[level.theme] || level.theme) : 'api'));
 }
 function drawPauseOverlay() {
   ctx.fillStyle = 'rgba(10,14,30,0.72)';
@@ -2680,8 +2990,11 @@ canvas.addEventListener('touchstart', e => {
 
 // ── v2: Peta Dunia (pilih level) ──
 function mapCards() {
-  const cards = []; const cw = 170, gap = 16, total = 4*cw + 3*gap, x0 = (W - total)/2;
-  for (let i = 0; i < 4; i++) cards.push({ n: i+1, x: x0 + i*(cw+gap), y: 170, w: cw, h: 190 });
+  const cards = []; const cw = 200, gap = 18, total = 3*cw + 2*gap, x0 = (W - total)/2;
+  for (let i = 0; i < 6; i++) {
+    const col = i % 3, row = Math.floor(i / 3);
+    cards.push({ n: i+1, x: x0 + col*(cw+gap), y: 100 + row*182, w: cw, h: 168 });
+  }
   return cards;
 }
 function mapClick(e) {
@@ -2709,8 +3022,8 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-const MAP_ICON = { 1: '🔥', 2: '🌊', 3: '🌳', 4: '👹' };
-const MAP_COL  = { 1: ['#c0392b','#e67e22'], 2: ['#1c6dd0','#3fb0d8'], 3: ['#1e8b3e','#57c463'], 4: ['#5b2a86','#8e44ad'] };
+const MAP_ICON = { 1: '🔥', 2: '🌊', 3: '🌳', 4: '👹', 5: '🌋', 6: '🦖' };
+const MAP_COL  = { 1: ['#c0392b','#e67e22'], 2: ['#1c6dd0','#3fb0d8'], 3: ['#1e8b3e','#57c463'], 4: ['#5b2a86','#8e44ad'], 5: ['#8a2a0a','#e0662a'], 6: ['#3f8f4a','#a8763a'] };
 function drawMap() {
   // latar
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -2719,11 +3032,11 @@ function drawMap() {
   // tajuk
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe36e';
-  ctx.font = 'bold 40px Trebuchet MS, sans-serif';
-  ctx.fillText('🌈 PILIH DUNIA', W/2, 90);
+  ctx.font = 'bold 34px Trebuchet MS, sans-serif';
+  ctx.fillText('🌈 PILIH DUNIA', W/2, 52);
   ctx.fillStyle = '#9fb4e8';
-  ctx.font = 'bold 16px Trebuchet MS, sans-serif';
-  ctx.fillText('Ketuk dunia atau tekan 1-4', W/2, 122);
+  ctx.font = 'bold 15px Trebuchet MS, sans-serif';
+  ctx.fillText('Ketuk dunia atau tekan 1-6', W/2, 80);
   // kad dunia
   for (const c of mapCards()) {
     const locked = c.n > progress.unlocked;
@@ -2741,17 +3054,17 @@ function drawMap() {
     const cx = c.x + c.w/2;
     // nombor dunia
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = 'bold 15px Trebuchet MS, sans-serif';
-    ctx.fillText('DUNIA ' + c.n, cx, c.y + 30);
+    ctx.font = 'bold 14px Trebuchet MS, sans-serif';
+    ctx.fillText('DUNIA ' + c.n, cx, c.y + 24);
     // ikon
-    ctx.font = '58px serif';
-    ctx.fillText(locked ? '🔒' : MAP_ICON[c.n], cx, c.y + 100);
+    ctx.font = '44px serif';
+    ctx.fillText(locked ? '🔒' : MAP_ICON[c.n], cx, c.y + 80);
     // nama
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 15px Trebuchet MS, sans-serif';
     const nm = LEVEL_NAMES[c.n];
-    ctx.fillText(nm.length > 13 ? 'KUBU RAJA' : nm, cx, c.y + 135);
-    if (nm === 'KUBU RAJA GERGASI') ctx.fillText('GERGASI', cx, c.y + 153);
+    ctx.fillText(nm.length > 13 ? 'KUBU RAJA' : nm, cx, c.y + 110);
+    if (nm === 'KUBU RAJA GERGASI') ctx.fillText('GERGASI', cx, c.y + 128);
     // bintang
     ctx.font = '20px serif';
     let sstr = '';
