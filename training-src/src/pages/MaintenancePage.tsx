@@ -112,11 +112,7 @@ export const MaintenancePage = ({ guide }: MaintenancePageProps) => (
           className="flex items-center gap-2 text-base font-bold sm:text-lg"
           style={{ color: guide.accentVar }}
         >
-          {guide.id === 'weekly' ? (
-            <MessageCircle className="h-5 w-5" aria-hidden="true" />
-          ) : (
-            <Check className="h-5 w-5" aria-hidden="true" />
-          )}
+          <MessageCircle className="h-5 w-5" aria-hidden="true" />
           {guide.finalTitle}
         </h2>
         <ul className="mt-2 space-y-1.5">

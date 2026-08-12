@@ -162,8 +162,9 @@ export const YEARLY_GUIDE: MaintenanceGuideData = {
       ],
     },
   ],
-  finalTitle: 'Selesai — rekod dalam kalendar',
+  finalTitle: 'Hantar Report ke WhatsApp Boss',
   finalPoints: [
+    'Hantar gambar kerja yang telah siap kepada Boss di WhatsApp.',
     'Tandakan tarikh siap dalam Google Calendar.',
     'Set peringatan untuk sesi maintenance berikutnya.',
   ],
