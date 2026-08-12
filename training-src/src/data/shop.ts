@@ -18,28 +18,50 @@ export const whatsappUrlFor = (productName?: string): string => {
 export interface ShopProduct {
   name: string
   description: string
+  price: string
+  rating: string
+  sold: string
   image: string
   imageAlt: string
   url: string
+  soldOut?: boolean
 }
 
 const IMG = 'images/shop/'
 
 export const SHOP_PRODUCTS: ShopProduct[] = [
   {
-    name: 'Double Tape',
+    name: 'Double Tape LCM333',
     description:
-      'Pita pelekat dua muka — kemas dan kuat untuk tampal acrylic, kayu dan hasil potongan laser.',
-    image: `${IMG}double-tape.svg`,
-    imageAlt: 'Gulung double tape',
-    url: SHOP_URL,
+      'Double tape industri 30cm × 50 meter — kuat untuk veneer, plywood 3mm dan acrylic 2–5mm. Tape yang kami guna sendiri untuk production.',
+    price: 'RM180.00',
+    rating: '5.0',
+    sold: '95 terjual',
+    image: `${IMG}double-tape.jpg`,
+    imageAlt: 'Gulung double tape LCM333 30cm',
+    url: 'https://shopee.com.my/Double-Tape-LCM333-For-Laser-Cut-i.1212580306.25569781584',
   },
   {
-    name: 'Lanyard',
+    name: 'Lanyard 20mm Polyester AAA',
     description:
-      'Lanyard berkualiti untuk tag nama, event dan pas pekerja — sesuai digandingkan dengan tag potongan laser.',
-    image: `${IMG}lanyard.svg`,
-    imageAlt: 'Lanyard dengan klip dan tag nama',
-    url: SHOP_URL,
+      'Lanyard polyester gred AAA (putih, 100 meter) untuk sublimation heat transfer — sesuai untuk tag nama, event dan pas pekerja. Pilihan lebar 20mm & 25mm.',
+    price: 'RM36.00',
+    rating: '5.0',
+    sold: '221 terjual',
+    image: `${IMG}lanyard.jpg`,
+    imageAlt: 'Gulung lanyard polyester putih 20mm',
+    url: 'https://shopee.com.my/Lanyard-20mm-Polyester-AAA-Grade-for-Sublimation-Heat-Transfer-100meters-LCM-i.1212580306.26958718910',
+  },
+  {
+    name: 'Oval Hook 20mm / 25mm',
+    description:
+      'Cangkuk oval gred AAA untuk lanyard dan tag — padankan hook 20mm dengan lanyard 20mm, 25mm dengan 25mm. Lebih 10,000 pcs telah kami hasilkan menggunakannya.',
+    price: 'RM0.65',
+    rating: '4.8',
+    sold: '1k+ terjual',
+    image: `${IMG}oval-hook.jpg`,
+    imageAlt: 'Oval hook logam untuk lanyard',
+    url: 'https://shopee.com.my/Oval-Hook-20mm-25mm-Lanyard-Accesories-Ready-Stock-Malaysia-LCM-i.1212580306.27308724044',
+    soldOut: true,
   },
 ]
