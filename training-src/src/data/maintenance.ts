@@ -201,6 +201,7 @@ export const WIFI_GUIDE: MaintenanceGuideData = {
   finalTitle: 'Tip Jika Gagal Connect',
   finalPoints: [
     'Pastikan komputer dan mesin berada dalam rangkaian yang sama.',
+    'Semak nombor ketiga IP mesin sama dengan IP router. Contoh: jika router guna 192.168.1.x, IP mesin mesti bermula 192.168.1 juga (contoh: 192.168.1.17). Jika mesin guna 192.168.0.x, ia tidak akan connect — ubah IP mesin supaya sepadan.',
     'Semak IP mesin tidak bercanggah dengan mesin lain — setiap mesin mesti ada IP unik.',
     'Cuba restart WiFi extender dan mesin laser, kemudian test semula.',
   ],
