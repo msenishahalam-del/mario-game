@@ -295,10 +295,39 @@ export const GantryDiagram = ({
                 strokeWidth="0.8"
               />
               <circle r="1.8" fill="var(--color-beam)" />
+              {/* Label Cermin 3 di bawah head */}
+              <text
+                y="9.6"
+                textAnchor="middle"
+                fill="#14213d"
+                fontSize={smallLabelSize}
+                fontWeight="700"
+                stroke="#ffffff"
+                strokeWidth="0.9"
+                style={{ paintOrder: 'stroke' }}
+              >
+                Cermin 3
+              </text>
             </g>
+            {/* Label Cermin 2 dilukis paling atas (halo putih) supaya tak
+                terlindung bila head berada di X = 0 */}
+            <text
+              x={RAIL_X + 7}
+              y={gantryY + 1.8}
+              textAnchor="start"
+              fill="#6d28d9"
+              fontSize={smallLabelSize}
+              fontWeight="700"
+              stroke="#ffffff"
+              strokeWidth="0.9"
+              style={{ paintOrder: 'stroke' }}
+              className={moveClass}
+            >
+              Cermin 2
+            </text>
           </g>
 
-          {/* Label cermin 2 (statik di tepi, menunjuk konsep) */}
+          {/* Nota konsep (statik di tepi) */}
           {compact ? null : (
             <text
               x="6"
@@ -307,7 +336,7 @@ export const GantryDiagram = ({
               fontSize={smallLabelSize}
               fontWeight="700"
             >
-              ◆ Cermin 2 ikut gantry
+              ◆ Cermin 2 ikut gantry · Cermin 3 pada head
             </text>
           )}
 
