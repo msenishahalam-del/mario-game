@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  CalendarClock,
   ClipboardCheck,
   Crosshair,
   Lightbulb,
@@ -34,9 +33,10 @@ const CARDS: HomeCard[] = [
   },
   {
     number: 2,
-    title: 'Weekly Maintenance',
-    description: 'Senarai semak mingguan untuk memastikan prestasi mesin sentiasa optimum.',
-    href: '#/weekly',
+    title: 'Maintenance',
+    description:
+      'Senarai semak weekly & yearly untuk memastikan mesin sentiasa optimum.',
+    href: '#/maintenance',
     color: '#20a04a',
     softBg: '#edf9f1',
     border: '#c9ecd6',
@@ -44,16 +44,6 @@ const CARDS: HomeCard[] = [
   },
   {
     number: 3,
-    title: 'Yearly Maintenance',
-    description: 'Panduan penyelenggaraan berkala untuk jangka hayat mesin yang lebih lama.',
-    href: '#/yearly',
-    color: '#e07514',
-    softBg: '#fdf3e8',
-    border: '#f6ddc0',
-    Icon: CalendarClock,
-  },
-  {
-    number: 4,
     title: 'About Me',
     description: 'Kenali saya dan tujuan di sebalik SifuLaser.',
     href: '#/about',

@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
 
-export type Route = 'home' | 'simulator' | 'weekly' | 'yearly' | 'about'
+export type Route =
+  | 'home'
+  | 'simulator'
+  | 'maintenance'
+  | 'weekly'
+  | 'yearly'
+  | 'about'
 
 const parseRoute = (hash: string): Route => {
   const path = hash.replace(/^#\/?/, '').replace(/\/$/, '')
   switch (path) {
     case 'simulator':
       return 'simulator'
+    case 'maintenance':
+      return 'maintenance'
     case 'weekly':
       return 'weekly'
     case 'yearly':

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { HomePage } from './pages/HomePage'
 import { MaintenancePage } from './pages/MaintenancePage'
+import { MaintenanceChooserPage } from './pages/MaintenanceChooserPage'
 import { AboutPage } from './pages/AboutPage'
 import { WEEKLY_GUIDE, YEARLY_GUIDE } from './data/maintenance'
 import { useHashRoute } from './hooks/useHashRoute'
@@ -13,6 +14,8 @@ const Root = () => {
   switch (route) {
     case 'simulator':
       return <App />
+    case 'maintenance':
+      return <MaintenanceChooserPage />
     case 'weekly':
       return <MaintenancePage guide={WEEKLY_GUIDE} />
     case 'yearly':

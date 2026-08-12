@@ -11,11 +11,11 @@ export const MaintenancePage = ({ guide }: MaintenancePageProps) => (
       {/* Kepala halaman */}
       <header className="flex flex-col gap-3">
         <a
-          href="#/"
+          href="#/maintenance"
           className="inline-flex w-fit min-h-11 items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold text-muted transition-colors hover:bg-white hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Utama
+          Maintenance
         </a>
         <div>
           <p
