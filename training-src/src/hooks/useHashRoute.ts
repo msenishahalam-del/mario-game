@@ -6,6 +6,7 @@ export type Route =
   | 'maintenance'
   | 'weekly'
   | 'yearly'
+  | 'wifi'
   | 'kedai'
   | 'about'
 
@@ -22,6 +23,8 @@ const parseRoute = (hash: string): Route => {
       return 'weekly'
     case 'yearly':
       return 'yearly'
+    case 'wifi':
+      return 'wifi'
     case 'about':
       return 'about'
     default:

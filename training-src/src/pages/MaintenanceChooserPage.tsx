@@ -3,6 +3,7 @@ import {
   ArrowRight,
   CalendarClock,
   ClipboardCheck,
+  Wifi,
   Wrench,
 } from 'lucide-react'
 
@@ -27,6 +28,17 @@ const OPTIONS = [
     softBg: '#fdf3e8',
     border: '#f6ddc0',
     Icon: CalendarClock,
+  },
+  {
+    href: '#/wifi',
+    title: 'Cara Setup WiFi',
+    description:
+      'Sambungkan mesin laser (board Trocen) ke WiFi office dengan TP-Link Range Extender.',
+    meta: 'Sekali setup · ±15 minit',
+    color: '#2f6fe4',
+    softBg: '#edf3fd',
+    border: '#c9dcf6',
+    Icon: Wifi,
   },
 ]
 

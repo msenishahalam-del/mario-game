@@ -15,7 +15,7 @@ export interface MaintenanceStep {
 }
 
 export interface MaintenanceGuideData {
-  id: 'weekly' | 'yearly'
+  id: 'weekly' | 'yearly' | 'wifi'
   badge: string
   title: string
   intro: string
@@ -27,6 +27,7 @@ export interface MaintenanceGuideData {
 }
 
 const IMG = 'images/maintenance/'
+const IMG_WIFI = 'images/wifi/'
 
 export const WEEKLY_GUIDE: MaintenanceGuideData = {
   id: 'weekly',
@@ -103,6 +104,105 @@ export const WEEKLY_GUIDE: MaintenanceGuideData = {
     'Pic 1 — filter chiller yang telah dibersihkan',
     'Pic 2 — paras minyak (oil level) compressor',
     'Pic 3 — kawasan kerja (workplace) yang telah disapu',
+  ],
+}
+
+export const WIFI_GUIDE: MaintenanceGuideData = {
+  id: 'wifi',
+  badge: 'Board Trocen · LaserCAD',
+  title: 'Cara Setup WiFi',
+  intro:
+    'Panduan menyambung mesin laser ke rangkaian WiFi office menggunakan TP-Link Range Extender — selepas siap, boleh hantar fail dari LaserCAD tanpa kabel USB.',
+  accentVar: '#2f6fe4',
+  meta: [
+    { label: 'Mesin', value: 'Board Trocen (LaserCAD)' },
+    { label: 'Alat', value: 'TP-Link TL-WA855RE' },
+    { label: 'Masa', value: '±15 minit' },
+  ],
+  steps: [
+    {
+      title: 'Sediakan peralatan',
+      points: [
+        'Panduan ini hanya untuk mesin laser yang menggunakan board Trocen (software LaserCAD).',
+        'Alat diperlukan: TP-Link WiFi Range Extender model TL-WA855RE dan satu kabel LAN (RJ45).',
+      ],
+      photos: [
+        {
+          path: `${IMG_WIFI}tl-wa855re.jpg`,
+          alt: 'TP-Link TL-WA855RE WiFi Range Extender',
+          caption: 'TP-Link TL-WA855RE',
+        },
+      ],
+    },
+    {
+      title: 'Sambung kabel LAN ke mesin laser',
+      points: [
+        'Cucuk satu hujung kabel LAN ke port Ethernet pada WiFi extender.',
+        'Cucuk hujung satu lagi ke port LAN pada mesin laser.',
+      ],
+    },
+    {
+      title: 'Set IP address pada mesin laser',
+      points: [
+        'Pada panel mesin laser, masukkan IP address statik — contoh: 192.168.1.17.',
+        'Pastikan setiap mesin guna IP yang berbeza (tidak boleh sama dengan mesin lain).',
+        'Selepas itu, hidupkan (ON) mesin.',
+      ],
+    },
+    {
+      title: 'Setup WiFi extender',
+      points: [
+        'Di komputer, sambung ke WiFi extender dan buka halaman tetapan: http://tplinkrepeater.net (atau IP 192.168.0.254).',
+        'Ikut wizard setup: pilih WiFi utama office dan masukkan password supaya extender connect kepada router utama.',
+        'Tekan Finish / Selesai — extender akan restart secara automatik.',
+      ],
+    },
+    {
+      title: 'Sambung komputer ke rangkaian',
+      points: [
+        'Selepas extender restart, connect komputer ke WiFi utama office — atau ke WiFi extender pun boleh.',
+        'Kedua-duanya berada dalam rangkaian yang sama, jadi mana-mana pun berfungsi.',
+      ],
+    },
+    {
+      title: 'Daftarkan mesin dalam LaserCAD',
+      points: [
+        'Buka software LaserCAD dan tekan butang Select Mode di Control Panel.',
+        'Pilih Network Mode, kemudian tekan Add.',
+        'Masukkan nama mesin (contoh: MachineTest) dan IP address mesin (192.168.1.17), kemudian tekan OK.',
+        'Tick ✓ pada mesin yang baru didaftarkan — nama dan IP mesin akan tertera di Control Panel.',
+      ],
+      photos: [
+        {
+          path: `${IMG_WIFI}lasercad-device-ip.svg`,
+          alt: 'Dialog Device IP dalam LaserCAD',
+          caption: 'Add → masukkan nama & IP mesin',
+        },
+        {
+          path: `${IMG_WIFI}lasercad-select-mode.svg`,
+          alt: 'Senarai Network Mode dalam LaserCAD',
+          caption: 'Network Mode → tick mesin anda',
+        },
+        {
+          path: `${IMG_WIFI}lasercad-control-panel.svg`,
+          alt: 'Control Panel LaserCAD menunjukkan mesin dipilih',
+          caption: 'Nama & IP tertera di Control Panel',
+        },
+      ],
+    },
+    {
+      title: 'Test hantar fail',
+      points: [
+        'Hantar satu fail test dari LaserCAD ke mesin laser.',
+        'Jika fail sampai ke mesin, setup selesai!',
+      ],
+    },
+  ],
+  finalTitle: 'Tip Jika Gagal Connect',
+  finalPoints: [
+    'Pastikan komputer dan mesin berada dalam rangkaian yang sama.',
+    'Semak IP mesin tidak bercanggah dengan mesin lain — setiap mesin mesti ada IP unik.',
+    'Cuba restart WiFi extender dan mesin laser, kemudian test semula.',
   ],
 }
 
