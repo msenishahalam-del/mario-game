@@ -178,7 +178,7 @@ export const App = () => {
                   className="rounded-xl border border-line bg-canvas/50 p-2.5 sm:p-4 xl:order-2 xl:w-64 xl:shrink-0"
                 />
                 {isStraight ? (
-                  <div className="flex flex-1 flex-col gap-3 xl:order-1">
+                  <div className="flex flex-1 flex-row items-center justify-center gap-3 sm:gap-4 xl:order-1">
                     <AcrylicView
                       shots={straight.shots}
                       reference={straight.reference}
@@ -186,9 +186,9 @@ export const App = () => {
                       machineAxisLabel={straight.variant.axisLabel}
                       machineValue={straight.machineValue}
                       motionEnabled={motionEnabled}
-                      className="mx-auto max-w-[min(70%,30svh)] lg:max-w-[434px] xl:max-w-[355px]"
+                      className="max-w-[min(46%,32svh)] flex-1 sm:max-w-[300px] xl:max-w-[280px]"
                     />
-                    <div className="mx-auto w-full max-w-[260px]">
+                    <div className="w-full max-w-[46%] min-w-0 sm:max-w-[250px]">
                       <p className="mb-1 text-center text-xs font-semibold text-muted">
                         Kedudukan mesin · {straight.variant.axisLabel} ={' '}
                         {straight.machineValue}
