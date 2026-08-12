@@ -5,6 +5,16 @@
 export const SHOP_URL = 'https://shopee.com.my/lcmsupplies'
 export const SHOP_NAME = 'LCM Supplies'
 
+export const WHATSAPP_NUMBER_DISPLAY = '+60 19-688 0830'
+const WHATSAPP_NUMBER = '60196880830'
+
+export const whatsappUrlFor = (productName?: string): string => {
+  const text = productName
+    ? `Hai, saya berminat dengan ${productName} dari SifuLaser.`
+    : 'Hai, saya berminat dengan produk dari SifuLaser.'
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
+
 export interface ShopProduct {
   name: string
   description: string

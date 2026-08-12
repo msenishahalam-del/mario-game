@@ -1,5 +1,11 @@
-import { ArrowLeft, ExternalLink, ShoppingBag } from 'lucide-react'
-import { SHOP_NAME, SHOP_PRODUCTS, SHOP_URL } from '../data/shop'
+import { ArrowLeft, ExternalLink, MessageCircle, ShoppingBag } from 'lucide-react'
+import {
+  SHOP_NAME,
+  SHOP_PRODUCTS,
+  SHOP_URL,
+  WHATSAPP_NUMBER_DISPLAY,
+  whatsappUrlFor,
+} from '../data/shop'
 
 export const ShopPage = () => (
   <div className="min-h-screen bg-canvas">
@@ -21,26 +27,31 @@ export const ShopPage = () => (
             Kedai {SHOP_NAME}
           </h1>
           <p className="text-sm text-muted">
-            Barang keperluan kerja laser — klik untuk beli di Shopee.
+            Barang keperluan kerja laser — beli di Shopee atau order terus via
+            WhatsApp.
           </p>
         </div>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {SHOP_PRODUCTS.map((product) => (
-          <a
+          <div
             key={product.name}
-            href={product.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="card group flex flex-col gap-3 p-3 transition-transform hover:-translate-y-0.5 sm:p-4"
+            className="card flex flex-col gap-3 p-3 transition-transform hover:-translate-y-0.5 sm:p-4"
           >
-            <img
-              src={`${import.meta.env.BASE_URL}${product.image}`}
-              alt={product.imageAlt}
-              loading="lazy"
-              className="aspect-square w-full rounded-xl border border-line bg-white object-cover"
-            />
+            <a
+              href={product.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Lihat ${product.name} di Shopee`}
+            >
+              <img
+                src={`${import.meta.env.BASE_URL}${product.image}`}
+                alt={product.imageAlt}
+                loading="lazy"
+                className="aspect-square w-full rounded-xl border border-line bg-white object-cover"
+              />
+            </a>
             <div className="min-w-0 flex-1">
               <h2 className="text-sm font-bold text-ink sm:text-base">
                 {product.name}
@@ -49,11 +60,27 @@ export const ShopPage = () => (
                 {product.description}
               </p>
             </div>
-            <span className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#e07514] px-3 py-2 text-xs font-semibold text-white transition-colors group-hover:bg-[#c76409] sm:text-sm">
-              Beli di Shopee
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-          </a>
+            <div className="flex flex-col gap-1.5">
+              <a
+                href={product.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#e07514] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#c76409] sm:text-sm"
+              >
+                Beli di Shopee
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
+              <a
+                href={whatsappUrlFor(product.name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#1faa4e] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#188a3f] sm:text-sm"
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Order via WhatsApp
+              </a>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -68,8 +95,18 @@ export const ShopPage = () => (
         <ExternalLink className="h-4 w-4" aria-hidden="true" />
       </a>
 
+      <a
+        href={whatsappUrlFor()}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 rounded-2xl border border-[#c9ecd6] bg-[#edf9f1] p-4 text-sm font-semibold text-[#147a37] transition-colors hover:bg-[#def3e6]"
+      >
+        <MessageCircle className="h-5 w-5" aria-hidden="true" />
+        WhatsApp kami: {WHATSAPP_NUMBER_DISPLAY}
+      </a>
+
       <p className="pb-4 text-center text-xs text-muted">
-        Link akan membuka kedai Shopee {SHOP_NAME} dalam tab baharu.
+        Link Shopee dan WhatsApp akan dibuka dalam tab baharu.
       </p>
     </div>
   </div>
