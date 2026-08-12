@@ -76,7 +76,7 @@ export const HomePage = () => (
             <span className="italic text-screw-2">Laser</span>
           </span>
           <Sparkles className="mb-2 h-7 w-7 shrink-0 text-near" aria-hidden="true" />
-          <span className="mb-2 whitespace-nowrap text-sm font-semibold text-muted">
+          <span className="mb-2 whitespace-nowrap text-[11px] font-semibold text-muted">
             by Mahligai Seni
           </span>
         </p>
