@@ -1,5 +1,5 @@
 import type { RefObject } from 'react'
-import { CircleQuestionMark, Settings } from 'lucide-react'
+import { ArrowLeft, CircleQuestionMark, Settings } from 'lucide-react'
 
 const AppLogo = ({ className }: { className?: string }) => (
   <span
@@ -42,7 +42,14 @@ export const AppHeader = ({
 }: AppHeaderProps) => (
   <header className="bg-surface">
     <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between gap-3 px-3 py-3 sm:px-6 sm:py-4">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <a
+          href="#/"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-canvas hover:text-ink"
+          aria-label="Kembali ke halaman utama SifuLaser"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </a>
         <AppLogo className="h-10 w-10 shrink-0 sm:h-12 sm:w-12" />
         <div className="min-w-0">
           <h1 className="truncate text-base leading-tight font-bold text-ink sm:text-2xl">
