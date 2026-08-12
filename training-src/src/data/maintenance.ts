@@ -98,7 +98,7 @@ export const WEEKLY_GUIDE: MaintenanceGuideData = {
       takePicture: 'Pic 3 — gambar workplace',
     },
   ],
-  finalTitle: 'Hantar report ke WhatsApp Group Synapsis',
+  finalTitle: 'Hantar Report ke WhatsApp Boss',
   finalPoints: [
     'Pic 1 — filter chiller yang telah dibersihkan',
     'Pic 2 — paras minyak (oil level) compressor',
