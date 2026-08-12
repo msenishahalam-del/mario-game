@@ -236,7 +236,7 @@ export const CHILLER_GUIDE: MaintenanceGuideData = {
     {
       title: 'Masuk ke menu setting',
       points: [
-        'Tekan dan tahan butang Up (▲) selama 5 saat.',
+        'Tekan dan tahan butang Up (▲) dan SET serentak selama 5 saat.',
         'Masukkan password: 8.',
       ],
     },
