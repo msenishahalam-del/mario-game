@@ -1,4 +1,11 @@
-import type { AlignmentStatus, CentreLevelConfig, LevelConfig, LevelId, ScrewId } from './types'
+import type {
+  AlignmentStatus,
+  CentreLevelConfig,
+  HeadVariantId,
+  LevelConfig,
+  LevelId,
+  ScrewId,
+} from './types'
 
 const SCREW_1_COLOR = 'var(--color-screw-1)'
 const SCREW_2_COLOR = 'var(--color-screw-2)'
@@ -94,9 +101,7 @@ const LEVEL_1: CentreLevelConfig = {
   },
 }
 
-export const LEVELS: Record<LevelId, LevelConfig> = {
-  level1: LEVEL_1,
-  level2: {
+const LEVEL_2: CentreLevelConfig = {
     id: 'level2',
     number: 2,
     kind: 'centre',
@@ -180,7 +185,11 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
         guide: 'Skru 3 (kanan tengah) gerakkan beam kiri/kanan',
       },
     },
-  },
+}
+
+export const LEVELS: Record<LevelId, LevelConfig> = {
+  level1: LEVEL_1,
+  level2: LEVEL_2,
   level3: {
     id: 'level3',
     number: 3,
@@ -241,5 +250,100 @@ export const LEVEL_ORDER: LevelId[] = [
   'level4',
   'level5',
 ]
+
+// Level 2 menyokong dua jenis head — Mesin Bodor (asal) dan XD Laser.
+// Setiap variant membawa gambar dan kelakuan skru sendiri.
+export type HeadVariant = Pick<
+  CentreLevelConfig,
+  'image' | 'refImageClass' | 'adjustStageClass' | 'screwOrder' | 'screws'
+> & { label: string }
+
+export const HEAD_VARIANTS: Record<HeadVariantId, HeadVariant> = {
+  bodor: {
+    label: 'Bodor',
+    image: LEVEL_2.image,
+    refImageClass: LEVEL_2.refImageClass,
+    adjustStageClass: LEVEL_2.adjustStageClass,
+    screwOrder: LEVEL_2.screwOrder,
+    screws: LEVEL_2.screws,
+  },
+  xd: {
+    label: 'XD Laser',
+    image: {
+      path: 'images/xd-head-mirror.svg',
+      width: 450,
+      height: 549,
+      alt: 'Head XD Laser dengan tiga skru pelarasan',
+    },
+    refImageClass: 'w-full max-w-[240px] sm:max-w-[270px] lg:max-w-[200px]',
+    adjustStageClass: 'max-w-[300px] px-11 sm:max-w-[380px] sm:px-12',
+    screwOrder: ['screw1', 'screw2', 'screw3'],
+    screws: {
+      screw1: {
+        id: 'screw1',
+        number: 1,
+        title: 'Skru 1 – Atas / Bawah',
+        extraTitle: '(atas kiri)',
+        description: 'Gerakkan beam atas atau bawah',
+        colorVar: SCREW_1_COLOR,
+        axis: 'vertical',
+        minusLabel: 'ke bawah',
+        plusLabel: 'ke atas',
+        movement: {
+          minus: { x: 0, y: -1, description: 'Bawah' },
+          plus: { x: 0, y: 1, description: 'Atas' },
+        },
+        knob: { top: '16%', left: '13%' },
+        badge: { top: '16%', left: '31%' },
+        refBadge: { top: '12%', left: '-6%' },
+        refArrow: { top: '32%', left: '-6%' },
+        pod: { side: 'left', top: '16%' },
+        guide: 'Skru 1 (atas kiri) gerakkan beam atas/bawah',
+      },
+      screw2: {
+        id: 'screw2',
+        number: 2,
+        title: 'Skru 2 – Diagonal',
+        extraTitle: '(kiri bawah ↔ kanan atas)',
+        description: 'Gerakkan beam secara diagonal',
+        colorVar: SCREW_2_COLOR,
+        axis: 'diagonal-up',
+        minusLabel: 'ke kanan atas',
+        plusLabel: 'ke kiri bawah',
+        movement: {
+          minus: { x: 1, y: 1, description: 'Kanan atas' },
+          plus: { x: -1, y: -1, description: 'Kiri bawah' },
+        },
+        knob: { top: '78%', left: '13%' },
+        badge: { top: '78%', left: '31%' },
+        refBadge: { top: '88%', left: '-6%' },
+        refArrow: { top: '66%', left: '-6%' },
+        pod: { side: 'left', top: '80%' },
+        guide: 'Skru 2 (bawah kiri) gerakkan beam secara diagonal (kiri bawah ↔ kanan atas)',
+      },
+      screw3: {
+        id: 'screw3',
+        number: 3,
+        title: 'Skru 3 – Kiri / Kanan',
+        extraTitle: '(bawah kanan)',
+        description: 'Gerakkan beam kiri atau kanan',
+        colorVar: SCREW_3_COLOR,
+        axis: 'horizontal',
+        minusLabel: 'ke kiri',
+        plusLabel: 'ke kanan',
+        movement: {
+          minus: { x: -1, y: 0, description: 'Kiri' },
+          plus: { x: 1, y: 0, description: 'Kanan' },
+        },
+        knob: { top: '83%', left: '85.5%' },
+        badge: { top: '83%', left: '67%' },
+        refBadge: { top: '68%', left: '106%' },
+        refArrow: { top: '88%', left: '106%' },
+        pod: { side: 'right', top: '84%' },
+        guide: 'Skru 3 (bawah kanan) gerakkan beam kiri/kanan',
+      },
+    },
+  },
+}
 export const DEFAULT_LEVEL_ID: LevelId = 'level1'
 export const SCREW_ORDER: ScrewId[] = ['screw1', 'screw2', 'screw3']

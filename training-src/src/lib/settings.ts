@@ -1,12 +1,13 @@
 import { DEFAULT_MOVEMENT_STEP, STORAGE_KEY } from './sim'
 import { DEFAULT_LEVEL_ID } from '../levels'
-import type { LevelId } from '../types'
+import type { HeadVariantId, LevelId } from '../types'
 
 export interface StoredSettings {
   movementStep: number
   showTrail: boolean
   animationsEnabled: boolean
   levelId: LevelId
+  headVariant: HeadVariantId
 }
 
 const DEFAULT_SETTINGS: StoredSettings = {
@@ -14,7 +15,11 @@ const DEFAULT_SETTINGS: StoredSettings = {
   showTrail: true,
   animationsEnabled: true,
   levelId: DEFAULT_LEVEL_ID,
+  headVariant: 'bodor',
 }
+
+const isHeadVariant = (value: unknown): value is HeadVariantId =>
+  value === 'bodor' || value === 'xd'
 
 const isValidStep = (value: unknown): value is number =>
   value === 0.25 || value === 0.5 || value === 1
@@ -46,6 +51,9 @@ export const loadSettings = (): StoredSettings => {
       levelId: isRestorableLevel(value.levelId)
         ? value.levelId
         : DEFAULT_SETTINGS.levelId,
+      headVariant: isHeadVariant(value.headVariant)
+        ? value.headVariant
+        : DEFAULT_SETTINGS.headVariant,
     }
   } catch {
     return DEFAULT_SETTINGS

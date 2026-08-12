@@ -82,9 +82,27 @@ const DiagonalArrow = ({
   </svg>
 )
 
+// Diagonal kiri-bawah ↔ kanan-atas (cermin kepada DiagonalArrow)
+const DiagonalUpArrow = ({
+  color,
+  className,
+}: {
+  color: string
+  className?: string
+}) => (
+  <svg viewBox="0 0 56 56" className={className} aria-hidden="true" focusable="false">
+    <g transform="scale(-1 1) translate(-56 0)">
+      <path d="M16 16 L40 40" stroke={color} strokeWidth="2.6" strokeLinecap="round" fill="none" />
+      <polygon points="5,5 6,20 20,6" fill={color} />
+      <polygon points="51,51 50,36 36,50" fill={color} />
+    </g>
+  </svg>
+)
+
 const ARROW_SIZE_CLASSES: Record<ScrewAxis, string> = {
   vertical: 'h-14 w-5 sm:h-16 sm:w-6',
   diagonal: 'h-12 w-12 sm:h-14 sm:w-14',
+  'diagonal-up': 'h-12 w-12 sm:h-14 sm:w-14',
   horizontal: 'h-5 w-14 sm:h-6 sm:w-16',
 }
 
@@ -93,6 +111,8 @@ const renderAxisArrow = (axis: ScrewAxis, color: string, className: string) =>
     <VerticalArrow color={color} className={className} />
   ) : axis === 'horizontal' ? (
     <HorizontalArrow color={color} className={className} />
+  ) : axis === 'diagonal-up' ? (
+    <DiagonalUpArrow color={color} className={className} />
   ) : (
     <DiagonalArrow color={color} className={className} />
   )

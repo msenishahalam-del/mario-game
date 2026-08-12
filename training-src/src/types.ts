@@ -9,7 +9,9 @@ export type LevelId = 'level1' | 'level2' | 'level3' | 'level4' | 'level5'
 export type LevelKind = 'centre' | 'straight' | 'gantry'
 
 export type ScrewId = 'screw1' | 'screw2' | 'screw3'
-export type ScrewAxis = 'vertical' | 'horizontal' | 'diagonal'
+// 'diagonal' = kiri-atas ↔ kanan-bawah; 'diagonal-up' = kiri-bawah ↔ kanan-atas
+export type ScrewAxis = 'vertical' | 'horizontal' | 'diagonal' | 'diagonal-up'
+export type HeadVariantId = 'bodor' | 'xd'
 export type Direction = 'minus' | 'plus'
 
 export interface OverlayPos {

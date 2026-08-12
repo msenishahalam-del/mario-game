@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LEVELS } from '../levels'
+import { HEAD_VARIANTS, LEVELS } from '../levels'
 import {
   INITIAL_MISALIGNMENT,
   alignmentStatusOf,
@@ -9,7 +9,14 @@ import {
 } from '../lib/sim'
 import { loadSettings, saveSettings } from '../lib/settings'
 import { usePrefersReducedMotion } from './useMediaQuery'
-import type { Direction, LevelId, ScrewId, TrailPoint, Vec } from '../types'
+import type {
+  Direction,
+  HeadVariantId,
+  LevelId,
+  ScrewId,
+  TrailPoint,
+  Vec,
+} from '../types'
 
 export const useAlignmentSim = () => {
   const initial = useRef(loadSettings())
@@ -23,8 +30,23 @@ export const useAlignmentSim = () => {
   const [animationsEnabled, setAnimationsEnabled] = useState(
     initial.current.animationsEnabled,
   )
+  const [headVariant, setHeadVariant] = useState<HeadVariantId>(
+    initial.current.headVariant,
+  )
 
-  const level = LEVELS[levelId]
+  // Level 2 mempunyai dua jenis head; gabungkan config variant terpilih
+  const level = useMemo(() => {
+    if (levelId !== 'level2') return LEVELS[levelId]
+    const variant = HEAD_VARIANTS[headVariant]
+    return {
+      ...LEVELS.level2,
+      image: variant.image,
+      refImageClass: variant.refImageClass,
+      adjustStageClass: variant.adjustStageClass,
+      screwOrder: variant.screwOrder,
+      screws: variant.screws,
+    }
+  }, [levelId, headVariant])
   const prefersReducedMotion = usePrefersReducedMotion()
   const motionEnabled = animationsEnabled && !prefersReducedMotion
 
@@ -41,8 +63,14 @@ export const useAlignmentSim = () => {
   useEffect(() => clearActiveTimeout, [clearActiveTimeout])
 
   useEffect(() => {
-    saveSettings({ movementStep, showTrail, animationsEnabled, levelId })
-  }, [movementStep, showTrail, animationsEnabled, levelId])
+    saveSettings({
+      movementStep,
+      showTrail,
+      animationsEnabled,
+      levelId,
+      headVariant,
+    })
+  }, [movementStep, showTrail, animationsEnabled, levelId, headVariant])
 
   const clearTrail = useCallback(() => setHistory([]), [])
 
@@ -95,10 +123,21 @@ export const useAlignmentSim = () => {
     }
   }, [levelId, resetAlignment])
 
+  // Tukar jenis head mengubah kelakuan skru — mula semula dari kedudukan rawak
+  const previousVariant = useRef(headVariant)
+  useEffect(() => {
+    if (previousVariant.current !== headVariant) {
+      previousVariant.current = headVariant
+      resetAlignment()
+    }
+  }, [headVariant, resetAlignment])
+
   return {
     level,
     levelId,
     setLevelId,
+    headVariant,
+    setHeadVariant,
     position,
     history,
     alignmentStatus: useMemo(() => alignmentStatusOf(position), [position]),

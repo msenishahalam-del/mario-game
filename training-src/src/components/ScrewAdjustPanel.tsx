@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   ImageOff,
+  MoveDiagonal,
   MoveDiagonal2,
   MoveHorizontal,
   MoveVertical,
@@ -53,6 +54,8 @@ const AxisIcon = ({ axis, className }: { axis: ScrewAxis; className?: string }) 
     <MoveVertical className={className} aria-hidden="true" />
   ) : axis === 'horizontal' ? (
     <MoveHorizontal className={className} aria-hidden="true" />
+  ) : axis === 'diagonal-up' ? (
+    <MoveDiagonal className={className} aria-hidden="true" />
   ) : (
     <MoveDiagonal2 className={className} aria-hidden="true" />
   )

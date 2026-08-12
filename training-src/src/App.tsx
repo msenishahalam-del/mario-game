@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Crosshair, Info } from 'lucide-react'
 import { AppHeader } from './components/AppHeader'
 import { LevelTabs } from './components/LevelTabs'
+import { HeadVariantTabs } from './components/HeadVariantTabs'
 import { StatusPanel } from './components/StatusPanel'
 import { TargetView } from './components/TargetView'
 import { AcrylicView } from './components/AcrylicView'
@@ -26,6 +27,8 @@ export const App = () => {
     level,
     levelId,
     setLevelId,
+    headVariant,
+    setHeadVariant,
     position,
     history,
     alignmentStatus,
@@ -106,6 +109,9 @@ export const App = () => {
         settingsButtonRef={settingsButtonRef}
       />
       <LevelTabs levelId={levelId} onChange={setLevelId} />
+      {levelId === 'level2' ? (
+        <HeadVariantTabs variant={headVariant} onChange={setHeadVariant} />
+      ) : null}
       <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:content-start">
         {isGantry ? (
           <section
@@ -136,7 +142,7 @@ export const App = () => {
         ) : (
           centreLevel && (
             <MirrorPanel
-              key={`ref-${levelId}`}
+              key={`ref-${levelId}-${headVariant}`}
               level={centreLevel}
               activeScrew={activeScrew}
               activeDirection={activeDirection}
@@ -252,7 +258,7 @@ export const App = () => {
         ) : null}
         {centreLevel && (
           <ScrewAdjustPanel
-            key={`adjust-${levelId}`}
+            key={`adjust-${levelId}-${headVariant}`}
             level={centreLevel}
             activeScrew={activeScrew}
             activeDirection={activeDirection}
