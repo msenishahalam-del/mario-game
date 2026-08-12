@@ -1,4 +1,11 @@
-import { ArrowLeft, Crosshair, Sparkles, UserRound, Wrench } from 'lucide-react'
+import {
+  ArrowLeft,
+  Award,
+  Crosshair,
+  Sparkles,
+  UserRound,
+  Wrench,
+} from 'lucide-react'
 
 export const AboutPage = () => (
   <div className="min-h-screen bg-canvas">
@@ -25,6 +32,21 @@ export const AboutPage = () => (
 
       <section className="card flex flex-col gap-3 p-4 sm:p-5">
         <h2 className="flex items-center gap-2 text-base font-bold text-ink sm:text-lg">
+          <Award className="h-5 w-5 text-[#7c3aed]" aria-hidden="true" />
+          Founder
+        </h2>
+        <p className="text-sm text-muted sm:text-base">
+          Founder SifuLaser ialah{' '}
+          <span className="font-bold text-ink">Hisham</span> dan{' '}
+          <span className="font-bold text-ink">Zahid</span> dari{' '}
+          <span className="font-bold text-ink">Mahligai Seni</span> — dengan
+          pengalaman lebih dari 10 tahun dalam bidang laser cut. Semua panduan
+          di sini datang daripada pengalaman sebenar production harian.
+        </p>
+      </section>
+
+      <section className="card flex flex-col gap-3 p-4 sm:p-5">
+        <h2 className="flex items-center gap-2 text-base font-bold text-ink sm:text-lg">
           <Sparkles className="h-5 w-5 text-near" aria-hidden="true" />
           Kenapa SifuLaser?
         </h2>
@@ -46,6 +68,8 @@ export const AboutPage = () => (
           <li>Memahami sistem koordinat dan gerakan gantry</li>
           <li>Prosedur beam lurus (test Y = 0 dan Y = 90)</li>
           <li>Rutin weekly & yearly maintenance yang betul</li>
+          <li>Setup WiFi mesin laser board Trocen dengan TP-Link extender</li>
+          <li>Setting terbaik chiller CW-5000 untuk iklim lembap Malaysia</li>
         </ul>
       </section>
 
