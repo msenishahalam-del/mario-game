@@ -201,8 +201,9 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     id: 'level4',
     number: 4,
     kind: 'straight',
-    shortName: 'Beam Lurus',
-    tabLabel: 'Level 4 · Beam Lurus',
+    straightAxis: 'y',
+    shortName: 'Beam Y',
+    tabLabel: 'Level 4 · Beam Lurus Y Axis',
     refHeading: 'Cermin 1 / Mirror Mount',
     targetHeading: 'Acrylic pada Cermin 2',
     statusLabels: {
@@ -213,8 +214,32 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     successMessage:
       'Tahniah! Tembakan Y=0 dan Y=90 sudah bertindih — beam kini selari dengan rel Y.',
   },
+  level5: {
+    ...LEVEL_1,
+    id: 'level5',
+    number: 5,
+    kind: 'straight',
+    straightAxis: 'x',
+    shortName: 'Beam X',
+    tabLabel: 'Level 5 · Beam Lurus X Axis',
+    refHeading: 'Cermin 2 / Mirror Mount',
+    targetHeading: 'Acrylic pada Head (Cermin 3)',
+    statusLabels: {
+      aligned: 'Bertindih',
+      near: 'Hampir Bertindih',
+      unaligned: 'Belum Bertindih',
+    },
+    successMessage:
+      'Tahniah! Tembakan X=0 dan X=130 sudah bertindih — beam kini selari dengan gantry (paksi X).',
+  },
 }
 
-export const LEVEL_ORDER: LevelId[] = ['level1', 'level2', 'level3', 'level4']
+export const LEVEL_ORDER: LevelId[] = [
+  'level1',
+  'level2',
+  'level3',
+  'level4',
+  'level5',
+]
 export const DEFAULT_LEVEL_ID: LevelId = 'level1'
 export const SCREW_ORDER: ScrewId[] = ['screw1', 'screw2', 'screw3']

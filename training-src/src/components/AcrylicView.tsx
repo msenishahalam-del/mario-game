@@ -14,7 +14,8 @@ interface AcrylicViewProps {
   shots: Shot[]
   reference: Vec
   acrylicApplied: boolean
-  machineY: number
+  machineAxisLabel: string
+  machineValue: number
   motionEnabled: boolean
   className?: string
 }
@@ -23,7 +24,8 @@ export const AcrylicView = ({
   shots,
   reference,
   acrylicApplied,
-  machineY,
+  machineAxisLabel,
+  machineValue,
   motionEnabled,
   className,
 }: AcrylicViewProps) => {
@@ -38,7 +40,7 @@ export const AcrylicView = ({
           viewBox="0 0 100 100"
           className="h-full w-full"
           role="img"
-          aria-label={`Acrylic pada cermin 2. ${shots.length} kesan tembakan. Mesin di Y sama dengan ${machineY}.`}
+          aria-label={`Acrylic. ${shots.length} kesan tembakan. Mesin di ${machineAxisLabel} sama dengan ${machineValue}.`}
         >
           <defs>
             <radialGradient id="burn-glow">
@@ -173,7 +175,7 @@ export const AcrylicView = ({
             fontSize="4.6"
             fontWeight="600"
           >
-            Mesin di Y = {machineY}
+            Mesin di {machineAxisLabel} = {machineValue}
           </text>
           <g opacity="0.55">
             <line

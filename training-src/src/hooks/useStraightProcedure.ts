@@ -1,26 +1,31 @@
 import { useCallback, useRef, useState } from 'react'
-import { STRAIGHT_PRESETS, STRAIGHT_STEPS } from '../lib/sim'
-import type { Shot, Vec } from '../types'
+import {
+  STRAIGHT_PRESETS,
+  STRAIGHT_VARIANT_X,
+  STRAIGHT_VARIANT_Y,
+} from '../lib/sim'
+import type { Shot, StraightAxis, Vec } from '../types'
 
-export const useStraightProcedure = () => {
+export const useStraightProcedure = (axis: StraightAxis = 'y') => {
+  const variant = axis === 'x' ? STRAIGHT_VARIANT_X : STRAIGHT_VARIANT_Y
   const [stepIndex, setStepIndex] = useState(0)
   const [shots, setShots] = useState<Shot[]>([])
-  const [machineY, setMachineY] = useState(0)
+  const [machineValue, setMachineValue] = useState(variant.nearValue)
   const [reference, setReference] = useState<Vec>(STRAIGHT_PRESETS[0])
   const shotIdCounter = useRef(0)
 
-  const step = STRAIGHT_STEPS[stepIndex]
+  const step = variant.steps[stepIndex]
   const acrylicApplied = stepIndex > 0
   const canAdjust = step.id === 'align'
 
   const restart = useCallback(() => {
     setStepIndex(0)
     setShots([])
-    setMachineY(0)
+    setMachineValue(variant.nearValue)
     setReference(
       STRAIGHT_PRESETS[Math.floor(Math.random() * STRAIGHT_PRESETS.length)],
     )
-  }, [])
+  }, [variant.nearValue])
 
   const fire = useCallback((x: number, y: number) => {
     shotIdCounter.current += 1
@@ -37,22 +42,23 @@ export const useStraightProcedure = () => {
   }, [])
 
   return {
+    variant,
     stepIndex,
     step,
-    steps: STRAIGHT_STEPS,
+    steps: variant.steps,
     shots,
-    machineY,
+    machineValue,
     reference,
     acrylicApplied,
     canAdjust,
     performStep: useCallback(
       (screwOffset: Vec) => {
         switch (step.id) {
-          case 'moveY0':
-            setMachineY(0)
+          case 'moveNear':
+            setMachineValue(variant.nearValue)
             break
-          case 'moveY90':
-            setMachineY(90)
+          case 'moveFar':
+            setMachineValue(variant.farValue)
             break
           case 'fireNear':
             fire(reference.x, reference.y)
@@ -66,10 +72,12 @@ export const useStraightProcedure = () => {
             fire(reference.x + screwOffset.x, reference.y + screwOffset.y)
         }
         if (step.id !== 'align') {
-          setStepIndex((index) => Math.min(index + 1, STRAIGHT_STEPS.length - 1))
+          setStepIndex((index) =>
+            Math.min(index + 1, variant.steps.length - 1),
+          )
         }
       },
-      [fire, reference, step.id],
+      [fire, reference, step.id, variant],
     ),
     restart,
   }

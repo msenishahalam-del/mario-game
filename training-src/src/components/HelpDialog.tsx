@@ -49,7 +49,7 @@ export const HelpDialog = ({
           mesin laser menggerakkan beam pada sasaran. Pilih latihan di bahagian
           atas: Level 1 untuk cermin mirror mount, Level 2 untuk cermin pada head
           laser, Level 3 untuk memahami gerakan gantry dan sistem koordinat,
-          Level 4 untuk prosedur beam lurus.
+          Level 4 dan Level 5 untuk prosedur beam lurus (paksi Y dan paksi X).
         </p>
         <h3 className="mb-2 text-sm font-semibold text-ink">Langkah</h3>
         <ol className="list-decimal space-y-1.5 pl-5">

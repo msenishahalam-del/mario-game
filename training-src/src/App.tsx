@@ -42,7 +42,9 @@ export const App = () => {
     setShowTrail,
     setAnimationsEnabled,
   } = useAlignmentSim()
-  const straight = useStraightProcedure()
+  const straight = useStraightProcedure(
+    level.kind === 'straight' ? (level.straightAxis ?? 'y') : 'y',
+  )
   const gantry = useGantryLesson()
   const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -87,11 +89,12 @@ export const App = () => {
   const displayStatus = isStraight ? straightStatus : alignmentStatus
   const srText = isStraight
     ? separationMm === null
-      ? 'Belum ada tembakan pada Y sama dengan 90.'
+      ? `Belum ada tembakan pada ${straight.variant.axisLabel} sama dengan ${straight.variant.farValue}.`
       : `Sesaran tembakan terakhir ${separationMm.toFixed(1)} milimeter daripada tanda rujukan.`
     : `Posisi beam X ${formatSigned(position.x)}, Y ${formatSigned(position.y)}.`
+  const adjustHint = `Laras skru pada ${straight.variant.adjustMirror}, kemudian tembak semula sehingga kesan bertindih.`
   const helperText = isStraight
-    ? 'Laras skru pada cermin 1, kemudian tembak semula sehingga kesan bertindih.'
+    ? adjustHint
     : 'Laraskan skru di bawah untuk menggerakkan beam ke tengah sasaran.'
 
   return (
@@ -180,21 +183,33 @@ export const App = () => {
                       shots={straight.shots}
                       reference={straight.reference}
                       acrylicApplied={straight.acrylicApplied}
-                      machineY={straight.machineY}
+                      machineAxisLabel={straight.variant.axisLabel}
+                      machineValue={straight.machineValue}
                       motionEnabled={motionEnabled}
                       className="mx-auto max-w-[min(70%,30svh)] lg:max-w-[434px] xl:max-w-[355px]"
                     />
                     <div className="mx-auto w-full max-w-[260px]">
                       <p className="mb-1 text-center text-xs font-semibold text-muted">
-                        Kedudukan mesin · Y = {straight.machineY}
+                        Kedudukan mesin · {straight.variant.axisLabel} ={' '}
+                        {straight.machineValue}
                       </p>
-                      <GantryDiagram
-                        compact
-                        x={50}
-                        y={straight.machineY}
-                        highlightM1M2
-                        motionEnabled={motionEnabled}
-                      />
+                      {straight.variant.axisLabel === 'X' ? (
+                        <GantryDiagram
+                          compact
+                          x={straight.machineValue}
+                          y={90}
+                          highlightM2Head
+                          motionEnabled={motionEnabled}
+                        />
+                      ) : (
+                        <GantryDiagram
+                          compact
+                          x={65}
+                          y={straight.machineValue}
+                          highlightM1M2
+                          motionEnabled={motionEnabled}
+                        />
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -247,7 +262,7 @@ export const App = () => {
             hint={
               isStraight
                 ? straight.canAdjust
-                  ? 'Laras skru pada cermin 1, kemudian tembak semula sehingga kesan bertindih.'
+                  ? adjustHint
                   : 'Skru dikunci sehingga anda sampai ke langkah melaras dalam prosedur.'
                 : undefined
             }

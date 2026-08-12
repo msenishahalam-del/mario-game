@@ -3,7 +3,7 @@ import type { Vec } from '../../types'
 // Pandangan atas mesin (skala 1 unit mesin = 1 unit SVG):
 // origin 0,0 mesin di penjuru belakang-kiri katil, X bertambah ke kanan,
 // Y bertambah ke arah depan mesin (ke bawah pada rajah).
-export const GANTRY_X_MAX = 100
+export const GANTRY_X_MAX = 130
 export const GANTRY_Y_MAX = 90
 
 const BED_X0 = 30 // svg-x untuk mesin X = 0
@@ -18,6 +18,7 @@ interface GantryDiagramProps {
   x: number
   y: number
   highlightM1M2?: boolean
+  highlightM2Head?: boolean
   targetPoint?: Vec | null
   compact?: boolean
   motionEnabled: boolean
@@ -28,6 +29,7 @@ export const GantryDiagram = ({
   x,
   y,
   highlightM1M2 = false,
+  highlightM2Head = false,
   targetPoint = null,
   compact = false,
   motionEnabled,
@@ -42,7 +44,7 @@ export const GantryDiagram = ({
     <div className={`w-full ${className ?? ''}`}>
       <div className="w-full rounded-xl border border-line bg-white p-1.5 sm:p-2">
         <svg
-          viewBox="0 0 142 134"
+          viewBox="0 0 172 134"
           className="h-auto w-full"
           role="img"
           aria-label={`Pandangan atas mesin laser. Head berada pada X ${x}, Y ${y}.`}
@@ -65,7 +67,7 @@ export const GantryDiagram = ({
           <rect
             x="3"
             y="3"
-            width="136"
+            width="166"
             height="122"
             rx="5"
             fill="#f2f5fa"
@@ -85,7 +87,7 @@ export const GantryDiagram = ({
             strokeWidth="0.8"
           />
           <g stroke="#eef2f7" strokeWidth="0.35">
-            {[20, 40, 60, 80].map((gx) => (
+            {[20, 40, 60, 80, 100, 120].map((gx) => (
               <line
                 key={`gv-${gx}`}
                 x1={toSvgX(gx)}
@@ -109,7 +111,7 @@ export const GantryDiagram = ({
           <rect
             x="34"
             y="8"
-            width="96"
+            width="122"
             height="9"
             rx="4.5"
             fill="#d8e2f0"
@@ -117,7 +119,7 @@ export const GantryDiagram = ({
             strokeWidth="0.8"
           />
           <text
-            x="82"
+            x="95"
             y="14.6"
             textAnchor="middle"
             fill="#5f6b7a"
@@ -200,9 +202,20 @@ export const GantryDiagram = ({
               x2={headX}
               y2={gantryY}
               stroke="var(--color-beam)"
-              strokeWidth="1.3"
-              opacity="0.9"
+              strokeWidth={highlightM2Head ? 2.4 : 1.3}
+              opacity={highlightM2Head ? 1 : 0.9}
             />
+            {highlightM2Head ? (
+              <line
+                x1={RAIL_X}
+                y1={gantryY}
+                x2={headX}
+                y2={gantryY}
+                stroke="var(--color-beam)"
+                strokeWidth="5"
+                opacity="0.18"
+              />
+            ) : null}
           </g>
 
           {/* Cermin 1 (statik, belakang-kiri) */}
@@ -371,7 +384,7 @@ export const GantryDiagram = ({
 
           {/* Kapsyen orientasi */}
           <text
-            x="136"
+            x="166"
             y="7"
             textAnchor="end"
             fill="#9aa5b4"
@@ -381,7 +394,7 @@ export const GantryDiagram = ({
             Belakang
           </text>
           <text
-            x="71"
+            x="86"
             y="131.5"
             textAnchor="middle"
             fill="#5f6b7a"

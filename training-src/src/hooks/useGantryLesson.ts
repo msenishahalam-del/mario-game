@@ -4,7 +4,7 @@ import { GANTRY_X_MAX, GANTRY_Y_MAX } from '../components/gantry/GantryDiagram'
 import type { Vec } from '../types'
 
 export const GANTRY_JOG_STEP = 10
-export const GANTRY_CENTRE_TARGET: Vec = { x: 50, y: 40 }
+export const GANTRY_CENTRE_TARGET: Vec = { x: 60, y: 40 }
 
 export interface GantryStep {
   id: 'home' | 'goY90' | 'backY0' | 'centre'
@@ -35,7 +35,7 @@ export const GANTRY_STEPS: GantryStep[] = [
   },
   {
     id: 'centre',
-    label: 'Gerak head ke tengah katil (X = 50, Y = 40)',
+    label: 'Gerak head ke tengah katil (X = 60, Y = 40)',
     hint: 'Gunakan keempat-empat anak panah untuk meletakkan head pada sasaran biru di tengah katil.',
     done: (pos) =>
       pos.x === GANTRY_CENTRE_TARGET.x && pos.y === GANTRY_CENTRE_TARGET.y,

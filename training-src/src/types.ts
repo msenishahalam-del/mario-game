@@ -5,7 +5,7 @@ export interface Vec {
 
 export type AlignmentStatus = 'aligned' | 'near' | 'unaligned'
 
-export type LevelId = 'level1' | 'level2' | 'level3' | 'level4'
+export type LevelId = 'level1' | 'level2' | 'level3' | 'level4' | 'level5'
 export type LevelKind = 'centre' | 'straight' | 'gantry'
 
 export type ScrewId = 'screw1' | 'screw2' | 'screw3'
@@ -58,9 +58,13 @@ interface LevelBase {
   successMessage: string
 }
 
+export type StraightAxis = 'x' | 'y'
+
 // Level dengan skru pelarasan (Level 1/2 'centre' dan Beam Lurus 'straight')
 export interface CentreLevelConfig extends LevelBase {
   kind: 'centre' | 'straight'
+  // Untuk kind 'straight': paksi yang diuji (y = rel kiri, x = sepanjang gantry)
+  straightAxis?: StraightAxis
   refHeading: string
   image: LevelImage
   refImageClass: string
@@ -89,7 +93,7 @@ export interface Shot {
 }
 
 export interface StraightStep {
-  id: 'acrylic' | 'moveY0' | 'fireNear' | 'mark' | 'moveY90' | 'align'
+  id: 'acrylic' | 'moveNear' | 'fireNear' | 'mark' | 'moveFar' | 'align'
   label: string
   action: string
   hint: string
