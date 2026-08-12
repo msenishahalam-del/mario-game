@@ -6,7 +6,12 @@ import { MaintenancePage } from './pages/MaintenancePage'
 import { MaintenanceChooserPage } from './pages/MaintenanceChooserPage'
 import { ShopPage } from './pages/ShopPage'
 import { AboutPage } from './pages/AboutPage'
-import { WEEKLY_GUIDE, YEARLY_GUIDE, WIFI_GUIDE } from './data/maintenance'
+import {
+  WEEKLY_GUIDE,
+  YEARLY_GUIDE,
+  WIFI_GUIDE,
+  CHILLER_GUIDE,
+} from './data/maintenance'
 import { useHashRoute } from './hooks/useHashRoute'
 import './index.css'
 
@@ -25,6 +30,8 @@ const Root = () => {
       return <MaintenancePage guide={YEARLY_GUIDE} />
     case 'wifi':
       return <MaintenancePage guide={WIFI_GUIDE} />
+    case 'chiller':
+      return <MaintenancePage guide={CHILLER_GUIDE} />
     case 'about':
       return <AboutPage />
     default:

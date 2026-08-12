@@ -3,6 +3,7 @@ import {
   ArrowRight,
   CalendarClock,
   ClipboardCheck,
+  Snowflake,
   Wifi,
   Wrench,
 } from 'lucide-react'
@@ -39,6 +40,17 @@ const OPTIONS = [
     softBg: '#edf3fd',
     border: '#c9dcf6',
     Icon: Wifi,
+  },
+  {
+    href: '#/chiller',
+    title: 'Cara Setting Chiller CW5000',
+    description:
+      'Setting terbaik CW-5000 untuk negara lembap seperti Malaysia — dengan video panduan.',
+    meta: 'Sekali setup · ±5 minit',
+    color: '#0891b2',
+    softBg: '#e8f7fb',
+    border: '#c4e9f2',
+    Icon: Snowflake,
   },
 ]
 

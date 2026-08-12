@@ -1,4 +1,4 @@
-import { ArrowLeft, Camera, Check, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Camera, Check, ExternalLink, MessageCircle } from 'lucide-react'
 import type { MaintenanceGuideData } from '../data/maintenance'
 
 interface MaintenancePageProps {
@@ -71,6 +71,43 @@ export const MaintenancePage = ({ guide }: MaintenancePageProps) => (
                 </li>
               ))}
             </ul>
+            {step.video ? (
+              <div className="flex flex-col gap-2">
+                <div className="aspect-video w-full overflow-hidden rounded-xl border border-line bg-black">
+                  <iframe
+                    src={step.video.embedUrl}
+                    title={step.video.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="h-full w-full"
+                  />
+                </div>
+                <a
+                  href={step.video.watchUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-fit items-center gap-1.5 text-xs font-semibold text-muted transition-colors hover:text-ink sm:text-sm"
+                >
+                  Tonton di YouTube: {step.video.title}
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                </a>
+              </div>
+            ) : null}
+            {step.settings && step.settings.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {step.settings.map((setting) => (
+                  <div
+                    key={setting.code}
+                    className="flex items-center justify-between rounded-xl border border-line bg-white px-3 py-2"
+                  >
+                    <span className="text-sm font-bold" style={{ color: guide.accentVar }}>
+                      {setting.code}
+                    </span>
+                    <span className="text-sm font-bold text-ink">{setting.value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {step.takePicture ? (
               <p className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f4cfd0] bg-[#fdf0f0] px-3 py-1.5 text-xs font-bold text-[#8a2226] sm:text-sm">
                 <Camera className="h-4 w-4" aria-hidden="true" />

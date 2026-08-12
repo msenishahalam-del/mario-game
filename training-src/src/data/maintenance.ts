@@ -12,10 +12,12 @@ export interface MaintenanceStep {
   points: string[]
   photos?: MaintenancePhoto[]
   takePicture?: string
+  video?: { embedUrl: string; watchUrl: string; title: string }
+  settings?: { code: string; value: string }[]
 }
 
 export interface MaintenanceGuideData {
-  id: 'weekly' | 'yearly' | 'wifi'
+  id: 'weekly' | 'yearly' | 'wifi' | 'chiller'
   badge: string
   title: string
   intro: string
@@ -204,6 +206,61 @@ export const WIFI_GUIDE: MaintenanceGuideData = {
     'Semak nombor ketiga IP mesin sama dengan IP router. Contoh: jika router guna 192.168.1.x, IP mesin mesti bermula 192.168.1 juga (contoh: 192.168.1.17). Jika mesin guna 192.168.0.x, ia tidak akan connect — ubah IP mesin supaya sepadan.',
     'Semak IP mesin tidak bercanggah dengan mesin lain — setiap mesin mesti ada IP unik.',
     'Cuba restart WiFi extender dan mesin laser, kemudian test semula.',
+  ],
+}
+
+export const CHILLER_GUIDE: MaintenanceGuideData = {
+  id: 'chiller',
+  badge: 'Water Chiller · CW-5000',
+  title: 'Cara Setting Chiller CW5000',
+  intro:
+    'Setting terbaik untuk chiller CW-5000 di negara lembap seperti Malaysia dan Brazil. Ikut video dan jadual di bawah — hanya 5 minit.',
+  accentVar: '#0891b2',
+  meta: [
+    { label: 'Mesin', value: 'Water Chiller CW-5000' },
+    { label: 'Sesuai', value: 'Negara lembap (Malaysia / Brazil)' },
+    { label: 'Masa', value: '±5 minit' },
+  ],
+  steps: [
+    {
+      title: 'Tonton video panduan',
+      points: [
+        'Video ini menunjukkan cara masuk ke menu setting dan nilai terbaik untuk CW-5000.',
+      ],
+      video: {
+        embedUrl: 'https://www.youtube-nocookie.com/embed/EWr1KlqAqV0',
+        watchUrl: 'https://youtu.be/EWr1KlqAqV0',
+        title: 'Best Setting CW5000 for Humid Country',
+      },
+    },
+    {
+      title: 'Masuk ke menu setting',
+      points: [
+        'Tekan dan tahan butang Up (▲) selama 5 saat.',
+        'Masukkan password: 8.',
+      ],
+    },
+    {
+      title: 'Masukkan nilai F0 hingga F9',
+      points: ['Set setiap parameter mengikut jadual di bawah:'],
+      settings: [
+        { code: 'F0', value: '23' },
+        { code: 'F1', value: '0' },
+        { code: 'F2', value: '1' },
+        { code: 'F3', value: '0' },
+        { code: 'F4', value: '4' },
+        { code: 'F5', value: '14' },
+        { code: 'F6', value: '45' },
+        { code: 'F7', value: '8' },
+        { code: 'F8', value: '35' },
+        { code: 'F9', value: '15' },
+      ],
+    },
+  ],
+  finalTitle: 'Nota',
+  finalPoints: [
+    'Setting ini adalah setting terbaik untuk negara beriklim lembap seperti Malaysia dan Brazil.',
+    'Selepas set, pastikan suhu air stabil dan tiada peluh air (condensation) pada laser tube.',
   ],
 }
 
