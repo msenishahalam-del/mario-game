@@ -78,26 +78,15 @@ export const ShopPage = () => (
                 {product.description}
               </p>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#e07514] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#c76409] sm:text-sm"
-              >
-                {product.soldOut ? 'Lihat di Shopee' : 'Beli di Shopee'}
-                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              </a>
-              <a
-                href={whatsappUrlFor(product.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#1faa4e] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#188a3f] sm:text-sm"
-              >
-                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-                Order via WhatsApp
-              </a>
-            </div>
+            <a
+              href={product.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#e07514] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#c76409] sm:text-sm"
+            >
+              {product.soldOut ? 'Lihat di Shopee' : 'Beli di Shopee'}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           </div>
         ))}
       </div>
