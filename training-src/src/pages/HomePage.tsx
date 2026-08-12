@@ -75,9 +75,11 @@ export const HomePage = () => (
             <span className="text-ink">Sifu</span>
             <span className="italic text-screw-2">Laser</span>
           </span>
-          <Sparkles className="mb-2 h-7 w-7 text-near" aria-hidden="true" />
+          <Sparkles className="mb-2 h-7 w-7 shrink-0 text-near" aria-hidden="true" />
+          <span className="mb-2 whitespace-nowrap text-sm font-semibold text-muted">
+            by Mahligai Seni
+          </span>
         </p>
-        <p className="mt-1 text-sm font-semibold text-muted">by Mahligai Seni</p>
         <p className="mt-2 border-t-2 border-near/60 pt-2 text-sm font-semibold tracking-[0.25em] text-muted">
           ALIGN. MAINTAIN. PERFORM.
         </p>
