@@ -175,14 +175,28 @@ export const App = () => {
                   className="rounded-xl border border-line bg-canvas/50 p-2.5 sm:p-4 xl:order-2 xl:w-64 xl:shrink-0"
                 />
                 {isStraight ? (
-                  <AcrylicView
-                    shots={straight.shots}
-                    reference={straight.reference}
-                    acrylicApplied={straight.acrylicApplied}
-                    machineY={straight.machineY}
-                    motionEnabled={motionEnabled}
-                    className="mx-auto max-w-[min(70%,30svh)] flex-1 lg:max-w-[434px] xl:order-1 xl:max-w-[355px]"
-                  />
+                  <div className="flex flex-1 flex-col gap-3 xl:order-1">
+                    <AcrylicView
+                      shots={straight.shots}
+                      reference={straight.reference}
+                      acrylicApplied={straight.acrylicApplied}
+                      machineY={straight.machineY}
+                      motionEnabled={motionEnabled}
+                      className="mx-auto max-w-[min(70%,30svh)] lg:max-w-[434px] xl:max-w-[355px]"
+                    />
+                    <div className="mx-auto w-full max-w-[260px]">
+                      <p className="mb-1 text-center text-xs font-semibold text-muted">
+                        Kedudukan mesin · Y = {straight.machineY}
+                      </p>
+                      <GantryDiagram
+                        compact
+                        x={50}
+                        y={straight.machineY}
+                        highlightM1M2
+                        motionEnabled={motionEnabled}
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <TargetView
                     position={position}
