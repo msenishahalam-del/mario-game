@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Lanyard dengan klip">
+  <rect width="200" height="200" rx="16" fill="#eef5fd"/>
+  <!-- Tali lanyard membentuk V -->
+  <path d="M56 18 C40 70 66 108 92 132 L108 132 C134 108 160 70 144 18 L120 18 C130 62 112 96 100 112 C88 96 70 62 80 18 Z" fill="#1f78d1" stroke="#155a9e" stroke-width="2"/>
+  <path d="M60 22 C48 66 70 102 94 126" fill="none" stroke="#5ba3e0" stroke-width="3" stroke-linecap="round"/>
+  <!-- Cangkuk logam -->
+  <rect x="92" y="130" width="16" height="12" rx="3" fill="#9aa5b4"/>
+  <path d="M100 142 c-10 0 -14 8 -8 14 l6 5 v6 h4 v-6 l6 -5 c6 -6 2 -14 -8 -14 z" fill="#c7d0dc" stroke="#8d99a8" stroke-width="1.5"/>
+  <!-- Tag nama -->
+  <rect x="70" y="158" width="60" height="34" rx="5" fill="#ffffff" stroke="#c7d0dc" stroke-width="2"/>
+  <rect x="76" y="166" width="36" height="5" rx="2.5" fill="#c7d0dc"/>
+  <rect x="76" y="176" width="48" height="5" rx="2.5" fill="#dce3ec"/>
+  <text x="100" y="14" text-anchor="middle" font-family="Inter, sans-serif" font-size="0" fill="#1f78d1"></text>
+</svg>

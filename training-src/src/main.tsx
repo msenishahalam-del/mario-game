@@ -4,6 +4,7 @@ import { App } from './App'
 import { HomePage } from './pages/HomePage'
 import { MaintenancePage } from './pages/MaintenancePage'
 import { MaintenanceChooserPage } from './pages/MaintenanceChooserPage'
+import { ShopPage } from './pages/ShopPage'
 import { AboutPage } from './pages/AboutPage'
 import { WEEKLY_GUIDE, YEARLY_GUIDE } from './data/maintenance'
 import { useHashRoute } from './hooks/useHashRoute'
@@ -16,6 +17,8 @@ const Root = () => {
       return <App />
     case 'maintenance':
       return <MaintenanceChooserPage />
+    case 'kedai':
+      return <ShopPage />
     case 'weekly':
       return <MaintenancePage guide={WEEKLY_GUIDE} />
     case 'yearly':
