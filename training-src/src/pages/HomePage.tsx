@@ -25,7 +25,7 @@ const CARDS: HomeCard[] = [
   {
     number: 1,
     title: 'Simulator Alignment',
-    description: 'Belajar dan praktik alignment cermin untuk laser K40.',
+    description: 'Belajar dan praktik alignment cermin untuk Mesin Laser Cut.',
     href: '#/simulator',
     color: '#1f78d1',
     softBg: '#eef5fd',
