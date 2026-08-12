@@ -1,13 +1,13 @@
 import { ImageOff, Info, Lightbulb } from 'lucide-react'
 import { ImageWithFallback } from './ImageWithFallback'
 import { SCREW_ORDER } from '../levels'
-import type { Direction, LevelConfig, ScrewAxis, ScrewConfig, ScrewId } from '../types'
+import type { CentreLevelConfig, Direction, ScrewAxis, ScrewConfig, ScrewId } from '../types'
 
 const QuickGuide = ({
   level,
   className,
 }: {
-  level: LevelConfig
+  level: CentreLevelConfig
   className?: string
 }) => (
   <div
@@ -166,7 +166,7 @@ const imageFallback = (
 )
 
 interface MirrorPanelProps {
-  level: LevelConfig
+  level: CentreLevelConfig
   activeScrew: ScrewId | null
   activeDirection: Direction | null
   compact: boolean

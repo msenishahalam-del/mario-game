@@ -9,7 +9,7 @@ import {
   RotateCw,
 } from 'lucide-react'
 import { ImageWithFallback } from './ImageWithFallback'
-import type { Direction, LevelConfig, ScrewAxis, ScrewConfig, ScrewId } from '../types'
+import type { CentreLevelConfig, Direction, ScrewAxis, ScrewConfig, ScrewId } from '../types'
 
 const POD_LEFT = '-5%'
 const POD_RIGHT = '105%'
@@ -18,7 +18,7 @@ const GuideLines = ({
   level,
   activeScrew,
 }: {
-  level: LevelConfig
+  level: CentreLevelConfig
   activeScrew: ScrewId | null
 }) => (
   <svg
@@ -130,7 +130,7 @@ export const ScrewControl = ({
 const overlayBase = 'absolute -translate-x-1/2 -translate-y-1/2'
 
 interface ScrewAdjustPanelProps {
-  level: LevelConfig
+  level: CentreLevelConfig
   activeScrew: ScrewId | null
   activeDirection: Direction | null
   compact: boolean

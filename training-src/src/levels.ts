@@ -1,4 +1,4 @@
-import type { AlignmentStatus, LevelConfig, LevelId, ScrewId } from './types'
+import type { AlignmentStatus, CentreLevelConfig, LevelConfig, LevelId, ScrewId } from './types'
 
 const SCREW_1_COLOR = 'var(--color-screw-1)'
 const SCREW_2_COLOR = 'var(--color-screw-2)'
@@ -10,7 +10,7 @@ export const CENTRE_STATUS_LABELS: Record<AlignmentStatus, string> = {
   unaligned: 'Belum Sejajar',
 }
 
-const LEVEL_1: LevelConfig = {
+const LEVEL_1: CentreLevelConfig = {
   id: 'level1',
   number: 1,
   kind: 'centre',
@@ -182,12 +182,27 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
     },
   },
   level3: {
-    ...LEVEL_1,
     id: 'level3',
     number: 3,
+    kind: 'gantry',
+    shortName: 'Gantry',
+    tabLabel: 'Level 3 · Gerakan Gantry',
+    targetHeading: 'Pandangan Atas Mesin',
+    statusLabels: {
+      aligned: 'Selesai',
+      near: 'Sedang Bergerak',
+      unaligned: 'Belum Selesai',
+    },
+    successMessage:
+      'Tahniah! Y = 0 di belakang (atas) dan Y = 90 di depan (bawah) — cermin 2 bergerak bersama gantry.',
+  },
+  level4: {
+    ...LEVEL_1,
+    id: 'level4',
+    number: 4,
     kind: 'straight',
     shortName: 'Beam Lurus',
-    tabLabel: 'Level 3 · Beam Lurus',
+    tabLabel: 'Level 4 · Beam Lurus',
     refHeading: 'Cermin 1 / Mirror Mount',
     targetHeading: 'Acrylic pada Cermin 2',
     statusLabels: {
@@ -200,6 +215,6 @@ export const LEVELS: Record<LevelId, LevelConfig> = {
   },
 }
 
-export const LEVEL_ORDER: LevelId[] = ['level1', 'level2', 'level3']
+export const LEVEL_ORDER: LevelId[] = ['level1', 'level2', 'level3', 'level4']
 export const DEFAULT_LEVEL_ID: LevelId = 'level1'
 export const SCREW_ORDER: ScrewId[] = ['screw1', 'screw2', 'screw3']

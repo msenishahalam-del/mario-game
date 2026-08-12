@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Crosshair } from 'lucide-react'
+import { Crosshair, Info } from 'lucide-react'
 import { AppHeader } from './components/AppHeader'
 import { LevelTabs } from './components/LevelTabs'
 import { StatusPanel } from './components/StatusPanel'
@@ -12,8 +12,12 @@ import { Footer } from './components/Footer'
 import { HelpDialog } from './components/HelpDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { StraightProcedurePanel } from './components/StraightProcedurePanel'
+import { GantryDiagram } from './components/gantry/GantryDiagram'
+import { GantryJogPad } from './components/gantry/GantryJogPad'
+import { GantryLessonPanel } from './components/gantry/GantryLessonPanel'
 import { useAlignmentSim } from './hooks/useAlignmentSim'
 import { useStraightProcedure } from './hooks/useStraightProcedure'
+import { useGantryLesson } from './hooks/useGantryLesson'
 import { useMediaQuery } from './hooks/useMediaQuery'
 import { alignmentStatusOf, distance, formatSigned } from './lib/sim'
 
@@ -39,6 +43,7 @@ export const App = () => {
     setAnimationsEnabled,
   } = useAlignmentSim()
   const straight = useStraightProcedure()
+  const gantry = useGantryLesson()
   const [helpOpen, setHelpOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const helpButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -51,11 +56,15 @@ export const App = () => {
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
 
   const isStraight = level.kind === 'straight'
+  const isGantry = level.kind === 'gantry'
+  const centreLevel = level.kind === 'gantry' ? null : level
   const { restart: restartStraight } = straight
+  const { restart: restartGantry } = gantry
 
   useEffect(() => {
     restartStraight()
-  }, [levelId, restartStraight])
+    restartGantry()
+  }, [levelId, restartStraight, restartGantry])
 
   const resetStraightLevel = useCallback(() => {
     resetAlignment()
@@ -95,15 +104,45 @@ export const App = () => {
       />
       <LevelTabs levelId={levelId} onChange={setLevelId} />
       <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[minmax(0,40fr)_minmax(0,60fr)] lg:content-start">
-        <MirrorPanel
-          key={`ref-${levelId}`}
-          level={level}
-          activeScrew={activeScrew}
-          activeDirection={activeDirection}
-          compact={compact}
-          onInfo={openHelp}
-          className="lg:col-start-1 lg:row-start-2"
-        />
+        {isGantry ? (
+          <section
+            className="card flex flex-col gap-3 p-4 sm:p-5 lg:col-start-1 lg:row-start-1"
+            aria-labelledby="gantry-control-heading"
+          >
+            <div>
+              <h2
+                id="gantry-control-heading"
+                className="text-base font-bold text-ink sm:text-lg"
+              >
+                Kawalan Gantry
+              </h2>
+              <p className="mt-0.5 text-xs text-muted sm:text-sm">
+                Tekan butang anak panah untuk menggerakkan gantry dan head.
+              </p>
+            </div>
+            <GantryJogPad position={gantry.position} onJog={gantry.jog} />
+            <p className="flex items-start gap-2 rounded-xl border border-[#cfe0f5] bg-[#eef5fd] p-3 text-xs text-[#2b4d73] sm:text-sm">
+              <Info
+                className="mt-0.5 h-4 w-4 shrink-0 text-screw-2"
+                aria-hidden="true"
+              />
+              Butang ini mensimulasikan butang anak panah pada panel kawalan
+              mesin laser sebenar.
+            </p>
+          </section>
+        ) : (
+          centreLevel && (
+            <MirrorPanel
+              key={`ref-${levelId}`}
+              level={centreLevel}
+              activeScrew={activeScrew}
+              activeDirection={activeDirection}
+              compact={compact}
+              onInfo={openHelp}
+              className="lg:col-start-1 lg:row-start-2"
+            />
+          )
+        )}
         <div className="sticky top-0 z-30 -mx-3 bg-canvas px-3 py-2 sm:-mx-6 sm:px-6 lg:static lg:z-auto lg:col-start-2 lg:row-start-1 lg:mx-0 lg:p-0">
           <section className="card p-3 sm:p-5" aria-labelledby="beam-target-heading">
             <h2
@@ -116,37 +155,60 @@ export const App = () => {
               />
               {level.targetHeading}
             </h2>
-            <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-start">
-              <StatusPanel
-                alignmentStatus={displayStatus}
-                labels={level.statusLabels}
-                successMessage={level.successMessage}
-                srText={srText}
-                helperText={helperText}
-                className="rounded-xl border border-line bg-canvas/50 p-2.5 sm:p-4 xl:order-2 xl:w-64 xl:shrink-0"
+            {isGantry ? (
+              <GantryDiagram
+                x={gantry.position.x}
+                y={gantry.position.y}
+                highlightM1M2={gantry.highlightM1M2}
+                targetPoint={gantry.targetPoint}
+                motionEnabled={motionEnabled}
+                className="mx-auto max-w-[560px]"
               />
-              {isStraight ? (
-                <AcrylicView
-                  shots={straight.shots}
-                  reference={straight.reference}
-                  acrylicApplied={straight.acrylicApplied}
-                  machineY={straight.machineY}
-                  motionEnabled={motionEnabled}
-                  className="mx-auto max-w-[min(70%,30svh)] flex-1 lg:max-w-[434px] xl:order-1 xl:max-w-[355px]"
+            ) : (
+              <div className="flex flex-col gap-3 sm:gap-4 xl:flex-row xl:items-start">
+                <StatusPanel
+                  alignmentStatus={displayStatus}
+                  labels={level.statusLabels}
+                  successMessage={level.successMessage}
+                  srText={srText}
+                  helperText={helperText}
+                  className="rounded-xl border border-line bg-canvas/50 p-2.5 sm:p-4 xl:order-2 xl:w-64 xl:shrink-0"
                 />
-              ) : (
-                <TargetView
-                  position={position}
-                  history={history}
-                  showTrail={showTrail}
-                  alignmentStatus={alignmentStatus}
-                  motionEnabled={motionEnabled}
-                  className="mx-auto max-w-[min(70%,30svh)] flex-1 lg:max-w-[434px] xl:order-1 xl:max-w-[355px]"
-                />
-              )}
-            </div>
+                {isStraight ? (
+                  <AcrylicView
+                    shots={straight.shots}
+                    reference={straight.reference}
+                    acrylicApplied={straight.acrylicApplied}
+                    machineY={straight.machineY}
+                    motionEnabled={motionEnabled}
+                    className="mx-auto max-w-[min(70%,30svh)] flex-1 lg:max-w-[434px] xl:order-1 xl:max-w-[355px]"
+                  />
+                ) : (
+                  <TargetView
+                    position={position}
+                    history={history}
+                    showTrail={showTrail}
+                    alignmentStatus={alignmentStatus}
+                    motionEnabled={motionEnabled}
+                    className="mx-auto max-w-[min(70%,30svh)] flex-1 lg:max-w-[434px] xl:order-1 xl:max-w-[355px]"
+                  />
+                )}
+              </div>
+            )}
           </section>
         </div>
+        {isGantry ? (
+          <GantryLessonPanel
+            steps={gantry.steps}
+            stepIndex={gantry.stepIndex}
+            step={gantry.step}
+            finished={gantry.finished}
+            successMessage={level.successMessage}
+            onAdvance={gantry.advance}
+            onRestart={gantry.restart}
+            className="lg:col-start-2 lg:row-start-2 lg:max-w-[380px] lg:self-start"
+          />
+        ) : null}
         {isStraight ? (
           <StraightProcedurePanel
             steps={straight.steps}
@@ -159,24 +221,26 @@ export const App = () => {
             className="lg:col-start-2 lg:row-start-2 lg:max-w-[380px] lg:self-start"
           />
         ) : null}
-        <ScrewAdjustPanel
-          key={`adjust-${levelId}`}
-          level={level}
-          activeScrew={activeScrew}
-          activeDirection={activeDirection}
-          compact={compact}
-          onMove={moveBeam}
-          disabled={isStraight && !straight.canAdjust}
-          hint={
-            isStraight
-              ? straight.canAdjust
-                ? 'Laras skru pada cermin 1, kemudian tembak semula sehingga kesan bertindih.'
-                : 'Skru dikunci sehingga anda sampai ke langkah melaras dalam prosedur.'
-              : undefined
-          }
-          className="lg:col-start-1 lg:row-start-1"
-        />
-        {isStraight ? null : (
+        {centreLevel && (
+          <ScrewAdjustPanel
+            key={`adjust-${levelId}`}
+            level={centreLevel}
+            activeScrew={activeScrew}
+            activeDirection={activeDirection}
+            compact={compact}
+            onMove={moveBeam}
+            disabled={isStraight && !straight.canAdjust}
+            hint={
+              isStraight
+                ? straight.canAdjust
+                  ? 'Laras skru pada cermin 1, kemudian tembak semula sehingga kesan bertindih.'
+                  : 'Skru dikunci sehingga anda sampai ke langkah melaras dalam prosedur.'
+                : undefined
+            }
+            className="lg:col-start-1 lg:row-start-1"
+          />
+        )}
+        {isStraight || isGantry ? null : (
           <ResetPanel
             onReset={resetAlignment}
             className="lg:col-start-2 lg:row-start-2 lg:max-w-[380px] lg:self-start"
@@ -201,7 +265,9 @@ export const App = () => {
         animationsEnabled={animationsEnabled}
         onAnimationsEnabledChange={setAnimationsEnabled}
         prefersReducedMotion={prefersReducedMotion}
-        onReset={isStraight ? resetStraightLevel : resetAlignment}
+        onReset={
+          isGantry ? restartGantry : isStraight ? resetStraightLevel : resetAlignment
+        }
       />
     </div>
   )

@@ -48,7 +48,8 @@ export const HelpDialog = ({
           Simulator ini membantu anda memahami bagaimana skru pelaras pada cermin
           mesin laser menggerakkan beam pada sasaran. Pilih latihan di bahagian
           atas: Level 1 untuk cermin mirror mount, Level 2 untuk cermin pada head
-          laser.
+          laser, Level 3 untuk memahami gerakan gantry dan sistem koordinat,
+          Level 4 untuk prosedur beam lurus.
         </p>
         <h3 className="mb-2 text-sm font-semibold text-ink">Langkah</h3>
         <ol className="list-decimal space-y-1.5 pl-5">
@@ -57,31 +58,45 @@ export const HelpDialog = ({
           ))}
         </ol>
       </section>
-      <section>
-        <h3 className="mb-2 text-sm font-semibold text-ink">
-          Fungsi Setiap Skru — {level.tabLabel}
-        </h3>
-        <ul className="space-y-2">
-          {SCREW_ORDER.map((screwId) => {
-            const screw = level.screws[screwId]
-            return (
-              <li key={screwId} className="flex items-start gap-2">
-                <span
-                  className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                  style={{ backgroundColor: screw.colorVar }}
-                  aria-hidden="true"
-                >
-                  {screw.number}
-                </span>
-                <span>
-                  Ikut jam ({'↻'}) beam {screw.plusLabel}, lawan jam ({'↺'}) beam{' '}
-                  {screw.minusLabel}.
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
+      {level.kind === 'gantry' ? (
+        <section>
+          <h3 className="mb-2 text-sm font-semibold text-ink">
+            Gerakan Gantry — {level.tabLabel}
+          </h3>
+          <p>
+            Titik 0,0 ialah "home" mesin di penjuru belakang kiri. Paksi X
+            bertambah ke kanan dan paksi Y bertambah ke arah depan mesin. Gunakan
+            butang anak panah untuk menggerakkan gantry dan head — sama seperti
+            butang anak panah pada panel kawalan mesin sebenar.
+          </p>
+        </section>
+      ) : (
+        <section>
+          <h3 className="mb-2 text-sm font-semibold text-ink">
+            Fungsi Setiap Skru — {level.tabLabel}
+          </h3>
+          <ul className="space-y-2">
+            {SCREW_ORDER.map((screwId) => {
+              const screw = level.screws[screwId]
+              return (
+                <li key={screwId} className="flex items-start gap-2">
+                  <span
+                    className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ backgroundColor: screw.colorVar }}
+                    aria-hidden="true"
+                  >
+                    {screw.number}
+                  </span>
+                  <span>
+                    Ikut jam ({'↻'}) beam {screw.plusLabel}, lawan jam ({'↺'})
+                    beam {screw.minusLabel}.
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink">
           Maksud Status Alignment

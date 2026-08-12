@@ -5,8 +5,8 @@ export interface Vec {
 
 export type AlignmentStatus = 'aligned' | 'near' | 'unaligned'
 
-export type LevelId = 'level1' | 'level2' | 'level3'
-export type LevelKind = 'centre' | 'straight'
+export type LevelId = 'level1' | 'level2' | 'level3' | 'level4'
+export type LevelKind = 'centre' | 'straight' | 'gantry'
 
 export type ScrewId = 'screw1' | 'screw2' | 'screw3'
 export type ScrewAxis = 'vertical' | 'horizontal' | 'diagonal'
@@ -47,22 +47,34 @@ export interface LevelImage {
   alt: string
 }
 
-export interface LevelConfig {
+interface LevelBase {
   id: LevelId
   number: number
   kind: LevelKind
   shortName: string
   tabLabel: string
-  refHeading: string
   targetHeading: string
   statusLabels: Record<AlignmentStatus, string>
   successMessage: string
+}
+
+// Level dengan skru pelarasan (Level 1/2 'centre' dan Beam Lurus 'straight')
+export interface CentreLevelConfig extends LevelBase {
+  kind: 'centre' | 'straight'
+  refHeading: string
   image: LevelImage
   refImageClass: string
   adjustStageClass: string
   screwOrder: ScrewId[]
   screws: Record<ScrewId, ScrewConfig>
 }
+
+// Level latihan pergerakan gantry — tiada skru/imej
+export interface GantryLevelConfig extends LevelBase {
+  kind: 'gantry'
+}
+
+export type LevelConfig = CentreLevelConfig | GantryLevelConfig
 
 export interface TrailPoint extends Vec {
   id: number

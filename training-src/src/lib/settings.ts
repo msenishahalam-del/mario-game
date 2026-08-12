@@ -22,7 +22,7 @@ const isValidStep = (value: unknown): value is number =>
 // Hanya level yang selamat disambung semula selepas reload; level prosedur
 // (beam lurus) sentiasa bermula dari langkah pertama.
 const isRestorableLevel = (value: unknown): value is LevelId =>
-  value === 'level1' || value === 'level2'
+  value === 'level1' || value === 'level2' || value === 'level3'
 
 export const loadSettings = (): StoredSettings => {
   try {

@@ -48,6 +48,7 @@ export const useAlignmentSim = () => {
 
   const moveBeam = useCallback(
     (screwId: ScrewId, direction: Direction) => {
+      if (level.kind === 'gantry') return
       const movement = level.screws[screwId].movement[direction]
       setPosition((current) => {
         const next: Vec = {
