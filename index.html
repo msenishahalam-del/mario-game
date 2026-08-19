@@ -73,6 +73,13 @@
     font-weight: bold;
     color: #5a3a00;
   }
+
+  /* Ungkapan masa — lebih panjang drpd "5 × 2", jadi kecilkan supaya muat 1-2 baris */
+  .masa-expr {
+    display: block;
+    font-size: 0.55em;
+    line-height: 1.25;
+  }
   .pantun-text {
     display: block;
     font-size: 0.34em;
@@ -545,6 +552,16 @@
     <span class="set-sub">Tukar 7/10 → 0.7 · key in jawapan · 18 saat</span>
   </button>
   <br>
+  <button class="big" data-set="masa" onclick="startQuiz('masa')" style="background: linear-gradient(135deg, #0e5c63, #5fc9d1);">
+    ⏰ Masa &amp; Waktu
+    <span class="set-sub">Operasi masa + tukar unit · senang → susah · 25 saat</span>
+  </button>
+  <br>
+  <button class="big" data-set="masa2" onclick="startQuiz('masa2')" style="background: linear-gradient(135deg, #c0392b, #f0796a);">
+    🕰️ Masa: Selesaikan Masalah
+    <span class="set-sub">Soalan cerita · jam / minit / saat · senang → susah · 40 saat</span>
+  </button>
+  <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
@@ -609,7 +626,7 @@
 
   // ===== LEVEL LOCK STATE =====
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2'],
     tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino']
   };
   const PASS_SCORE = 7;
@@ -1582,6 +1599,16 @@
         }
         return qs;
       }
+    },
+    // ===== MASA & WAKTU (Darjah 3) =====
+    // Setiap kuiz 10 soalan: 4 senang → 3 sederhana → 3 susah (JANGAN shuffle — senang dulu)
+    masa: {
+      time: 25,
+      generate() { return buildMasaQuiz(MASA_OPERASI, false); }
+    },
+    masa2: {
+      time: 40,
+      generate() { return buildMasaQuiz(MASA_MASALAH, true); }
     }
   };
 
@@ -1595,6 +1622,166 @@
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  // ===== BANK SOALAN MASA & WAKTU (Darjah 3) =====
+  // Setiap soalan: { t: teks, a: jawapan }  — atau { t, a, c: [4 pilihan] } untuk A/B/C/D
+  // Tiga aras: senang → sederhana → susah. buildMasaQuiz() ambil 4 + 3 + 3 setiap kuiz.
+
+  const MASA_OPERASI = {
+    senang: [
+      { t: '1 minggu = ▢ hari',        a: 7 },
+      { t: '3 jam = ▢ minit',          a: 180 },
+      { t: '4 jam = ▢ minit',          a: 240 },
+      { t: '6 jam = ▢ minit',          a: 360 },
+      { t: '5 minit = ▢ saat',         a: 300 },
+      { t: '2 hari = ▢ jam',           a: 48 },
+      { t: '4 minggu = ▢ hari',        a: 28 },
+      { t: '8 minggu = ▢ hari',        a: 56 },
+      { t: '2 tahun = ▢ bulan',        a: 24 },
+      { t: '72 jam = ▢ hari',          a: 3 },
+      { t: '35 hari = ▢ minggu',       a: 5 },
+      { t: '1 jam 25 minit = ▢ minit', a: 85 },
+      { t: '2 minit 40 saat = ▢ saat', a: 160 },
+      { t: '1 hari 6 jam = ▢ jam',     a: 30 },
+      { t: '120 saat − 60 saat = ▢ saat', a: 60 },
+      { t: '400 saat ÷ 2 = ▢ saat',    a: 200 }
+    ],
+    sederhana: [
+      { t: '240 minit = ▢ jam',        a: 4 },
+      { t: '420 saat = ▢ minit',       a: 7 },
+      { t: '540 saat = ▢ minit',       a: 9 },
+      { t: '3 jam 15 minit = ▢ minit', a: 195 },
+      { t: '4 minit 5 saat = ▢ saat',  a: 245 },
+      { t: '450 minit + 260 minit = ▢ minit', a: 710 },
+      { t: '900 saat − 235 saat = ▢ saat',    a: 665 },
+      { t: '620 minit − 185 minit = ▢ minit', a: 435 },
+      { t: '248 saat + 396 saat = ▢ saat',    a: 644 },
+      { t: '700 jam − 264 jam = ▢ jam',       a: 436 },
+      { t: '512 minit − 89 minit = ▢ minit',  a: 423 },
+      { t: '364 saat + 258 saat = ▢ saat',    a: 622 },
+      { t: '405 saat + 195 saat = ▢ saat',    a: 600 },
+      { t: '550 jam − 78 jam = ▢ jam',        a: 472 },
+      { t: '375 jam + 148 jam = ▢ jam',       a: 523 },
+      { t: '189 jam + 236 jam = ▢ jam',       a: 425 },
+      { t: '4 × 125 minit = ▢ minit',  a: 500 },
+      { t: '3 × 218 jam = ▢ jam',      a: 654 },
+      { t: '5 × 160 minit = ▢ minit',  a: 800 },
+      { t: '480 minit ÷ 6 = ▢ minit',  a: 80 },
+      { t: '630 minit ÷ 7 = ▢ minit',  a: 90 },
+      { t: '576 saat ÷ 8 = ▢ saat',    a: 72 }
+    ],
+    susah: [
+      { t: '156 minit + 208 minit + 130 minit = ▢ minit', a: 494 },
+      { t: '850 saat − 300 saat − 125 saat = ▢ saat',     a: 425 },
+      { t: '480 jam + 95 jam − 175 jam = ▢ jam',          a: 400 },
+      { t: '275 minit + 168 minit − 90 minit = ▢ minit',  a: 353 },
+      { t: '600 saat − 145 saat + 70 saat = ▢ saat',      a: 525 },
+      { t: '250 minit + 340 minit + 85 minit = ▢ minit',  a: 675 },
+      { t: '960 saat − 480 saat − 165 saat = ▢ saat',     a: 315 },
+      { t: '143 jam + 257 jam − 68 jam = ▢ jam',          a: 332 },
+      { t: '318 minit + 92 minit + 145 minit = ▢ minit',  a: 555 },
+      { t: '940 jam − 476 jam = ▢ jam',       a: 464 },
+      { t: '888 jam − 399 jam = ▢ jam',       a: 489 },
+      { t: '825 minit − 367 minit = ▢ minit', a: 458 },
+      { t: '476 saat + 289 saat = ▢ saat',    a: 765 },
+      { t: '730 minit − 296 minit = ▢ minit', a: 434 },
+      { t: '6 × 145 saat = ▢ saat',    a: 870 },
+      { t: '9 × 65 minit = ▢ minit',   a: 585 },
+      { t: '2 × 384 saat = ▢ saat',    a: 768 },
+      { t: '6 × 108 minit = ▢ minit',  a: 648 },
+      { t: '4 × 235 saat = ▢ saat',    a: 940 },
+      { t: '8 × 75 jam = ▢ jam',       a: 600 },
+      { t: '7 × 90 saat = ▢ saat',     a: 630 },
+      { t: '735 saat ÷ 5 = ▢ saat',    a: 147 },
+      { t: '852 jam ÷ 4 = ▢ jam',      a: 213 },
+      { t: '819 jam ÷ 9 = ▢ jam',      a: 91 },
+      { t: '936 minit ÷ 3 = ▢ minit',  a: 312 },
+      { t: '792 minit ÷ 6 = ▢ minit',  a: 132 },
+      { t: '245 jam ÷ 5 = ▢ jam',      a: 49 },
+      { t: '150 minit = ?', a: '2 jam 30 minit',  c: ['2 jam 30 minit', '1 jam 50 minit', '2 jam 50 minit', '3 jam 30 minit'] },
+      { t: '200 saat = ?',  a: '3 minit 20 saat', c: ['3 minit 20 saat', '2 minit 20 saat', '3 minit 40 saat', '20 minit 0 saat'] },
+      { t: '500 minit = ?', a: '8 jam 20 minit',  c: ['8 jam 20 minit', '5 jam 0 minit', '8 jam 40 minit', '7 jam 20 minit'] }
+    ]
+  };
+
+  const MASA_MASALAH = {
+    senang: [
+      { t: 'Siti berlatih piano 85 minit pada Isnin dan 70 minit pada Selasa. Berapakah <b>beza</b> masa latihannya? (▢ minit)', a: 15 },
+      { t: 'Nurin tidur 9 jam pada Sabtu dan 7 jam pada Ahad. Berapakah <b>jumlah</b> masa tidurnya? (▢ jam)', a: 16 },
+      { t: 'Kelas seni berlangsung 90 minit. Kelas muzik 45 minit lebih singkat. Berapa lamakah kelas muzik? (▢ minit)', a: 45 },
+      { t: 'Jimmy menjawab 5 soalan dalam masa 45 minit. Berapakah masa untuk <b>setiap</b> soalan? (▢ minit)', a: 9 },
+      { t: 'Masa selama 270 minit dibahagikan sama rata kepada 6 sesi. Berapakah masa setiap sesi? (▢ minit)', a: 45 },
+      { t: 'Sebuah kilang beroperasi 320 jam bulan lalu dan 275 jam bulan ini. Berapakah beza masa operasi? (▢ jam)', a: 45 },
+      { t: 'Sebuah filem berdurasi 135 minit. Amir menontonnya 80 minit lalu berehat. Berapakah baki masa filem? (▢ minit)', a: 55 },
+      { t: 'Aisyah menyiapkan kerja rumah dalam 125 minit. Farah siap 40 minit lebih awal. Berapa lama masa Farah? (▢ minit)', a: 85 },
+      { t: 'Dalam perlumbaan, Adam mengambil 245 saat dan Bakri 198 saat. Berapakah beza masa mereka? (▢ saat)', a: 47 },
+      { t: 'Aiman membaca buku 145 minit dan menulis karangan 95 minit. Berapakah jumlah masa? (▢ minit)', a: 240 },
+      { t: 'Kerja selama 840 minit dibahagikan sama rata kepada 7 hari. Berapakah masa kerja sehari? (▢ minit)', a: 120 },
+      { t: 'Masa selama 960 saat dibahagikan kepada 8 pusingan yang sama. Berapakah masa satu pusingan? (▢ saat)', a: 120 }
+    ],
+    sederhana: [
+      { t: 'Rajesh berbasikal 240 saat dan Kumar 185 saat. Berapakah jumlah masa mereka berdua? (▢ saat)', a: 425 },
+      { t: 'Mei Ling menonton TV 55 minit, bermain 40 minit dan membaca 65 minit. Berapakah jumlah masa? (▢ minit)', a: 160 },
+      { t: 'Perjalanan bas mengambil 480 minit. Selepas 195 minit, berapakah baki masa perjalanan? (▢ minit)', a: 285 },
+      { t: 'Zul berlatih bola 150 minit seminggu, Hakim 205 minit. Berapa minit <b>lebih</b> latihan Hakim? (▢ minit)', a: 55 },
+      { t: 'Puan Aminah memasak 55 minit, mengemas 38 minit dan membasuh 47 minit. Berapakah jumlah masa? (▢ minit)', a: 140 },
+      { t: 'Latihan renang tiga hari ialah 65 minit, 80 minit dan 95 minit. Berapakah jumlah masa latihan? (▢ minit)', a: 240 },
+      { t: 'Bateri telefon tahan 480 minit. Ravi guna 155 minit, kemudian 90 minit lagi. Berapakah baki masa? (▢ minit)', a: 235 },
+      { t: 'Aktiviti kem empat hari: 180 minit, 225 minit, 150 minit dan 195 minit. Berapakah jumlah masa? (▢ minit)', a: 750 },
+      { t: 'Seorang tukang jahit menyiapkan sehelai baju dalam 35 minit. Berapakah masa untuk 6 helai? (▢ minit)', a: 210 },
+      { t: 'Sebuah mesin membungkus satu kotak dalam 45 saat. Berapakah masa untuk 8 kotak? (▢ saat)', a: 360 },
+      { t: 'Empat murid berlari berganti-ganti, setiap seorang 75 saat. Berapakah jumlah masa? (▢ saat)', a: 300 },
+      { t: 'Kelas mengaji 40 minit sehari selama 6 hari seminggu. Berapakah jumlah masa seminggu? (▢ minit)', a: 240 },
+      { t: 'Lapan biji kek dibakar satu demi satu, setiap satu 25 minit. Berapakah jumlah masa? (▢ minit)', a: 200 },
+      { t: 'Latihan koir 90 minit setiap sesi. Berapakah jumlah masa bagi 7 sesi? (▢ minit)', a: 630 }
+    ],
+    susah: [
+      { t: 'Ayah memandu 3 jam 20 minit ke Ipoh, kemudian 2 jam 15 minit ke Taiping. Berapakah jumlah masa memandu?',
+        a: '5 jam 35 minit', c: ['5 jam 35 minit', '5 jam 45 minit', '6 jam 35 minit', '1 jam 5 minit'] },
+      { t: 'Sebuah bengkel berjalan 6 jam. Sebanyak 2 jam 30 minit untuk teori. Berapakah baki masa untuk amali?',
+        a: '3 jam 30 minit', c: ['3 jam 30 minit', '4 jam 30 minit', '3 jam 70 minit', '2 jam 30 minit'] },
+      { t: 'Encik Lim berada di pejabat 9 jam dan berehat 1 jam 15 minit. Berapa lamakah dia benar-benar bekerja?',
+        a: '7 jam 45 minit', c: ['7 jam 45 minit', '8 jam 45 minit', '7 jam 15 minit', '8 jam 15 minit'] },
+      { t: 'Kelas tambahan bermula pukul 2:30 petang dan tamat pukul 4:15 petang. Berapa lamakah kelas itu?',
+        a: '1 jam 45 minit', c: ['1 jam 45 minit', '2 jam 15 minit', '1 jam 85 minit', '2 jam 45 minit'] },
+      { t: 'Kelas Sains bermula pukul 8:20 pagi dan tamat pukul 10:05 pagi. Berapa lamakah kelas itu?',
+        a: '1 jam 45 minit', c: ['1 jam 45 minit', '2 jam 15 minit', '1 jam 85 minit', '2 jam 25 minit'] },
+      { t: 'Encik Halim menyiapkan 3 ukiran kayu dalam 6 jam 30 minit. Berapakah masa untuk <b>satu</b> ukiran?',
+        a: '2 jam 10 minit', c: ['2 jam 10 minit', '2 jam 30 minit', '3 jam 15 minit', '1 jam 50 minit'] },
+      { t: 'Sebuah bas mengambil 2 jam 15 minit bagi satu perjalanan. Berapakah masa bagi 4 perjalanan?',
+        a: '9 jam 0 minit', c: ['9 jam 0 minit', '8 jam 60 minit', '8 jam 15 minit', '9 jam 15 minit'] },
+      { t: 'Puan Rosli mengajar 5 kelas dalam masa 6 jam 40 minit. Berapakah masa bagi <b>setiap</b> kelas?',
+        a: '1 jam 20 minit', c: ['1 jam 20 minit', '1 jam 8 minit', '1 jam 30 minit', '2 jam 20 minit'] },
+      { t: 'Seorang pelari mengambil 3 minit 20 saat bagi satu pusingan. Berapakah masa bagi 5 pusingan?',
+        a: '16 minit 40 saat', c: ['16 minit 40 saat', '15 minit 100 saat', '15 minit 20 saat', '17 minit 40 saat'] },
+      { t: 'Sebuah mesin menyiapkan satu tugasan dalam 1 jam 12 minit. Berapakah masa untuk 5 tugasan?',
+        a: '6 jam 0 minit', c: ['6 jam 0 minit', '5 jam 60 minit', '5 jam 12 minit', '6 jam 12 minit'] },
+      { t: 'Encik Hakim bekerja 8 jam 15 minit dan berehat 45 minit. Berapa lamakah masa dia bekerja sebenarnya?',
+        a: '7 jam 30 minit', c: ['7 jam 30 minit', '8 jam 30 minit', '7 jam 70 minit', '8 jam 0 minit'] },
+      { t: 'Latihan selama 2 jam 40 minit dibahagikan sama rata kepada 4 sesi. Berapakah masa setiap sesi?',
+        a: '40 minit', c: ['40 minit', '35 minit', '45 minit', '1 jam 10 minit'] }
+    ]
+  };
+
+  // Bina 1 kuiz masa: 4 senang → 3 sederhana → 3 susah (susunan tetap, senang dahulu)
+  function buildMasaQuiz(bank, isWord) {
+    const plan = [['senang', 4], ['sederhana', 3], ['susah', 3]];
+    const qs = [];
+    for (const [tier, n] of plan) {
+      const picked = shuffle([...bank[tier]]).slice(0, n);
+      for (const item of picked) {
+        const text = isWord
+          ? `<span class="word-problem">${item.t}</span>`
+          : `<span class="masa-expr">${item.t}</span>`;
+        if (item.c) {
+          qs.push({ text, answer: item.a, choices: shuffle([...item.c]), wideChoices: true });
+        } else {
+          qs.push({ text, answer: item.a });
+        }
+      }
+    }
+    return qs;   // JANGAN shuffle — senang dulu, susah akhir
   }
 
   // ===== BANK SOALAN SAINS (t = nombor topik 1-8) =====
@@ -2497,7 +2684,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-07-13 20:24';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-19 21:40';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
