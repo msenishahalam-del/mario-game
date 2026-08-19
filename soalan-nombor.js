@@ -314,4 +314,120 @@ window.BANK = window.BANK || {};
       }
     ]
   };
+  // ===================== CARI X (nombor hilang) =====================
+  // Konsep teras: guna operasi SONGSANG untuk cari nombor yang hilang.
+  BANK.cariX = {
+    senang: [
+      // kekal 1 digit seperti sebelum ini — pemanas
+      () => { const x = randInt(1, 9), a = randInt(1, 9);
+        return { t: '▢ + ' + a + ' = ' + (x + a), a: x,
+          h: 'Songsang bagi TAMBAH ialah TOLAK: ' + (x + a) + ' − ' + a + ' = ' + x + '.' }; },
+      () => { const x = randInt(1, 9), a = randInt(1, 9);
+        return { t: a + ' + ▢ = ' + (a + x), a: x,
+          h: 'Songsang bagi TAMBAH ialah TOLAK: ' + (a + x) + ' − ' + a + ' = ' + x + '.' }; },
+      () => { const x = randInt(5, 9), a = randInt(1, 4);
+        return { t: '▢ − ' + a + ' = ' + (x - a), a: x,
+          h: 'X ada di DEPAN tolak, jadi tambah balik: ' + (x - a) + ' + ' + a + ' = ' + x + '.' }; },
+      () => { const a = randInt(5, 9), x = randInt(1, 4);
+        return { t: a + ' − ▢ = ' + (a - x), a: x,
+          h: 'X ada di BELAKANG tolak, jadi tolak: ' + a + ' − ' + (a - x) + ' = ' + x + '.' }; }
+    ],
+    sederhana: [
+      () => { const x = randInt(2, 9) * 50, a = randInt(2, 9) * 50;
+        return { t: '▢ + ' + (a) + ' = ' + (x + a), a: x,
+          h: 'Songsang tambah ialah tolak: ' + (x + a) + ' − ' + a + ' = ' + x + '.' }; },
+      () => { const jum = randInt(4, 10) * 100, x = randInt(1, 3) * 50 + randInt(0, 4) * 10;
+        return { t: (jum) + ' − ▢ = ' + (jum - x), a: x,
+          h: 'X yang DITOLAK. Cari beza: ' + jum + ' − ' + (jum - x) + ' = ' + x + '.' }; },
+      // sifir — songsang darab
+      () => { const x = randInt(2, 9), b = randInt(2, 9);
+        return { t: '▢ × ' + b + ' = ' + (x * b), a: x,
+          h: 'Songsang bagi DARAB ialah BAHAGI: ' + (x * b) + ' ÷ ' + b + ' = ' + x + '.' }; },
+      () => { const a = randInt(2, 9), x = randInt(2, 9);
+        return { t: a + ' × ▢ = ' + (a * x), a: x,
+          h: 'Songsang bagi DARAB ialah BAHAGI: ' + (a * x) + ' ÷ ' + a + ' = ' + x + '.' }; }
+    ],
+    susah: [
+      // X sebagai pembahagi — paling mengelirukan
+      () => { const x = randInt(2, 9), hasil = randInt(2, 9);
+        return { t: (x * hasil) + ' ÷ ▢ = ' + hasil, a: x,
+          h: (x * hasil) + ' ÷ X = ' + hasil + ' bermakna ' + hasil + ' × X = ' + (x * hasil) +
+             '. Jadi X = ' + (x * hasil) + ' ÷ ' + hasil + ' = ' + x + '.' }; },
+      () => { const b = randInt(2, 9), hasil = randInt(2, 9);
+        return { t: '▢ ÷ ' + b + ' = ' + hasil, a: b * hasil,
+          h: 'X yang DIBAHAGI, jadi songsangnya DARAB: ' + hasil + ' × ' + b + ' = ' + (b * hasil) + '.' }; },
+      // dua langkah
+      () => { const x = randInt(2, 9), a = randInt(1, 9), k = randInt(2, 4);
+        return { t: 'Jika ▢ + ' + a + ' = ' + (x + a) + ', berapakah nilai ▢ × ' + k + '?', a: x * k,
+          h: 'DUA langkah. 1) Cari X dahulu: ' + (x + a) + ' − ' + a + ' = ' + x +
+             '. 2) Kemudian ' + x + ' × ' + k + ' = ' + (x * k) + '.' }; },
+      // konsep: operasi apa yang digunakan
+      () => { const x = randInt(3, 9), b = randInt(3, 9);
+        return { t: 'Untuk mencari ▢ dalam <b>▢ × ' + b + ' = ' + (x * b) + '</b>, operasi apakah yang kita guna?',
+          a: 'Bahagi', c: ['Bahagi', 'Darab', 'Tambah', 'Tolak'],
+          h: 'Setiap operasi ada songsangnya. Songsang darab ialah BAHAGI, jadi ' + (x * b) + ' ÷ ' + b + ' = ' + x + '.' }; },
+      { t: 'Untuk mencari ▢ dalam <b>▢ − 8 = 5</b>, operasi apakah yang kita guna?',
+        a: 'Tambah', c: ['Tambah', 'Tolak', 'Darab', 'Bahagi'],
+        h: 'X di DEPAN tanda tolak, jadi kita tambah balik: 5 + 8 = 13.' }
+    ]
+  };
+
+  // ===================== PERPULUHAN =====================
+  // Konsep teras: perpuluhan ialah cara lain menulis persepuluh & perseratus.
+  BANK.perpuluhan = {
+    senang: [
+      () => { const n = randInt(1, 9);
+        return { t: n + '/10 = ▢', a: n / 10, m: 'decimal',
+          h: n + ' persepuluh ditulis 0.' + n + '. Digit selepas titik ialah tempat persepuluh.' }; },
+      () => { const n = randInt(1, 9);
+        return { t: '0.' + n + ' = ▢/10', a: n,
+          h: '0.' + n + ' bermaksud ' + n + ' persepuluh, jadi pengangkanya ' + n + ' dan penyebutnya 10.' }; },
+      { t: '5/10 = ▢', a: 0.5, m: 'decimal', h: '5 persepuluh ialah separuh, ditulis 0.5.' },
+      { t: '10/10 = ▢', a: 1, m: 'decimal', h: '10 persepuluh ialah SATU penuh, jadi 1.0 atau 1.' },
+      () => { const n = randInt(11, 19);
+        return { t: n + '/10 = ▢', a: n / 10, m: 'decimal',
+          h: n + ' persepuluh lebih daripada 10, jadi 1 penuh dan ' + (n - 10) + ' persepuluh = 1.' + (n - 10) + '.' }; }
+    ],
+    sederhana: [
+      () => { const n = randInt(1, 9);
+        return { t: n + '/100 = ▢', a: n / 100, m: 'decimal', step: '0.01',
+          h: n + ' perseratus ditulis 0.0' + n + '. Tempat perseratus ialah digit KEDUA selepas titik.' }; },
+      () => { const n = randInt(11, 99);
+        return { t: n + '/100 = ▢', a: n / 100, m: 'decimal', step: '0.01',
+          h: n + ' perseratus ditulis 0.' + n + '. Dua digit selepas titik = perseratus.' }; },
+      () => { const bulat = randInt(1, 9), pp = randInt(1, 9);
+        return { t: 'Dalam ' + bulat + '.' + pp + ', digit <b>' + pp + '</b> berada di tempat ▢',
+          a: 'persepuluh', c: ['persepuluh', 'perseratus', 'sa', 'puluh'],
+          h: 'Digit PERTAMA selepas titik sentiasa tempat persepuluh. Yang kedua ialah perseratus.' }; },
+      () => { const a = randInt(1, 4), b = randInt(1, 4);
+        return { t: '0.' + a + ' + 0.' + b + ' = ▢', a: (a + b) / 10, m: 'decimal',
+          h: a + ' persepuluh + ' + b + ' persepuluh = ' + (a + b) + ' persepuluh = 0.' + (a + b) + '.' }; },
+      () => { const a = randInt(5, 9), b = randInt(1, 4);
+        return { t: '0.' + a + ' − 0.' + b + ' = ▢', a: (a - b) / 10, m: 'decimal',
+          h: a + ' persepuluh − ' + b + ' persepuluh = ' + (a - b) + ' persepuluh = 0.' + (a - b) + '.' }; }
+    ],
+    susah: [
+      // menyeberang 1 — konsep pengumpulan semula perpuluhan
+      () => { const a = randInt(5, 9), b = randInt(5, 9); const jum = a + b;
+        return { t: '0.' + a + ' + 0.' + b + ' = ▢', a: Math.round(jum) / 10, m: 'decimal',
+          h: a + ' + ' + b + ' = ' + jum + ' persepuluh. 10 persepuluh jadi 1 penuh, jadi ' +
+             Math.floor(jum / 10) + ' dan ' + (jum % 10) + ' persepuluh = ' + (jum / 10) + '.' }; },
+      () => { const b = randInt(1, 9);
+        return { t: '2 − 0.' + b + ' = ▢', a: Math.round((2 - b / 10) * 10) / 10, m: 'decimal',
+          h: 'Fikir 2 sebagai 1 dan 10 persepuluh. 10 − ' + b + ' = ' + (10 - b) + ' persepuluh, jadi 1.' + (10 - b) +
+             '. Semak: 1.' + (10 - b) + ' + 0.' + b + ' = 2.' }; },
+      // salah faham klasik: lebih banyak digit ≠ lebih besar
+      { t: 'Mana lebih besar: <b>0.5</b> atau <b>0.35</b>?', a: '0.5',
+        c: ['0.5', '0.35', 'Sama besar', '0.35 dua kali ganda'],
+        h: 'Banding tempat PERSEPULUH dahulu: 5 lawan 3, jadi 0.5 lebih besar. Lebih banyak digit TIDAK bermakna lebih besar.' },
+      { t: 'Mana lebih besar: <b>0.7</b> atau <b>0.07</b>?', a: '0.7',
+        c: ['0.7', '0.07', 'Sama besar', 'Tak boleh banding'],
+        h: '0.7 ialah 7 persepuluh, tetapi 0.07 hanya 7 perseratus — jauh lebih kecil.' },
+      { t: '0.25 = ▢/100', a: 25, h: '0.25 bermaksud 25 perseratus, jadi pengangkanya 25.' },
+      { t: '1/2 ditulis sebagai perpuluhan ialah ▢', a: 0.5, m: 'decimal',
+        h: '1/2 sama dengan 5/10, dan 5 persepuluh ditulis 0.5.' },
+      { t: '1/4 ditulis sebagai perpuluhan ialah ▢', a: 0.25, m: 'decimal', step: '0.01',
+        h: '1/4 sama dengan 25/100, dan 25 perseratus ditulis 0.25.' }
+    ]
+  };
 })();

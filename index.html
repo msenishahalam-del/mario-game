@@ -592,30 +592,30 @@
 
   // ===== LEVEL LOCK STATE =====
   const TOPICS = {
-    darab:       { label: '✖️ Darab', sub: 'Sifir 2-12 · key in jawapan · 15 saat', style: '' },
+    darab:       { label: '✖️ Darab', sub: 'Sifir 2-12 · key in jawapan · 30 saat', style: '' },
     bahagi:      { label: '➗ Bahagi', sub: 'Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 30 saat', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
     bahagi2:     { label: '➗ Bahagi 2.0', sub: 'Isi 2 kotak: 47÷6 = ▢ baki ▢ · senang → medium → medium+ · 30 saat', style: 'background: linear-gradient(135deg, #fa9e5a, #b5471d);' },
-    bundar:      { label: '🎯 Bundar', sub: 'Bundar puluh · ratus · ribu terdekat · A/B/C/D · 15 saat', style: 'background: linear-gradient(135deg, #f093fb, #f5576c);' },
-    pecahan:     { label: '🍕 Pecahan', sub: '6 jenis · setara/banding/permudah/kumpulan · A/B/C/D · 60 saat', style: 'background: linear-gradient(135deg, #4facfe, #00c4cc);' },
+    bundar:      { label: '🎯 Bundar', sub: 'Bundar puluh · ratus · ribu terdekat · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #f093fb, #f5576c);' },
+    pecahan:     { label: '🍕 Pecahan', sub: 'Setara · banding · tambah/tolak · permudah · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #4facfe, #00c4cc);' },
     sains1:      { label: '🔬 Sains 1', sub: 'Pancaindera · Tumbuhan · Haiwan · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #43e97b, #38f9d7);' },
     sains2:      { label: '🔭 Sains 2', sub: 'Cahaya/Bunyi · Bahan · Cuaca/Angkasa · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #38f9d7, #43b0e9);' },
     sains3:      { label: '🧲 Sains 3', sub: 'Badan Manusia · Daya · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #43b0e9, #5f72e9);' },
     agama:       { label: '🕌 Pendidikan Islam', sub: 'Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #0f9b6e, #044a32);' },
-    cariX:       { label: '❓ Cari X', sub: 'Nombor yang hilang · X + 5 = 7 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #ff9a44, #e83e8c);' },
-    darabBahagi: { label: '✖️➗ Darab & Bahagi', sub: '2 operasi · 3 × 6 ÷ 2 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #5fdcef, #2a8a9f);' },
+    cariX:       { label: '❓ Cari X', sub: 'Songsang: tambah/tolak/darab/bahagi · key in · 30 saat', style: 'background: linear-gradient(135deg, #ff9a44, #e83e8c);' },
+    darabBahagi: { label: '✖️➗ Darab & Bahagi', sub: '2 operasi · 3 × 6 ÷ 2 · key in jawapan · 30 saat', style: 'background: linear-gradient(135deg, #5fdcef, #2a8a9f);' },
     pantun:      { label: '📜 Pantun BM', sub: 'Baca pantun · pilih maksud · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #b94e2f, #6a1e0a);' },
     peribahasa:  { label: '🗣️ Peribahasa', sub: 'Baca peribahasa · pilih maksud · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #4e8d5b, #1e4a2a);' },
     penjodoh:    { label: '🔢 Penjodoh Bilangan', sub: 'Seekor ikan · sebiji telur · seorang guru · seketul sabun · A/B/C/D · 25 saat', style: 'background: linear-gradient(135deg, #e8a33d, #a5591a);' },
     jawi3:       { label: 'ج Jawi Darjah 3', sub: 'Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #6a3a8a, #2a1a4a);' },
-    perpuluhan:  { label: '🔢 Pecahan → Perpuluhan', sub: 'Tukar 7/10 → 0.7 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #2a9f6f, #06492c);' },
+    perpuluhan:  { label: '🔢 Pecahan → Perpuluhan', sub: 'Persepuluh · perseratus · tambah/tolak · 30 saat', style: 'background: linear-gradient(135deg, #2a9f6f, #06492c);' },
     masa:        { label: '⏰ Masa &amp; Waktu', sub: 'Operasi masa + tukar unit · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #0e5c63, #5fc9d1);' },
     masa2:       { label: '🕰️ Masa: Selesaikan Masalah', sub: 'Soalan cerita · jam / minit / saat · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #c0392b, #f0796a);' },
-    tambahtolak: { label: '➕ ➖ Tambah &amp; Tolak', sub: 'Single digit · key in jawapan · 20 saat', style: 'background: linear-gradient(135deg, #667eea, #764ba2);' },
+    tambahtolak: { label: '➕ ➖ Tambah &amp; Tolak', sub: 'Single digit · key in jawapan · 30 saat', style: 'background: linear-gradient(135deg, #667eea, #764ba2);' },
     darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
     ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
     ejaan2:      { label: '⌨️ Ejaan BM 2.0', sub: 'Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat', style: 'background: linear-gradient(135deg, #f6a5c0, #7b4397);' },
     jawi:        { label: 'ج Jawi', sub: 'Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #2d6a4f, #95d5b2);' },
-    duit:        { label: '💰 Duit Ringgit', sub: 'Soalan cerita beli-belah · pilih A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #84fab0, #8fd3f4);' },
+    duit:        { label: '💰 Duit Ringgit', sub: 'Soalan cerita beli-belah · pilih A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #84fab0, #8fd3f4);' },
     english:     { label: '🇬🇧 English', sub: 'Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fa709a, #fee140);' },
     dino:        { label: '🦖 Dinosaur', sub: 'Count &amp; fun facts (English) · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #11998e, #38ef7d);' },
     nilaiTempat: { label: '🏠 Nilai Tempat & Nilai Digit', sub: 'Sa · puluh · ratus · ribu · hingga 10 000 · 30 saat', style: 'background: linear-gradient(135deg, #5b6ef5, #9aa7ff);' },
@@ -1144,44 +1144,7 @@
     sains2: { time: 20, generate() { return buildSains([4, 5, 6]); } },  // Cahaya/Bunyi, Bahan, Cuaca/Angkasa
     sains3: { time: 20, generate() { return buildSains([7, 8]); } },     // Badan, Daya
     agama: { time: 20, generate() { return buildAgama(); } },            // Pendidikan Islam Tahun 3 (KSSR)
-    cariX: {
-      time: 30,
-      generate() {
-        const qs = [];
-        // 4 variasi rawak: X+a=b, a+X=b, X−a=b, a−X=b
-        // Single-digit sahaja (1-9), supaya budak faham konsep dulu
-        const variants = [
-          () => {
-            const x = randInt(1, 8);
-            const a = randInt(1, 9 - x);    // pastikan jumlah ≤ 9
-            return { text: `X + ${a} = ${a + x}`, answer: x };
-          },
-          () => {
-            const x = randInt(1, 8);
-            const a = randInt(1, 9 - x);
-            return { text: `${a} + X = ${a + x}`, answer: x };
-          },
-          () => {
-            const x = randInt(2, 9);
-            const a = randInt(1, x - 1);    // pastikan jawapan b ≥ 1
-            return { text: `X − ${a} = ${x - a}`, answer: x };
-          },
-          () => {
-            const a = randInt(2, 9);
-            const x = randInt(1, a - 1);
-            return { text: `${a} − X = ${a - x}`, answer: x };
-          }
-        ];
-        // Senang dulu: 5 soalan tambah (variasi 0-1), kemudian 5 soalan tolak (variasi 2-3)
-        while (qs.length < 5) {
-          qs.push(variants[randInt(0, 1)]());
-        }
-        while (qs.length < 10) {
-          qs.push(variants[randInt(2, 3)]());
-        }
-        return qs;   // JANGAN shuffle — tambah dulu, tolak kemudian
-      }
-    },
+    cariX:       { time: 30, generate() { return buildQuiz(BANK.cariX); } },
     darabBahagi: {
       time: 30,
       generate() {
@@ -1232,37 +1195,7 @@
     peribahasa: { time: 30, generate() { return buildPeribahasa(); } },
     penjodoh: { time: 25, generate() { return buildPenjodoh(); } },
     jawi3:  { time: 22, generate() { return buildJawi3(); } },
-    perpuluhan: {
-      time: 30,
-      generate() {
-        const qs = [];
-        // 2 variasi: penyebut 10 (1 tempat perpuluhan) atau 100 (2 tempat perpuluhan)
-        // Untuk Darjah 3, fokus pada /10 (lebih simple), sikit /100 sebagai cabaran
-        while (qs.length < 10) {
-          const isOver100 = qs.length >= 7;  // 7 soalan /10 + 3 soalan /100
-          if (!isOver100) {
-            // Variasi /10: 1/10 → 0.1, 7/10 → 0.7, 13/10 → 1.3, dll
-            const num = randInt(1, 19);   // pengangka 1-19, jadi jawapan 0.1-1.9
-            const dec = Math.round(num) / 10;   // pastikan tepat (elak floating)
-            qs.push({
-              text: `${num}/10 = ?`,
-              answer: parseFloat(dec.toFixed(1)),
-              inputMode: 'decimal'
-            });
-          } else {
-            // Variasi /100: 5/100 → 0.05, 25/100 → 0.25
-            const num = randInt(1, 99);
-            const dec = num / 100;
-            qs.push({
-              text: `${num}/100 = ?`,
-              answer: parseFloat(dec.toFixed(2)),
-              inputMode: 'decimal'
-            });
-          }
-        }
-        return qs;   // JANGAN shuffle — /10 dulu (senang), /100 akhir (cabaran)
-      }
-    },
+    perpuluhan:  { time: 30, generate() { return buildQuiz(BANK.perpuluhan); } },
     ejaan: {
       time: 20,
       generate() {
@@ -2532,7 +2465,7 @@
 
   // Topik yang banknya datang dari fail luar. Kalau fail gagal dimuat (rangkaian),
   // topik itu disembunyikan daripada menu — bukan mematikan seluruh app.
-  const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1 };
+  const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1, cariX: 1, perpuluhan: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -3043,7 +2976,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 01:10';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 02:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
