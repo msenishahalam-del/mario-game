@@ -75,6 +75,19 @@
   }
 
   /* Ungkapan masa — lebih panjang drpd "5 × 2", jadi kecilkan supaya muat 1-2 baris */
+  /* Rajah SVG dalam soalan — .question guna white-space:pre-line,
+     jadi rajah perlu blok sendiri dengan white-space normal */
+  .q-svg {
+    display: block;
+    margin: 8px auto 4px;
+    line-height: 0;
+    white-space: normal;
+  }
+  /* Telefon sempit: kurangkan padding supaya rajah dapat ruang */
+  @media (max-width: 430px) {
+    .screen { padding: 22px; }
+    .question-box { padding: 18px; }
+  }
   .masa-expr {
     display: block;
     font-size: 0.55em;
@@ -986,10 +999,12 @@
           if (ansNum - 1 >= 1) cands.add(`${ansNum - 1}/${denom}`);
           cands.add(`${a}/${denom}`);
           const choices = [...cands].slice(0, 4);
-          while (choices.length < 4) {
+          let g2 = 0;
+          while (choices.length < 4 && g2++ < 60) {
             const r = `${randInt(1, denom + 1)}/${denom}`;
             if (!choices.includes(r)) choices.push(r);
           }
+          if (choices.length < 4) return null;
           return { text, answer: correct, choices: shuffle(choices) };
         }
 
@@ -1007,7 +1022,11 @@
           cands.add(String(mult));                                  // tulis pengganda
           if (correctNum + 1 < newDenom) cands.add(String(correctNum + 1));
           if (correctNum - 1 >= 1) cands.add(String(correctNum - 1));
-          while (cands.size < 4) cands.add(String(randInt(1, newDenom - 1)));
+          // Pengawal: kalau newDenom kecil, nilai unik tak cukup untuk 4 pilihan.
+          // Tanpa pengawal ini gelung tak akan berhenti dan pelayar beku.
+          let g1 = 0;
+          while (cands.size < 4 && g1++ < 60) cands.add(String(randInt(1, newDenom)));
+          if (cands.size < 4) return null;   // tangga akan cuba semula dgn parameter lain
           const choices = [...cands].slice(0, 4);
           return { text, answer: String(correctNum), choices: shuffle(choices) };
         }
@@ -1016,7 +1035,9 @@
         function genBandingDenom() {
           const denom = randInt(4, 10);
           const nums = new Set();
-          while (nums.size < 4) nums.add(randInt(1, denom));
+          let g3 = 0;
+          while (nums.size < 4 && g3++ < 80) nums.add(randInt(1, denom));
+          if (nums.size < 4) return null;
           const arr = [...nums];
           const choices = arr.map(n => `${n}/${denom}`);
           const askBesar = Math.random() < 0.5;
@@ -1032,7 +1053,9 @@
         function genBandingNum() {
           const num = randInt(1, 3);
           const denoms = new Set();
-          while (denoms.size < 4) denoms.add(randInt(num + 1, 10));
+          let g4 = 0;
+          while (denoms.size < 4 && g4++ < 80) denoms.add(randInt(num + 1, 10));
+          if (denoms.size < 4) return null;
           const arr = [...denoms];
           const choices = arr.map(d => `${num}/${d}`);
           const askBesar = Math.random() < 0.5;
@@ -1057,11 +1080,13 @@
           if (k === 3 && b * 2 <= 12) cands.add(`${a*2}/${b*2}`);  // separa
           if (a + 1 < b) cands.add(`${a+1}/${b}`);
           if (a > 1) cands.add(`${a-1}/${b}`);
-          while (cands.size < 4) {
+          let g5 = 0;
+          while (cands.size < 4 && g5++ < 80) {
             const d = randInt(2, 6);
             const n = randInt(1, d - 1);
             cands.add(`${n}/${d}`);
           }
+          if (cands.size < 4) return null;
           const choices = [...cands].slice(0, 4);
           return { text: `Permudahkan ${num}/${denom}`, answer: correct, choices: shuffle(choices) };
         }
@@ -1079,7 +1104,9 @@
           cands.add(String(total - correct));
           cands.add(String(correct + mult));
           if (correct > 1) cands.add(String(correct - 1));
-          while (cands.size < 4) cands.add(String(randInt(1, total)));
+          let g6 = 0;
+          while (cands.size < 4 && g6++ < 80) cands.add(String(randInt(1, total)));
+          if (cands.size < 4) return null;
           const choices = [...cands].slice(0, 4);
           return {
             text: `${num}/${denom} daripada ${total} = ?`,
@@ -1801,22 +1828,155 @@
     ]
   };
 
-  // Bina 1 kuiz masa: 4 senang → 3 sederhana → 3 susah (susunan tetap, senang dahulu)
-  function buildMasaQuiz(bank, isWord) {
-    const plan = [['senang', 4], ['sederhana', 3], ['susah', 3]];
-    const qs = [];
+  // ===== PEMBINA KUIZ GENERIK =====
+  // Item bank boleh jadi OBJEK tetap { t, a, h, c?, m?, step?, w? }
+  // ATAU FUNGSI penjana () => item (untuk soalan berparameter / ber-SVG).
+  const PELAN_LALAI = [['senang', 4], ['sederhana', 3], ['susah', 3]];
+
+  function toQuestion(item, wrap) {
+    const cls = wrap === 'word' ? 'word-problem' : (wrap === 'raw' ? '' : 'masa-expr');
+    const q = {
+      text: cls ? '<span class="' + cls + '">' + item.t + '</span>' : item.t,
+      answer: item.a,
+      hint: item.h || ''
+    };
+    if (item.c) { q.choices = shuffle([...item.c]); q.wideChoices = true; }
+    if (item.m) q.inputMode = item.m;
+    if (item.step) q.step = item.step;
+    if (item.q != null) { q.quotient = item.q; q.remainder = item.r; }
+    return q;
+  }
+
+  function buildQuiz(bank, opts) {
+    opts = opts || {};
+    const plan = opts.plan || PELAN_LALAI;
+    const wrapLalai = opts.wrap || 'expr';
+    const qs = [], seen = new Set();
     for (const [tier, n] of plan) {
-      const picked = shuffle([...bank[tier]]).slice(0, n);
-      for (const item of picked) {
-        const text = isWord
-          ? `<span class="word-problem">${item.t}</span>`
-          : `<span class="masa-expr">${item.t}</span>`;
-        const q = { text, answer: item.a, hint: item.h || '' };
-        if (item.c) { q.choices = shuffle([...item.c]); q.wideChoices = true; }
-        qs.push(q);
+      const pool = shuffle([...(bank[tier] || [])]);
+      let taken = 0;
+      // pusingan 1: satu item daripada setiap sumber
+      for (let i = 0; i < pool.length && taken < n; i++) {
+        const item = (typeof pool[i] === 'function') ? pool[i]() : pool[i];
+        if (!item || seen.has(item.t)) continue;
+        seen.add(item.t); qs.push(toQuestion(item, item.w || wrapLalai)); taken++;
+      }
+      // pusingan 2: kalau belum cukup, panggil semula penjana (mereka beri hasil berbeza)
+      let guard = 0;
+      while (taken < n && guard++ < 120) {
+        const src = pool[randInt(0, pool.length - 1)];
+        if (typeof src !== 'function') continue;
+        const item = src();
+        if (!item || seen.has(item.t)) continue;
+        seen.add(item.t); qs.push(toQuestion(item, item.w || wrapLalai)); taken++;
       }
     }
     return qs;   // JANGAN shuffle — senang dulu, susah akhir
+  }
+
+  // Shim: kekalkan topik Masa berfungsi tanpa sebarang perubahan pada banknya
+  function buildMasaQuiz(bank, isWord) {
+    return buildQuiz(bank, { wrap: isWord ? 'word' : 'expr' });
+  }
+
+  // Bina tepat 4 pilihan unik yang sentiasa mengandungi jawapan betul
+  function pilihan4(betul, calonSalah) {
+    const out = [betul];
+    for (const s of shuffle([...calonSalah])) {
+      if (out.length >= 4) break;
+      if (!out.some(v => String(v) === String(s))) out.push(s);
+    }
+    return out;
+  }
+
+  // ===== PEMBANTU SVG (rajah dalam soalan) =====
+  // AMARAN: .question guna `white-space: pre-line`, jadi SETIAP "\n" jadi baris baru
+  // sebenar pada skrin. Semua fungsi di bawah WAJIB pulangkan rentetan SATU BARIS.
+  // Latar .question-box cerah (krim/oren) → guna garisan GELAP supaya jelas.
+  const SVG_LINE = '#5a3a00', SVG_FILL = '#fff6e5', SVG_ACC = '#b94e2f', SVG_GRID = '#c9a97a';
+
+  function svgBox(w, h, inner, maxPx) {
+    return '<span class="q-svg"><svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" style="max-width:' +
+      (maxPx || 240) + 'px;height:auto" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg></span>';
+  }
+  function svgTxt(x, y, s, size, anchor) {
+    return '<text x="' + x + '" y="' + y + '" font-size="' + (size || 13) + '" font-weight="bold" fill="' +
+      SVG_LINE + '" text-anchor="' + (anchor || 'middle') + '" font-family="Trebuchet MS,sans-serif">' + s + '</text>';
+  }
+
+  // Segi empat berlabel — perimeter & luas
+  function svgSegiEmpat(p, l, lblP, lblL) {
+    const W = 230, H = 150, pad = 36;
+    const s = Math.min((W - 2 * pad) / p, (H - 2 * pad) / l);
+    const w = p * s, h = l * s, x = (W - w) / 2, y = (H - h) / 2;
+    return svgBox(W, H,
+      '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + SVG_FILL +
+      '" stroke="' + SVG_LINE + '" stroke-width="3" rx="2"/>' +
+      svgTxt(x + w / 2, y - 9, lblP) + svgTxt(x + w + 7, y + h / 2 + 4, lblL, 13, 'start'));
+  }
+
+  // Grid petak — luas dengan membilang. isi(kol,bar) => true utk petak berwarna
+  function svgGrid(kol, bar, isi) {
+    const s = Math.min(28, Math.floor(210 / kol), Math.floor(130 / bar));
+    const W = kol * s + 8, H = bar * s + 8, cells = [];
+    for (let r = 0; r < bar; r++) for (let c = 0; c < kol; c++) {
+      const on = isi ? isi(c, r) : true;
+      cells.push('<rect x="' + (4 + c * s) + '" y="' + (4 + r * s) + '" width="' + s + '" height="' + s +
+        '" fill="' + (on ? '#ffd39b' : 'none') + '" stroke="' + SVG_LINE + '" stroke-width="1.5"/>');
+    }
+    return svgBox(W, H, cells.join(''), Math.min(240, W * 1.7));
+  }
+  function svgBentukL(a, b, c, d) { return svgGrid(a, b + d, (x, y) => y < b || x < c); }
+
+  // Carta palang
+  function svgCarta(data, skala) {
+    const W = 250, H = 165, x0 = 34, y0 = 128, tinggi = 100, p = [];
+    const bw = Math.max(14, Math.min(32, Math.floor((W - x0 - 16) / data.length) - 12));
+    const gap = 14;
+    const maks = Math.max.apply(null, data.map(d => d.v));
+    const atas = Math.max(skala, Math.ceil(maks / skala) * skala);
+    for (let v = 0; v <= atas; v += skala) {
+      const y = y0 - (v / atas) * tinggi;
+      p.push('<line x1="' + x0 + '" y1="' + y + '" x2="' + (W - 6) + '" y2="' + y + '" stroke="' + SVG_GRID + '" stroke-width="1"/>');
+      p.push(svgTxt(x0 - 6, y + 4, v, 11, 'end'));
+    }
+    data.forEach((d, i) => {
+      const h = (d.v / atas) * tinggi, x = x0 + 10 + i * (bw + gap);
+      p.push('<rect x="' + x + '" y="' + (y0 - h) + '" width="' + bw + '" height="' + h + '" fill="' + SVG_ACC +
+        '" stroke="' + SVG_LINE + '" stroke-width="2" rx="2"/>');
+      p.push(svgTxt(x + bw / 2, y0 + 15, d.n, 11));
+    });
+    p.push('<line x1="' + x0 + '" y1="' + y0 + '" x2="' + (W - 6) + '" y2="' + y0 + '" stroke="' + SVG_LINE + '" stroke-width="2.5"/>');
+    p.push('<line x1="' + x0 + '" y1="' + (y0 - tinggi - 8) + '" x2="' + x0 + '" y2="' + y0 + '" stroke="' + SVG_LINE + '" stroke-width="2.5"/>');
+    return svgBox(W, H, p.join(''), 250);
+  }
+
+  // Piktograf — petunjuk WAJIB dipapar, itulah konsepnya
+  function svgPikto(baris, ikon, nilai) {
+    const W = 250, rowH = 26, H = baris.length * rowH + 32, p = [];
+    baris.forEach((b, i) => {
+      const y = 18 + i * rowH;
+      p.push(svgTxt(2, y + 5, b.n, 12, 'start'));
+      for (let j = 0; j < b.k; j++)
+        p.push('<text x="' + (58 + j * 22) + '" y="' + (y + 7) + '" font-size="17">' + ikon + '</text>');
+    });
+    p.push(svgTxt(2, H - 6, 'Petunjuk: ' + ikon + ' = ' + nilai, 11, 'start'));
+    return svgBox(W, H, p.join(''), 250);
+  }
+
+  // Poligon sekata 2D
+  function svgPoligon(n) {
+    const R = 55, cx = 70, cy = 72, pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+      pts.push((cx + R * Math.cos(a)).toFixed(1) + ',' + (cy + R * Math.sin(a)).toFixed(1));
+    }
+    return svgBox(140, 145, '<polygon points="' + pts.join(' ') + '" fill="' + SVG_FILL +
+      '" stroke="' + SVG_LINE + '" stroke-width="3"/>', 165);
+  }
+  function svgBulatan() {
+    return svgBox(140, 145, '<circle cx="70" cy="72" r="55" fill="' + SVG_FILL +
+      '" stroke="' + SVG_LINE + '" stroke-width="3"/>', 165);
   }
 
   // ===== CAMPURAN WARNA (Edris 6 Tahun) =====
@@ -2533,7 +2693,7 @@
       // Decimal input (perpuluhan — e.g. 0.7)
       const input = document.createElement('input');
       input.type = 'number';
-      input.step = '0.1';
+      input.step = q.step || '0.1';
       input.id = 'answerInput';
       input.autocomplete = 'off';
       input.inputMode = 'decimal';
@@ -2865,7 +3025,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-19 23:45';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 00:30';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
