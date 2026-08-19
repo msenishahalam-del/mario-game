@@ -479,17 +479,18 @@
 <div id="welcomeScreen" class="screen">
   <h1>🎯 Cabaran Matematik!</h1>
   <p>Jawab <b>10 soalan</b> dengan betul.<br>
-  Setiap jawapan betul = <b>+1 minit</b> main Arcade Game!<br>
+  Kena betul <b>4 soalan ke atas</b> baru dapat main game.<br>
+  Lepas tu, setiap jawapan betul = <b>+1 minit</b> main Arcade Game!<br>
   <small>🎮 Mario · 🧱 Tetris · 🐦 Flappy · 🦔 Sonic · 🧞 Aladdin · 👻 Pac-Man · 🔨 Felix · 🐍 Snake · 👾 Invaders · 🏎️ Micro Machines</small></p>
   <div class="reward-info">👇 Pilih set soalan ikut umur anak</div>
   <button class="big" onclick="showDarjah3Menu()">
     📚 Enisa - Darjah 3
-    <span class="set-sub">Pilih topik · Darab / Bundar / Pecahan</span>
+    <span class="set-sub">Pilih subjek · Matematik / Sains / BM / Pend. Islam</span>
   </button>
   <br>
   <button class="big" onclick="show6TahunMenu()" style="background: linear-gradient(135deg, #667eea, #764ba2);">
     🧒 Edris 6 Tahun
-    <span class="set-sub">Pilih topik · Tambah Tolak / Ejaan / Duit</span>
+    <span class="set-sub">Pilih subjek · Matematik / BM / English / Sains</span>
   </button>
 </div>
 
@@ -547,7 +548,7 @@
   <div class="score-display"><span id="finalScore">0</span> / 10</div>
   <div class="stars-earned" id="starsEarned">⭐⭐⭐</div>
   <div class="completion-msg hidden" id="completionMsg"></div>
-  <div class="reward-info">
+  <div class="reward-info" id="rewardInfo">
     Kamu dapat <b><span id="rewardMinutes">0</span> minit</b> untuk main game! 🎮<br>
     <small style="font-size: 0.8em;">(Mario, Tetris, Flappy, Sonic, Aladdin, Pac-Man, Felix, Snake, Invaders, Micro Machines)</small>
   </div>
@@ -638,6 +639,7 @@
     tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
+  const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
   const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
 
   function loadCompletedSets() {
@@ -2775,8 +2777,7 @@
     document.getElementById('quizScreen').classList.add('hidden');
     document.getElementById('resultScreen').classList.remove('hidden');
     document.getElementById('finalScore').textContent = score;
-    rewardSeconds = score * 60;
-    document.getElementById('rewardMinutes').textContent = Math.round(rewardSeconds / 60);
+    rewardSeconds = (score >= MIN_REWARD_SCORE) ? score * 60 : 0;   // 3 betul ke bawah = tiada masa main
     const bonusEl = document.getElementById('perfectBonus');
     if (bonusEl) bonusEl.style.display = 'none';
 
@@ -2819,17 +2820,24 @@
     const retryBtn = document.getElementById('retryBtn');
     retryBtn.style.display = (score >= PASS_SCORE) ? 'none' : '';
 
+    // Perlu sekurang-kurangnya MIN_REWARD_SCORE betul baru dapat masa main game
     const btn = document.getElementById('goArcadeBtn');
-    if (score === 0) {
+    const info = document.getElementById('rewardInfo');
+    if (rewardSeconds <= 0) {
       btn.disabled = true;
       btn.style.opacity = '0.5';
       btn.style.cursor = 'not-allowed';
-      btn.textContent = '😅 Tiada Masa — Cuba Lagi';
+      btn.textContent = '😅 Belum Cukup — Cuba Lagi';
+      info.innerHTML = `Belum dapat masa main game 😅<br>` +
+        `<small style="font-size: 0.8em;">Kena betul sekurang-kurangnya <b>${MIN_REWARD_SCORE} soalan</b> dulu. ` +
+        `Kamu dapat <b>${score}</b> je — cuba lagi ya!</small>`;
     } else {
       btn.disabled = false;
       btn.style.opacity = '';
       btn.style.cursor = '';
       btn.textContent = 'MAIN ARCADE! 🕹️';
+      info.innerHTML = `Kamu dapat <b><span id="rewardMinutes">${Math.round(rewardSeconds / 60)}</span> minit</b> untuk main game! 🎮<br>` +
+        `<small style="font-size: 0.8em;">(Mario, Tetris, Flappy, Sonic, Aladdin, Pac-Man, Felix, Snake, Invaders, Micro Machines)</small>`;
     }
   }
 
@@ -2857,7 +2865,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-19 23:15';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-19 23:45';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
