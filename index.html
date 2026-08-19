@@ -238,6 +238,53 @@
   }
   .correct { color: #2e7d32; }
   .wrong { color: #c62828; }
+  .ans-hint {
+    display: inline-block;
+    margin-top: 8px;
+    background: #fff3cd;
+    color: #6a4a00;
+    border: 2px solid #ffc107;
+    padding: 7px 18px;
+    border-radius: 12px;
+    font-size: 0.72em;
+    font-weight: bold;
+    max-width: 92%;
+    line-height: 1.4;
+  }
+  /* Campuran warna */
+  .warna-q {
+    display: block;
+    font-size: 0.34em;
+    line-height: 1.5;
+    font-weight: bold;
+    color: #5a3a00;
+  }
+  .mix {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 1.5em;
+  }
+  .mix-chip {
+    display: inline-block;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 3px solid rgba(0,0,0,0.28);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+  }
+  .mix-q { font-size: 1.1em; }
+  .chip {
+    display: inline-block;
+    width: 1.05em;
+    height: 1.05em;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.28);
+    vertical-align: -0.18em;
+    margin-right: 0.35em;
+  }
   .ans-reveal {
     display: inline-block;
     margin-top: 8px;
@@ -282,6 +329,29 @@
     filter: grayscale(60%);
   }
   button.big.locked:hover { transform: none; }
+
+  /* Menu dua peringkat: subjek → topik */
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-top: 20px;
+  }
+  .menu-list button.big { margin-top: 0; width: 100%; }
+  button.big.soon {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    filter: grayscale(80%);
+  }
+  button.big.soon:hover { transform: none; }
+  .topic-child {
+    font-size: 0.95em;
+    font-weight: bold;
+    color: #764ba2;
+    opacity: 0.7;
+    margin: 0 0 2px;
+  }
   .locked-badge {
     display: block;
     font-size: 0.5em;
@@ -425,144 +495,24 @@
 
 <div id="tahun6Screen" class="screen hidden">
   <h1>🧒 Edris 6 Tahun</h1>
-  <p>Pilih topik:</p>
-  <button class="big" data-set="tambahtolak" onclick="startQuiz('tambahtolak')" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-    ➕ ➖ Tambah &amp; Tolak
-    <span class="set-sub">Single digit · key in jawapan · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="darabAsas" onclick="startQuiz('darabAsas')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
-    ✖️ Darab Asas (Sifir 2 &amp; 3)
-    <span class="set-sub">× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan</span>
-  </button>
-  <br>
-  <button class="big" data-set="ejaan" onclick="startQuiz('ejaan')" style="background: linear-gradient(135deg, #fbc2eb, #a18cd1);">
-    🔤 Ejaan BM
-    <span class="set-sub">Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="ejaan2" onclick="startQuiz('ejaan2')" style="background: linear-gradient(135deg, #f6a5c0, #7b4397);">
-    ⌨️ Ejaan BM 2.0
-    <span class="set-sub">Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="jawi" onclick="startQuiz('jawi')" style="background: linear-gradient(135deg, #2d6a4f, #95d5b2);">
-    ج Jawi
-    <span class="set-sub">Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="duit" onclick="startQuiz('duit')" style="background: linear-gradient(135deg, #84fab0, #8fd3f4);">
-    💰 Duit Ringgit
-    <span class="set-sub">Soalan cerita beli-belah · pilih A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="english" onclick="startQuiz('english')" style="background: linear-gradient(135deg, #fa709a, #fee140);">
-    🇬🇧 English
-    <span class="set-sub">Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="dino" onclick="startQuiz('dino')" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
-    🦖 Dinosaur
-    <span class="set-sub">Count &amp; fun facts (English) · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
+  <p>Pilih subjek:</p>
+  <div class="menu-list" id="tahun6Subjects"></div>
+  <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 20px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
+</div>
+
+<div id="topicScreen" class="screen hidden">
+  <p class="topic-child" id="topicChild"></p>
+  <h1 id="topicTitle"></h1>
+  <p>Pilih topik latihan:</p>
+  <div class="menu-list" id="topicList"></div>
+  <button onclick="goBackToSubjects()" style="background: linear-gradient(135deg, #888, #555); margin-top: 20px; font-size: 1.1em; padding: 12px 30px;">⬅ Tukar Subjek</button>
 </div>
 
 <div id="darjah3Screen" class="screen hidden">
   <h1>📚 Enisa - Darjah 3</h1>
-  <p>Pilih topik:</p>
-  <button class="big" data-set="darab" onclick="startQuiz('darab')">
-    ✖️ Darab
-    <span class="set-sub">Sifir 2-12 · key in jawapan · 15 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="bahagi" onclick="startQuiz('bahagi')" style="background: linear-gradient(135deg, #f6d365, #fda085);">
-    ➗ Bahagi
-    <span class="set-sub">Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 30 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="bahagi2" onclick="startQuiz('bahagi2')" style="background: linear-gradient(135deg, #fa9e5a, #b5471d);">
-    ➗ Bahagi 2.0
-    <span class="set-sub">Isi 2 kotak: 47÷6 = ▢ baki ▢ · senang → medium → medium+ · 30 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="bundar" onclick="startQuiz('bundar')" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
-    🎯 Bundar
-    <span class="set-sub">Bundar puluh · ratus · ribu terdekat · A/B/C/D · 15 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="pecahan" onclick="startQuiz('pecahan')" style="background: linear-gradient(135deg, #4facfe, #00c4cc);">
-    🍕 Pecahan
-    <span class="set-sub">6 jenis · setara/banding/permudah/kumpulan · A/B/C/D · 60 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="sains1" onclick="startQuiz('sains1')" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
-    🔬 Sains 1
-    <span class="set-sub">Pancaindera · Tumbuhan · Haiwan · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="sains2" onclick="startQuiz('sains2')" style="background: linear-gradient(135deg, #38f9d7, #43b0e9);">
-    🔭 Sains 2
-    <span class="set-sub">Cahaya/Bunyi · Bahan · Cuaca/Angkasa · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="sains3" onclick="startQuiz('sains3')" style="background: linear-gradient(135deg, #43b0e9, #5f72e9);">
-    🧲 Sains 3
-    <span class="set-sub">Badan Manusia · Daya · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="agama" onclick="startQuiz('agama')" style="background: linear-gradient(135deg, #0f9b6e, #044a32);">
-    🕌 Pendidikan Islam
-    <span class="set-sub">Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="cariX" onclick="startQuiz('cariX')" style="background: linear-gradient(135deg, #ff9a44, #e83e8c);">
-    ❓ Cari X
-    <span class="set-sub">Nombor yang hilang · X + 5 = 7 · key in jawapan · 18 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="darabBahagi" onclick="startQuiz('darabBahagi')" style="background: linear-gradient(135deg, #5fdcef, #2a8a9f);">
-    ✖️➗ Darab & Bahagi
-    <span class="set-sub">2 operasi · 3 × 6 ÷ 2 · key in jawapan · 18 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="pantun" onclick="startQuiz('pantun')" style="background: linear-gradient(135deg, #b94e2f, #6a1e0a);">
-    📜 Pantun BM
-    <span class="set-sub">Baca pantun · pilih maksud · A/B/C/D · 30 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="peribahasa" onclick="startQuiz('peribahasa')" style="background: linear-gradient(135deg, #4e8d5b, #1e4a2a);">
-    🗣️ Peribahasa
-    <span class="set-sub">Baca peribahasa · pilih maksud · A/B/C/D · 30 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="penjodoh" onclick="startQuiz('penjodoh')" style="background: linear-gradient(135deg, #e8a33d, #a5591a);">
-    🔢 Penjodoh Bilangan
-    <span class="set-sub">Seekor ikan · sebiji telur · seorang guru · seketul sabun · A/B/C/D · 25 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="jawi3" onclick="startQuiz('jawi3')" style="background: linear-gradient(135deg, #6a3a8a, #2a1a4a);">
-    ج Jawi Darjah 3
-    <span class="set-sub">Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="perpuluhan" onclick="startQuiz('perpuluhan')" style="background: linear-gradient(135deg, #2a9f6f, #06492c);">
-    🔢 Pecahan → Perpuluhan
-    <span class="set-sub">Tukar 7/10 → 0.7 · key in jawapan · 18 saat</span>
-  </button>
-  <br>
-  <button class="big" data-set="masa" onclick="startQuiz('masa')" style="background: linear-gradient(135deg, #0e5c63, #5fc9d1);">
-    ⏰ Masa &amp; Waktu
-    <span class="set-sub">Operasi masa + tukar unit · senang → susah · 1 minit</span>
-  </button>
-  <br>
-  <button class="big" data-set="masa2" onclick="startQuiz('masa2')" style="background: linear-gradient(135deg, #c0392b, #f0796a);">
-    🕰️ Masa: Selesaikan Masalah
-    <span class="set-sub">Soalan cerita · jam / minit / saat · senang → susah · 1 minit</span>
-  </button>
-  <br>
-  <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
+  <p>Pilih subjek:</p>
+  <div class="menu-list" id="darjah3Subjects"></div>
+  <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 20px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
 </div>
 
 <div id="quizScreen" class="screen hidden">
@@ -625,9 +575,67 @@
   let qPausedRemainMs = 0;
 
   // ===== LEVEL LOCK STATE =====
+  const TOPICS = {
+    darab:       { label: '✖️ Darab', sub: 'Sifir 2-12 · key in jawapan · 15 saat', style: '' },
+    bahagi:      { label: '➗ Bahagi', sub: 'Sifir 2-12 + bahagi dengan baki (5÷3 = 1 baki 2) · 30 saat', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
+    bahagi2:     { label: '➗ Bahagi 2.0', sub: 'Isi 2 kotak: 47÷6 = ▢ baki ▢ · senang → medium → medium+ · 30 saat', style: 'background: linear-gradient(135deg, #fa9e5a, #b5471d);' },
+    bundar:      { label: '🎯 Bundar', sub: 'Bundar puluh · ratus · ribu terdekat · A/B/C/D · 15 saat', style: 'background: linear-gradient(135deg, #f093fb, #f5576c);' },
+    pecahan:     { label: '🍕 Pecahan', sub: '6 jenis · setara/banding/permudah/kumpulan · A/B/C/D · 60 saat', style: 'background: linear-gradient(135deg, #4facfe, #00c4cc);' },
+    sains1:      { label: '🔬 Sains 1', sub: 'Pancaindera · Tumbuhan · Haiwan · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #43e97b, #38f9d7);' },
+    sains2:      { label: '🔭 Sains 2', sub: 'Cahaya/Bunyi · Bahan · Cuaca/Angkasa · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #38f9d7, #43b0e9);' },
+    sains3:      { label: '🧲 Sains 3', sub: 'Badan Manusia · Daya · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #43b0e9, #5f72e9);' },
+    agama:       { label: '🕌 Pendidikan Islam', sub: 'Akidah · Ibadah · Sirah · Adab · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #0f9b6e, #044a32);' },
+    cariX:       { label: '❓ Cari X', sub: 'Nombor yang hilang · X + 5 = 7 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #ff9a44, #e83e8c);' },
+    darabBahagi: { label: '✖️➗ Darab & Bahagi', sub: '2 operasi · 3 × 6 ÷ 2 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #5fdcef, #2a8a9f);' },
+    pantun:      { label: '📜 Pantun BM', sub: 'Baca pantun · pilih maksud · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #b94e2f, #6a1e0a);' },
+    peribahasa:  { label: '🗣️ Peribahasa', sub: 'Baca peribahasa · pilih maksud · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #4e8d5b, #1e4a2a);' },
+    penjodoh:    { label: '🔢 Penjodoh Bilangan', sub: 'Seekor ikan · sebiji telur · seorang guru · seketul sabun · A/B/C/D · 25 saat', style: 'background: linear-gradient(135deg, #e8a33d, #a5591a);' },
+    jawi3:       { label: 'ج Jawi Darjah 3', sub: 'Baca perkataan penuh · pilih Jawi/Romi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #6a3a8a, #2a1a4a);' },
+    perpuluhan:  { label: '🔢 Pecahan → Perpuluhan', sub: 'Tukar 7/10 → 0.7 · key in jawapan · 18 saat', style: 'background: linear-gradient(135deg, #2a9f6f, #06492c);' },
+    masa:        { label: '⏰ Masa &amp; Waktu', sub: 'Operasi masa + tukar unit · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #0e5c63, #5fc9d1);' },
+    masa2:       { label: '🕰️ Masa: Selesaikan Masalah', sub: 'Soalan cerita · jam / minit / saat · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #c0392b, #f0796a);' },
+    tambahtolak: { label: '➕ ➖ Tambah &amp; Tolak', sub: 'Single digit · key in jawapan · 20 saat', style: 'background: linear-gradient(135deg, #667eea, #764ba2);' },
+    darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
+    ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
+    ejaan2:      { label: '⌨️ Ejaan BM 2.0', sub: 'Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat', style: 'background: linear-gradient(135deg, #f6a5c0, #7b4397);' },
+    jawi:        { label: 'ج Jawi', sub: 'Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #2d6a4f, #95d5b2);' },
+    duit:        { label: '💰 Duit Ringgit', sub: 'Soalan cerita beli-belah · pilih A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #84fab0, #8fd3f4);' },
+    english:     { label: '🇬🇧 English', sub: 'Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fa709a, #fee140);' },
+    dino:        { label: '🦖 Dinosaur', sub: 'Count &amp; fun facts (English) · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #11998e, #38ef7d);' },
+    warna:       { label: '🎨 Campuran Warna', sub: 'Campur 2 warna · pilih hasil · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #ff6a88, #ffb56b);' }
+  };
+
+  // Subjek → senarai topik. Sumber tunggal untuk menu dua peringkat.
+  const SUBJECTS = {
+    darjah3: [
+      { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #4facfe, #00c4cc)',
+        topik: ['darab', 'bahagi', 'bahagi2', 'darabBahagi', 'cariX', 'bundar', 'pecahan', 'perpuluhan', 'masa', 'masa2'] },
+      { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #43e97b, #38f9d7)',
+        topik: ['sains1', 'sains2', 'sains3'] },
+      { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #b94e2f, #e8a33d)',
+        topik: ['pantun', 'peribahasa', 'penjodoh'] },
+      { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
+        soon: true, topik: [] },
+      { id: 'pi', nama: 'Pendidikan Islam', emoji: '🕌', style: 'linear-gradient(135deg, #0f9b6e, #044a32)',
+        topik: ['agama', 'jawi3'] }
+    ],
+    tahun6: [
+      { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #667eea, #764ba2)',
+        topik: ['tambahtolak', 'darabAsas', 'duit'] },
+      { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #fbc2eb, #a18cd1)',
+        topik: ['ejaan', 'ejaan2'] },
+      { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
+        topik: ['english', 'dino'] },
+      { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #ff6a88, #ffb56b)',
+        topik: ['warna'] },
+      { id: 'pi', nama: 'Pendidikan Islam', emoji: '🕌', style: 'linear-gradient(135deg, #2d6a4f, #95d5b2)',
+        topik: ['jawi'] }
+    ]
+  };
+
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2'],
-    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino']
+    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const COMPLETED_KEY = 'completedSets_v1';   // localStorage key — bertahan walau refresh
@@ -668,6 +676,7 @@
   function getPending() { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch { return null; } }
   function setPending(p) { try { localStorage.setItem(PENDING_KEY, JSON.stringify(p)); } catch {} }
   function topicLabel(setKey) {
+    if (TOPICS[setKey] && TOPICS[setKey].label) return TOPICS[setKey].label;
     const btn = document.querySelector('button.big[data-set="' + setKey + '"]');
     if (btn) { const t = (btn.textContent || '').trim().split('\n')[0].trim(); if (t) return t; }
     return setKey;
@@ -1609,6 +1618,21 @@
     masa2: {
       time: 60,   // 1 minit satu soalan — soalan cerita perlu masa baca
       generate() { return buildMasaQuiz(MASA_MASALAH, true); }
+    },
+    // ===== CAMPURAN WARNA (Edris 6 Tahun) =====
+    // 10 soalan: 4 senang → 3 sederhana → 3 susah (songsang). Semua A/B/C/D.
+    warna: {
+      time: 30,
+      generate() {
+        const qs = [];
+        const senang    = CAMPURAN.filter(c => c.aras === 1);
+        const sederhana = CAMPURAN.filter(c => c.aras === 2);
+        shuffle([...senang]).slice(0, 4).forEach(c => qs.push(warnaSoalan(c)));
+        shuffle([...sederhana]).slice(0, 3).forEach(c => qs.push(warnaSoalan(c)));
+        // 3 soalan songsang — ambil daripada campuran warna asas supaya jelas
+        shuffle([...senang]).slice(0, 3).forEach(c => qs.push(warnaSongsang(c)));
+        return qs;   // JANGAN shuffle — senang dulu, songsang akhir
+      }
     }
   };
 
@@ -1625,142 +1649,153 @@
   }
 
   // ===== BANK SOALAN MASA & WAKTU (Darjah 3) =====
-  // Setiap soalan: { t: teks, a: jawapan }  — atau { t, a, c: [4 pilihan] } untuk A/B/C/D
-  // Tiga aras: senang → sederhana → susah. buildMasaQuiz() ambil 4 + 3 + 3 setiap kuiz.
+  // Fokus: FAHAM KONSEP, bukan nombor besar.
+  //  - Nombor kekal realistik (minit ≤ 200, jam ≤ 24) supaya anak boleh bayangkan.
+  //  - Banyak soalan penukaran & perbandingan unit — itu intipati konsep masa.
+  //  - Setiap soalan ada `h` (petua) yang dipaparkan bila jawapan salah.
+  // Format: { t: teks, a: jawapan, h: petua }  — tambah c: [4 pilihan] untuk A/B/C/D
 
   const MASA_OPERASI = {
     senang: [
-      { t: '1 minggu = ▢ hari',        a: 7 },
-      { t: '3 jam = ▢ minit',          a: 180 },
-      { t: '4 jam = ▢ minit',          a: 240 },
-      { t: '6 jam = ▢ minit',          a: 360 },
-      { t: '5 minit = ▢ saat',         a: 300 },
-      { t: '2 hari = ▢ jam',           a: 48 },
-      { t: '4 minggu = ▢ hari',        a: 28 },
-      { t: '8 minggu = ▢ hari',        a: 56 },
-      { t: '2 tahun = ▢ bulan',        a: 24 },
-      { t: '72 jam = ▢ hari',          a: 3 },
-      { t: '35 hari = ▢ minggu',       a: 5 },
-      { t: '1 jam 25 minit = ▢ minit', a: 85 },
-      { t: '2 minit 40 saat = ▢ saat', a: 160 },
-      { t: '1 hari 6 jam = ▢ jam',     a: 30 },
-      { t: '120 saat − 60 saat = ▢ saat', a: 60 },
-      { t: '400 saat ÷ 2 = ▢ saat',    a: 200 }
+      { t: '1 jam = ▢ minit',   a: 60,  h: '1 jam sentiasa 60 minit' },
+      { t: '1 minit = ▢ saat',  a: 60,  h: '1 minit sentiasa 60 saat' },
+      { t: '1 hari = ▢ jam',    a: 24,  h: '1 hari sentiasa 24 jam' },
+      { t: '1 minggu = ▢ hari', a: 7,   h: '1 minggu sentiasa 7 hari' },
+      { t: '2 jam = ▢ minit',   a: 120, h: '2 × 60 = 120' },
+      { t: '3 jam = ▢ minit',   a: 180, h: '3 × 60 = 180' },
+      { t: '2 minit = ▢ saat',  a: 120, h: '2 × 60 = 120' },
+      { t: '3 minit = ▢ saat',  a: 180, h: '3 × 60 = 180' },
+      { t: '60 minit = ▢ jam',  a: 1,   h: '60 minit sama dengan 1 jam' },
+      { t: '120 minit = ▢ jam', a: 2,   h: '120 ÷ 60 = 2' },
+      { t: '180 saat = ▢ minit',a: 3,   h: '180 ÷ 60 = 3' },
+      { t: '48 jam = ▢ hari',   a: 2,   h: '48 ÷ 24 = 2' },
+      { t: '14 hari = ▢ minggu',a: 2,   h: '14 ÷ 7 = 2' },
+      { t: 'Setengah jam = ▢ minit', a: 30, h: 'Setengah daripada 60 ialah 30' },
+      { t: '20 minit + 15 minit = ▢ minit', a: 35, h: '20 + 15 = 35' },
+      { t: '45 minit − 20 minit = ▢ minit', a: 25, h: '45 − 20 = 25' }
     ],
     sederhana: [
-      { t: '240 minit = ▢ jam',        a: 4 },
-      { t: '420 saat = ▢ minit',       a: 7 },
-      { t: '540 saat = ▢ minit',       a: 9 },
-      { t: '3 jam 15 minit = ▢ minit', a: 195 },
-      { t: '4 minit 5 saat = ▢ saat',  a: 245 },
-      { t: '450 minit + 260 minit = ▢ minit', a: 710 },
-      { t: '900 saat − 235 saat = ▢ saat',    a: 665 },
-      { t: '620 minit − 185 minit = ▢ minit', a: 435 },
-      { t: '248 saat + 396 saat = ▢ saat',    a: 644 },
-      { t: '700 jam − 264 jam = ▢ jam',       a: 436 },
-      { t: '512 minit − 89 minit = ▢ minit',  a: 423 },
-      { t: '364 saat + 258 saat = ▢ saat',    a: 622 },
-      { t: '405 saat + 195 saat = ▢ saat',    a: 600 },
-      { t: '550 jam − 78 jam = ▢ jam',        a: 472 },
-      { t: '375 jam + 148 jam = ▢ jam',       a: 523 },
-      { t: '189 jam + 236 jam = ▢ jam',       a: 425 },
-      { t: '4 × 125 minit = ▢ minit',  a: 500 },
-      { t: '3 × 218 jam = ▢ jam',      a: 654 },
-      { t: '5 × 160 minit = ▢ minit',  a: 800 },
-      { t: '480 minit ÷ 6 = ▢ minit',  a: 80 },
-      { t: '630 minit ÷ 7 = ▢ minit',  a: 90 },
-      { t: '576 saat ÷ 8 = ▢ saat',    a: 72 }
+      { t: '4 jam = ▢ minit',   a: 240, h: '4 × 60 = 240' },
+      { t: '5 minit = ▢ saat',  a: 300, h: '5 × 60 = 300' },
+      { t: '240 minit = ▢ jam', a: 4,   h: '240 ÷ 60 = 4' },
+      { t: '300 saat = ▢ minit',a: 5,   h: '300 ÷ 60 = 5' },
+      { t: '3 hari = ▢ jam',    a: 72,  h: '3 × 24 = 72' },
+      { t: '21 hari = ▢ minggu',a: 3,   h: '21 ÷ 7 = 3' },
+      { t: '1 jam 30 minit = ▢ minit', a: 90,  h: '60 + 30 = 90' },
+      { t: '1 jam 15 minit = ▢ minit', a: 75,  h: '60 + 15 = 75' },
+      { t: '2 jam 20 minit = ▢ minit', a: 140, h: '120 + 20 = 140' },
+      { t: '2 minit 30 saat = ▢ saat', a: 150, h: '120 + 30 = 150' },
+      { t: '35 minit + 25 minit = ▢ minit', a: 60, h: '35 + 25 = 60, iaitu 1 jam' },
+      { t: '50 minit + 40 minit = ▢ minit', a: 90, h: '50 + 40 = 90' },
+      { t: '90 minit − 35 minit = ▢ minit', a: 55, h: '90 − 35 = 55' },
+      { t: '120 saat − 45 saat = ▢ saat',   a: 75, h: '120 − 45 = 75' },
+      { t: '2 × 30 minit = ▢ minit', a: 60, h: '30 + 30 = 60, iaitu 1 jam' },
+      { t: '4 × 15 minit = ▢ minit', a: 60, h: '15 × 4 = 60, iaitu 1 jam' },
+      { t: '60 minit ÷ 2 = ▢ minit', a: 30, h: 'Separuh daripada 60 ialah 30' },
+      { t: '90 minit ÷ 3 = ▢ minit', a: 30, h: '90 ÷ 3 = 30' }
     ],
     susah: [
-      { t: '156 minit + 208 minit + 130 minit = ▢ minit', a: 494 },
-      { t: '850 saat − 300 saat − 125 saat = ▢ saat',     a: 425 },
-      { t: '480 jam + 95 jam − 175 jam = ▢ jam',          a: 400 },
-      { t: '275 minit + 168 minit − 90 minit = ▢ minit',  a: 353 },
-      { t: '600 saat − 145 saat + 70 saat = ▢ saat',      a: 525 },
-      { t: '250 minit + 340 minit + 85 minit = ▢ minit',  a: 675 },
-      { t: '960 saat − 480 saat − 165 saat = ▢ saat',     a: 315 },
-      { t: '143 jam + 257 jam − 68 jam = ▢ jam',          a: 332 },
-      { t: '318 minit + 92 minit + 145 minit = ▢ minit',  a: 555 },
-      { t: '940 jam − 476 jam = ▢ jam',       a: 464 },
-      { t: '888 jam − 399 jam = ▢ jam',       a: 489 },
-      { t: '825 minit − 367 minit = ▢ minit', a: 458 },
-      { t: '476 saat + 289 saat = ▢ saat',    a: 765 },
-      { t: '730 minit − 296 minit = ▢ minit', a: 434 },
-      { t: '6 × 145 saat = ▢ saat',    a: 870 },
-      { t: '9 × 65 minit = ▢ minit',   a: 585 },
-      { t: '2 × 384 saat = ▢ saat',    a: 768 },
-      { t: '6 × 108 minit = ▢ minit',  a: 648 },
-      { t: '4 × 235 saat = ▢ saat',    a: 940 },
-      { t: '8 × 75 jam = ▢ jam',       a: 600 },
-      { t: '7 × 90 saat = ▢ saat',     a: 630 },
-      { t: '735 saat ÷ 5 = ▢ saat',    a: 147 },
-      { t: '852 jam ÷ 4 = ▢ jam',      a: 213 },
-      { t: '819 jam ÷ 9 = ▢ jam',      a: 91 },
-      { t: '936 minit ÷ 3 = ▢ minit',  a: 312 },
-      { t: '792 minit ÷ 6 = ▢ minit',  a: 132 },
-      { t: '245 jam ÷ 5 = ▢ jam',      a: 49 },
-      { t: '150 minit = ?', a: '2 jam 30 minit',  c: ['2 jam 30 minit', '1 jam 50 minit', '2 jam 50 minit', '3 jam 30 minit'] },
-      { t: '200 saat = ?',  a: '3 minit 20 saat', c: ['3 minit 20 saat', '2 minit 20 saat', '3 minit 40 saat', '20 minit 0 saat'] },
-      { t: '500 minit = ?', a: '8 jam 20 minit',  c: ['8 jam 20 minit', '5 jam 0 minit', '8 jam 40 minit', '7 jam 20 minit'] }
+      { t: '1 jam 45 minit = ▢ minit', a: 105, h: '60 + 45 = 105' },
+      { t: '2 jam 45 minit = ▢ minit', a: 165, h: '120 + 45 = 165' },
+      { t: '3 minit 20 saat = ▢ saat', a: 200, h: '180 + 20 = 200' },
+      { t: '1 jam − 20 minit = ▢ minit', a: 40, h: 'Tukar 1 jam kepada 60 minit dahulu: 60 − 20 = 40' },
+      { t: '55 minit + 35 minit = ▢ minit', a: 90, h: '55 + 35 = 90' },
+      { t: '180 minit ÷ 4 = ▢ minit', a: 45, h: '180 ÷ 4 = 45' },
+      { t: '90 minit = ?',  a: '1 jam 30 minit',
+        c: ['1 jam 30 minit', '1 jam 20 minit', '9 jam', '2 jam 30 minit'], h: '90 = 60 + 30, jadi 1 jam 30 minit' },
+      { t: '75 minit = ?',  a: '1 jam 15 minit',
+        c: ['1 jam 15 minit', '1 jam 25 minit', '7 jam 5 minit', '2 jam 15 minit'], h: '75 = 60 + 15' },
+      { t: '100 minit = ?', a: '1 jam 40 minit',
+        c: ['1 jam 40 minit', '1 jam 20 minit', '10 jam', '2 jam 40 minit'], h: '100 = 60 + 40' },
+      { t: '135 minit = ?', a: '2 jam 15 minit',
+        c: ['2 jam 15 minit', '1 jam 35 minit', '13 jam 5 minit', '2 jam 35 minit'], h: '135 = 60 + 60 + 15' },
+      { t: '150 saat = ?',  a: '2 minit 30 saat',
+        c: ['2 minit 30 saat', '1 minit 50 saat', '15 minit', '2 minit 50 saat'], h: '150 = 60 + 60 + 30' },
+      { t: '200 minit = ?', a: '3 jam 20 minit',
+        c: ['3 jam 20 minit', '2 jam 20 minit', '20 jam', '3 jam 40 minit'], h: '200 = 180 + 20' },
+      { t: 'Antara <b>jam</b> dan <b>minit</b> — mana paling lama?', a: '1 jam',
+        c: ['1 jam', '50 minit', '30 minit', '45 minit'], h: '1 jam = 60 minit, lebih daripada 50 minit' },
+      { t: 'Antara <b>minit</b> dan <b>saat</b> — mana paling lama?', a: '2 minit',
+        c: ['2 minit', '100 saat', '90 saat', '45 saat'], h: '2 minit = 120 saat, lebih daripada 100 saat' },
+      { t: 'Antara <b>hari</b> dan <b>jam</b> — mana paling lama?', a: '1 hari',
+        c: ['1 hari', '20 jam', '12 jam', '6 jam'], h: '1 hari = 24 jam, lebih daripada 20 jam' },
+      { t: 'Antara <b>minggu</b> dan <b>hari</b> — mana paling lama?', a: '1 minggu',
+        c: ['1 minggu', '5 hari', '3 hari', '6 hari'], h: '1 minggu = 7 hari, lebih daripada 6 hari' },
+      { t: 'Mana <b>paling singkat</b>?', a: '45 minit',
+        c: ['45 minit', '1 jam', '90 minit', '2 jam'], h: '1 jam = 60 minit, jadi 45 minit paling singkat' }
     ]
   };
 
   const MASA_MASALAH = {
     senang: [
-      { t: 'Siti berlatih piano 85 minit pada Isnin dan 70 minit pada Selasa. Berapakah <b>beza</b> masa latihannya? (▢ minit)', a: 15 },
-      { t: 'Nurin tidur 9 jam pada Sabtu dan 7 jam pada Ahad. Berapakah <b>jumlah</b> masa tidurnya? (▢ jam)', a: 16 },
-      { t: 'Kelas seni berlangsung 90 minit. Kelas muzik 45 minit lebih singkat. Berapa lamakah kelas muzik? (▢ minit)', a: 45 },
-      { t: 'Jimmy menjawab 5 soalan dalam masa 45 minit. Berapakah masa untuk <b>setiap</b> soalan? (▢ minit)', a: 9 },
-      { t: 'Masa selama 270 minit dibahagikan sama rata kepada 6 sesi. Berapakah masa setiap sesi? (▢ minit)', a: 45 },
-      { t: 'Sebuah kilang beroperasi 320 jam bulan lalu dan 275 jam bulan ini. Berapakah beza masa operasi? (▢ jam)', a: 45 },
-      { t: 'Sebuah filem berdurasi 135 minit. Amir menontonnya 80 minit lalu berehat. Berapakah baki masa filem? (▢ minit)', a: 55 },
-      { t: 'Aisyah menyiapkan kerja rumah dalam 125 minit. Farah siap 40 minit lebih awal. Berapa lama masa Farah? (▢ minit)', a: 85 },
-      { t: 'Dalam perlumbaan, Adam mengambil 245 saat dan Bakri 198 saat. Berapakah beza masa mereka? (▢ saat)', a: 47 },
-      { t: 'Aiman membaca buku 145 minit dan menulis karangan 95 minit. Berapakah jumlah masa? (▢ minit)', a: 240 },
-      { t: 'Kerja selama 840 minit dibahagikan sama rata kepada 7 hari. Berapakah masa kerja sehari? (▢ minit)', a: 120 },
-      { t: 'Masa selama 960 saat dibahagikan kepada 8 pusingan yang sama. Berapakah masa satu pusingan? (▢ saat)', a: 120 }
+      { t: 'Ali membaca 20 minit, kemudian 15 minit lagi. Berapakah <b>jumlah</b> masa? (▢ minit)', a: 35, h: '20 + 15 = 35' },
+      { t: 'Kelas berlangsung 60 minit. Sudah berjalan 25 minit. Berapakah <b>baki</b> masa? (▢ minit)', a: 35, h: '60 − 25 = 35' },
+      { t: 'Siti tidur 8 jam, Ana tidur 9 jam. Berapakah <b>beza</b> masa tidur? (▢ jam)', a: 1, h: '9 − 8 = 1' },
+      { t: 'Waktu rehat 30 minit. Enisa sudah guna 12 minit. Berapakah baki? (▢ minit)', a: 18, h: '30 − 12 = 18' },
+      { t: 'Tiga orang murid membaca, setiap seorang 10 minit. Berapakah jumlah masa? (▢ minit)', a: 30, h: '10 × 3 = 30' },
+      { t: 'Masa 40 minit dibahagi 2 sesi sama banyak. Berapa minit setiap sesi? (▢ minit)', a: 20, h: '40 ÷ 2 = 20' },
+      { t: 'Filem 90 minit. Sudah ditonton 45 minit. Berapakah baki masa? (▢ minit)', a: 45, h: '90 − 45 = 45' },
+      { t: 'Latihan 25 minit pada waktu pagi dan 25 minit pada waktu petang. Jumlah masa? (▢ minit)', a: 50, h: '25 + 25 = 50' },
+      { t: 'Edris main bola 35 minit, Adam 20 minit. Berapa minit <b>lebih</b> Edris? (▢ minit)', a: 15, h: '35 − 20 = 15' },
+      { t: 'Kelas mengaji 45 minit. Kelas seni 15 minit lebih lama. Berapa lama kelas seni? (▢ minit)', a: 60, h: '45 + 15 = 60' },
+      { t: 'Enisa berlari 90 saat, Nur berlari 60 saat. Berapakah jumlah masa? (▢ saat)', a: 150, h: '90 + 60 = 150' },
+      { t: 'Masa 60 minit dibahagi 4 aktiviti sama banyak. Setiap aktiviti berapa minit? (▢ minit)', a: 15, h: '60 ÷ 4 = 15' },
+      { t: 'Perjalanan ke sekolah 15 minit pergi dan 15 minit balik. Jumlah masa? (▢ minit)', a: 30, h: '15 + 15 = 30' },
+      { t: 'Ibu memasak 25 minit dan mengemas 20 minit. Berapakah jumlah masa? (▢ minit)', a: 45, h: '25 + 20 = 45' }
     ],
     sederhana: [
-      { t: 'Rajesh berbasikal 240 saat dan Kumar 185 saat. Berapakah jumlah masa mereka berdua? (▢ saat)', a: 425 },
-      { t: 'Mei Ling menonton TV 55 minit, bermain 40 minit dan membaca 65 minit. Berapakah jumlah masa? (▢ minit)', a: 160 },
-      { t: 'Perjalanan bas mengambil 480 minit. Selepas 195 minit, berapakah baki masa perjalanan? (▢ minit)', a: 285 },
-      { t: 'Zul berlatih bola 150 minit seminggu, Hakim 205 minit. Berapa minit <b>lebih</b> latihan Hakim? (▢ minit)', a: 55 },
-      { t: 'Puan Aminah memasak 55 minit, mengemas 38 minit dan membasuh 47 minit. Berapakah jumlah masa? (▢ minit)', a: 140 },
-      { t: 'Latihan renang tiga hari ialah 65 minit, 80 minit dan 95 minit. Berapakah jumlah masa latihan? (▢ minit)', a: 240 },
-      { t: 'Bateri telefon tahan 480 minit. Ravi guna 155 minit, kemudian 90 minit lagi. Berapakah baki masa? (▢ minit)', a: 235 },
-      { t: 'Aktiviti kem empat hari: 180 minit, 225 minit, 150 minit dan 195 minit. Berapakah jumlah masa? (▢ minit)', a: 750 },
-      { t: 'Seorang tukang jahit menyiapkan sehelai baju dalam 35 minit. Berapakah masa untuk 6 helai? (▢ minit)', a: 210 },
-      { t: 'Sebuah mesin membungkus satu kotak dalam 45 saat. Berapakah masa untuk 8 kotak? (▢ saat)', a: 360 },
-      { t: 'Empat murid berlari berganti-ganti, setiap seorang 75 saat. Berapakah jumlah masa? (▢ saat)', a: 300 },
-      { t: 'Kelas mengaji 40 minit sehari selama 6 hari seminggu. Berapakah jumlah masa seminggu? (▢ minit)', a: 240 },
-      { t: 'Lapan biji kek dibakar satu demi satu, setiap satu 25 minit. Berapakah jumlah masa? (▢ minit)', a: 200 },
-      { t: 'Latihan koir 90 minit setiap sesi. Berapakah jumlah masa bagi 7 sesi? (▢ minit)', a: 630 }
+      { t: 'Zul berbasikal 35 minit dan berjalan kaki 20 minit. Jumlah masa? (▢ minit)', a: 55, h: '35 + 20 = 55' },
+      { t: 'Kelas seni 45 minit, kelas muzik 30 minit. Berapakah beza masa? (▢ minit)', a: 15, h: '45 − 30 = 15' },
+      { t: 'Empat sesi latihan, setiap satu 15 minit. Berapakah jumlah masa? (▢ minit)', a: 60, h: '15 × 4 = 60' },
+      { t: 'Masa 120 minit dibahagi 4 kumpulan sama banyak. Setiap kumpulan? (▢ minit)', a: 30, h: '120 ÷ 4 = 30' },
+      { t: 'Perjalanan 2 jam. Sudah berjalan 45 minit. Berapakah baki masa? (▢ minit)', a: 75, h: 'Tukar 2 jam = 120 minit, 120 − 45 = 75' },
+      { t: 'Mira menari 50 minit, Lisa menari 35 minit. Berapakah jumlah masa? (▢ minit)', a: 85, h: '50 + 35 = 85' },
+      { t: 'Kem berlangsung 3 jam. Sudah berlalu 1 jam. Berapakah baki dalam minit? (▢ minit)', a: 120, h: '180 − 60 = 120' },
+      { t: 'Lima orang murid membaca, setiap seorang 12 minit. Jumlah masa? (▢ minit)', a: 60, h: '12 × 5 = 60' },
+      { t: 'Aktiviti 90 minit dibahagi 3 bahagian sama banyak. Setiap bahagian? (▢ minit)', a: 30, h: '90 ÷ 3 = 30' },
+      { t: 'Hadi berenang 40 minit pada Isnin dan 55 minit pada Rabu. Jumlah masa? (▢ minit)', a: 95, h: '40 + 55 = 95' },
+      { t: 'Kelas 1 jam 30 minit. Sudah berjalan 50 minit. Berapakah baki? (▢ minit)', a: 40, h: 'Tukar 1 jam 30 minit = 90 minit, 90 − 50 = 40' },
+      { t: 'Enisa belajar 25 minit, rehat 10 minit, belajar lagi 25 minit. Jumlah masa? (▢ minit)', a: 60, h: '25 + 10 + 25 = 60' },
+      { t: 'Tiga pusingan lari, setiap satu 80 saat. Berapakah jumlah masa? (▢ saat)', a: 240, h: '80 × 3 = 240' },
+      { t: 'Masa 150 saat dibahagi 5 pusingan sama banyak. Setiap pusingan? (▢ saat)', a: 30, h: '150 ÷ 5 = 30' }
     ],
     susah: [
-      { t: 'Ayah memandu 3 jam 20 minit ke Ipoh, kemudian 2 jam 15 minit ke Taiping. Berapakah jumlah masa memandu?',
-        a: '5 jam 35 minit', c: ['5 jam 35 minit', '5 jam 45 minit', '6 jam 35 minit', '1 jam 5 minit'] },
-      { t: 'Sebuah bengkel berjalan 6 jam. Sebanyak 2 jam 30 minit untuk teori. Berapakah baki masa untuk amali?',
-        a: '3 jam 30 minit', c: ['3 jam 30 minit', '4 jam 30 minit', '3 jam 70 minit', '2 jam 30 minit'] },
-      { t: 'Encik Lim berada di pejabat 9 jam dan berehat 1 jam 15 minit. Berapa lamakah dia benar-benar bekerja?',
-        a: '7 jam 45 minit', c: ['7 jam 45 minit', '8 jam 45 minit', '7 jam 15 minit', '8 jam 15 minit'] },
-      { t: 'Kelas tambahan bermula pukul 2:30 petang dan tamat pukul 4:15 petang. Berapa lamakah kelas itu?',
-        a: '1 jam 45 minit', c: ['1 jam 45 minit', '2 jam 15 minit', '1 jam 85 minit', '2 jam 45 minit'] },
-      { t: 'Kelas Sains bermula pukul 8:20 pagi dan tamat pukul 10:05 pagi. Berapa lamakah kelas itu?',
-        a: '1 jam 45 minit', c: ['1 jam 45 minit', '2 jam 15 minit', '1 jam 85 minit', '2 jam 25 minit'] },
-      { t: 'Encik Halim menyiapkan 3 ukiran kayu dalam 6 jam 30 minit. Berapakah masa untuk <b>satu</b> ukiran?',
-        a: '2 jam 10 minit', c: ['2 jam 10 minit', '2 jam 30 minit', '3 jam 15 minit', '1 jam 50 minit'] },
-      { t: 'Sebuah bas mengambil 2 jam 15 minit bagi satu perjalanan. Berapakah masa bagi 4 perjalanan?',
-        a: '9 jam 0 minit', c: ['9 jam 0 minit', '8 jam 60 minit', '8 jam 15 minit', '9 jam 15 minit'] },
-      { t: 'Puan Rosli mengajar 5 kelas dalam masa 6 jam 40 minit. Berapakah masa bagi <b>setiap</b> kelas?',
-        a: '1 jam 20 minit', c: ['1 jam 20 minit', '1 jam 8 minit', '1 jam 30 minit', '2 jam 20 minit'] },
-      { t: 'Seorang pelari mengambil 3 minit 20 saat bagi satu pusingan. Berapakah masa bagi 5 pusingan?',
-        a: '16 minit 40 saat', c: ['16 minit 40 saat', '15 minit 100 saat', '15 minit 20 saat', '17 minit 40 saat'] },
-      { t: 'Sebuah mesin menyiapkan satu tugasan dalam 1 jam 12 minit. Berapakah masa untuk 5 tugasan?',
-        a: '6 jam 0 minit', c: ['6 jam 0 minit', '5 jam 60 minit', '5 jam 12 minit', '6 jam 12 minit'] },
-      { t: 'Encik Hakim bekerja 8 jam 15 minit dan berehat 45 minit. Berapa lamakah masa dia bekerja sebenarnya?',
-        a: '7 jam 30 minit', c: ['7 jam 30 minit', '8 jam 30 minit', '7 jam 70 minit', '8 jam 0 minit'] },
-      { t: 'Latihan selama 2 jam 40 minit dibahagikan sama rata kepada 4 sesi. Berapakah masa setiap sesi?',
-        a: '40 minit', c: ['40 minit', '35 minit', '45 minit', '1 jam 10 minit'] }
+      { t: 'Kelas bermula pukul 9:00 pagi dan tamat pukul 10:30 pagi. Berapa lamakah kelas itu?',
+        a: '1 jam 30 minit', c: ['1 jam 30 minit', '1 jam 3 minit', '30 minit', '2 jam 30 minit'],
+        h: 'Dari 9:00 ke 10:00 ialah 1 jam, tambah 30 minit lagi' },
+      { t: 'Kelas bermula pukul 8:15 pagi dan tamat pukul 9:00 pagi. Berapa lamakah kelas itu?',
+        a: '45 minit', c: ['45 minit', '1 jam 15 minit', '15 minit', '1 jam'],
+        h: 'Dari 8:15 ke 9:00 ialah 45 minit' },
+      { t: 'Waktu sekolah bermula 7:30 pagi dan tamat 1:30 petang. Berapa lamakah waktu sekolah?',
+        a: '6 jam', c: ['6 jam', '5 jam', '7 jam', '6 jam 30 minit'],
+        h: '7:30 pagi → 1:30 petang ialah 6 jam' },
+      { t: 'Latihan 1 jam 15 minit, kemudian 45 minit lagi. Berapakah jumlah masa?',
+        a: '2 jam', c: ['2 jam', '1 jam 60 minit', '1 jam 30 minit', '2 jam 15 minit'],
+        h: '75 + 45 = 120 minit. 60 minit jadi 1 jam, jadi tulis 2 jam' },
+      { t: 'Ali membaca 1 jam 10 minit, Siti membaca 50 minit. Berapakah jumlah masa mereka?',
+        a: '2 jam', c: ['2 jam', '1 jam 60 minit', '1 jam 20 minit', '2 jam 10 minit'],
+        h: '70 + 50 = 120 minit, iaitu 2 jam' },
+      { t: 'Latihan 40 minit dan 35 minit. Berapakah jumlah masa?',
+        a: '1 jam 15 minit', c: ['1 jam 15 minit', '75 saat', '1 jam 5 minit', '2 jam 15 minit'],
+        h: '40 + 35 = 75 minit = 1 jam 15 minit' },
+      { t: 'Perjalanan 2 jam. Sudah berjalan 40 minit. Berapakah baki masa?',
+        a: '1 jam 20 minit', c: ['1 jam 20 minit', '1 jam 40 minit', '2 jam 40 minit', '20 minit'],
+        h: '120 − 40 = 80 minit = 1 jam 20 minit' },
+      { t: 'Filem 1 jam 45 minit. Sudah ditonton 1 jam. Berapakah baki masa?',
+        a: '45 minit', c: ['45 minit', '1 jam 45 minit', '15 minit', '1 jam'],
+        h: 'Tolak 1 jam daripada 1 jam 45 minit, tinggal 45 minit' },
+      { t: 'Tiga sesi, setiap satu 30 minit. Berapakah jumlah masa?',
+        a: '1 jam 30 minit', c: ['1 jam 30 minit', '90 saat', '3 jam', '1 jam 3 minit'],
+        h: '30 × 3 = 90 minit = 1 jam 30 minit' },
+      { t: 'Empat pusingan lari, setiap satu 45 saat. Berapakah jumlah masa?',
+        a: '3 minit', c: ['3 minit', '180 minit', '2 minit 45 saat', '4 minit'],
+        h: '45 × 4 = 180 saat = 3 minit' },
+      { t: 'Masa 1 jam 20 minit dibahagi 2 sesi sama banyak. Berapa lama setiap sesi?',
+        a: '40 minit', c: ['40 minit', '30 minit', '1 jam', '35 minit'],
+        h: '80 minit ÷ 2 = 40 minit' },
+      { t: 'Kem 2 jam 30 minit dibahagi 5 aktiviti sama banyak. Berapa lama setiap aktiviti?',
+        a: '30 minit', c: ['30 minit', '25 minit', '50 minit', '1 jam'],
+        h: '150 minit ÷ 5 = 30 minit' }
     ]
   };
 
@@ -1774,14 +1809,70 @@
         const text = isWord
           ? `<span class="word-problem">${item.t}</span>`
           : `<span class="masa-expr">${item.t}</span>`;
-        if (item.c) {
-          qs.push({ text, answer: item.a, choices: shuffle([...item.c]), wideChoices: true });
-        } else {
-          qs.push({ text, answer: item.a });
-        }
+        const q = { text, answer: item.a, hint: item.h || '' };
+        if (item.c) { q.choices = shuffle([...item.c]); q.wideChoices = true; }
+        qs.push(q);
       }
     }
     return qs;   // JANGAN shuffle — senang dulu, susah akhir
+  }
+
+  // ===== CAMPURAN WARNA (Edris 6 Tahun) =====
+  // Campuran warna cat/krayon (pigmen) — apa yang anak nampak bila campur sendiri.
+  const WARNA_HEX = {
+    'merah': '#e53935', 'kuning': '#fdd835', 'biru': '#1e88e5', 'hijau': '#43a047',
+    'putih': '#ffffff', 'hitam': '#212121', 'oren': '#fb8c00', 'ungu': '#8e24aa',
+    'kelabu': '#9e9e9e', 'merah jambu': '#f48fb1', 'perang': '#795548',
+    'biru muda': '#90caf9', 'hijau muda': '#a5d6a7', 'kuning muda': '#fff59d',
+    'biru kehijauan': '#26c6da', 'merah gelap': '#8e0000', 'ungu muda': '#ce93d8'
+  };
+  const besarkan = n => n.charAt(0).toUpperCase() + n.slice(1);
+  const bulat = n => `<span class="mix-chip" style="background:${WARNA_HEX[n]}"></span>`;
+  const cip   = n => `<span class="chip" style="background:${WARNA_HEX[n]}"></span>${besarkan(n)}`;
+  const cip2  = (a, b) => `<span class="chip" style="background:${WARNA_HEX[a]}"></span><span class="chip" style="background:${WARNA_HEX[b]}"></span>${besarkan(a)} + ${besarkan(b)}`;
+
+  // aras: 1 = senang (warna asas & hitam/putih), 2 = sederhana
+  const CAMPURAN = [
+    { a: 'merah', b: 'kuning', hasil: 'oren',           aras: 1 },
+    { a: 'biru',  b: 'kuning', hasil: 'hijau',          aras: 1 },
+    { a: 'merah', b: 'biru',   hasil: 'ungu',           aras: 1 },
+    { a: 'hitam', b: 'putih',  hasil: 'kelabu',         aras: 1 },
+    { a: 'merah', b: 'putih',  hasil: 'merah jambu',    aras: 1 },
+    { a: 'biru',  b: 'putih',  hasil: 'biru muda',      aras: 1 },
+    { a: 'kuning',b: 'putih',  hasil: 'kuning muda',    aras: 2 },
+    { a: 'hijau', b: 'putih',  hasil: 'hijau muda',     aras: 2 },
+    { a: 'ungu',  b: 'putih',  hasil: 'ungu muda',      aras: 2 },
+    { a: 'merah', b: 'hitam',  hasil: 'merah gelap',    aras: 2 },
+    { a: 'biru',  b: 'hijau',  hasil: 'biru kehijauan', aras: 2 },
+    { a: 'merah', b: 'hijau',  hasil: 'perang',         aras: 2 },
+    { a: 'oren',  b: 'biru',   hasil: 'perang',         aras: 2 },
+    { a: 'kuning',b: 'hijau',  hasil: 'hijau muda',     aras: 2 }
+  ];
+
+  function warnaSoalan(item) {
+    const salah = shuffle(Object.keys(WARNA_HEX).filter(w =>
+      w !== item.hasil && w !== item.a && w !== item.b)).slice(0, 3);
+    return {
+      text: `<span class="warna-q">🎨 Apa jadi kalau campur warna ini?` +
+            `<span class="mix">${bulat(item.a)}<b>+</b>${bulat(item.b)}<b>=</b><span class="mix-q">?</span></span></span>`,
+      answer: cip(item.hasil),
+      choices: shuffle([cip(item.hasil), ...salah.map(cip)]),
+      wideChoices: true,
+      hint: `${besarkan(item.a)} + ${besarkan(item.b)} jadi ${besarkan(item.hasil)}`
+    };
+  }
+
+  // Soalan songsang: diberi hasil, pilih dua warna yang perlu dicampur
+  function warnaSongsang(item) {
+    const lain = shuffle(CAMPURAN.filter(c => c.hasil !== item.hasil)).slice(0, 3);
+    return {
+      text: `<span class="warna-q">🎨 Warna apa perlu dicampur untuk dapat warna ini?` +
+            `<span class="mix">${bulat(item.hasil)}</span></span>`,
+      answer: cip2(item.a, item.b),
+      choices: shuffle([cip2(item.a, item.b), ...lain.map(c => cip2(c.a, c.b))]),
+      wideChoices: true,
+      hint: `${besarkan(item.hasil)} datang daripada ${besarkan(item.a)} + ${besarkan(item.b)}`
+    };
   }
 
   // ===== BANK SOALAN SAINS (t = nombor topik 1-8) =====
@@ -2262,31 +2353,106 @@
     });
   }
 
+  // ===== MENU DUA PERINGKAT: subjek → topik =====
+  let currentGroup = null;      // 'darjah3' | 'tahun6'
+  let currentSubject = null;    // id subjek yang sedang dibuka
+
+  function subjectsOf(group) { return SUBJECTS[group] || []; }
+
+  function renderSubjects(group) {
+    const host = document.getElementById(group === 'darjah3' ? 'darjah3Subjects' : 'tahun6Subjects');
+    if (!host) return;
+    host.innerHTML = '';
+    subjectsOf(group).forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'big';
+      btn.style.background = s.style;
+      if (s.soon || s.topik.length === 0) {
+        btn.classList.add('soon');
+        btn.disabled = true;
+        btn.innerHTML = s.emoji + ' ' + s.nama + '\n<span class="set-sub">Akan datang — topik sedang disediakan</span>';
+      } else {
+        const siap = s.topik.filter(k => completedSets.has(k)).length;
+        const semua = siap === s.topik.length;
+        btn.innerHTML = s.emoji + ' ' + s.nama + '\n<span class="set-sub">' +
+          s.topik.length + ' topik · ' + (semua ? '✓ semua siap' : siap + '/' + s.topik.length + ' siap') + '</span>';
+        btn.addEventListener('click', () => showSubject(group, s.id));
+      }
+      host.appendChild(btn);
+    });
+  }
+
+  function showSubject(group, subjectId) {
+    const subj = subjectsOf(group).find(s => s.id === subjectId);
+    if (!subj) return;
+    currentGroup = group;
+    currentSubject = subjectId;
+    document.getElementById('darjah3Screen').classList.add('hidden');
+    document.getElementById('tahun6Screen').classList.add('hidden');
+    document.getElementById('topicChild').textContent =
+      group === 'darjah3' ? '📚 Enisa · Darjah 3' : '🧒 Edris · 6 Tahun';
+    document.getElementById('topicTitle').textContent = subj.emoji + ' ' + subj.nama;
+    const host = document.getElementById('topicList');
+    host.innerHTML = '';
+    subj.topik.forEach(k => {
+      const t = TOPICS[k];
+      if (!t) return;
+      const btn = document.createElement('button');
+      btn.className = 'big';
+      btn.dataset.set = k;
+      if (t.style) btn.setAttribute('style', t.style);
+      btn.innerHTML = t.label + '\n<span class="set-sub">' + t.sub + '</span>';
+      btn.addEventListener('click', () => startQuiz(k));
+      host.appendChild(btn);
+    });
+    document.getElementById('topicScreen').classList.remove('hidden');
+    updateLockedButtons();
+  }
+
   function showDarjah3Menu() {
+    currentGroup = 'darjah3';
     document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('topicScreen').classList.add('hidden');
+    renderSubjects('darjah3');
     document.getElementById('darjah3Screen').classList.remove('hidden');
     updateLockedButtons();
   }
 
   function show6TahunMenu() {
+    currentGroup = 'tahun6';
     document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('topicScreen').classList.add('hidden');
+    renderSubjects('tahun6');
     document.getElementById('tahun6Screen').classList.remove('hidden');
+    updateLockedButtons();
+  }
+
+  // Dari senarai topik → balik ke senarai subjek
+  function goBackToSubjects() {
+    document.getElementById('topicScreen').classList.add('hidden');
+    const group = currentGroup || 'darjah3';
+    renderSubjects(group);
+    document.getElementById(group === 'darjah3' ? 'darjah3Screen' : 'tahun6Screen').classList.remove('hidden');
     updateLockedButtons();
   }
 
   function goBackToWelcome() {
     document.getElementById('darjah3Screen').classList.add('hidden');
     document.getElementById('tahun6Screen').classList.add('hidden');
+    document.getElementById('topicScreen').classList.add('hidden');
     document.getElementById('welcomeScreen').classList.remove('hidden');
   }
 
+  // Selepas kuiz habis → balik ke senarai topik subjek yang sama
   function goBackToSubMenu() {
     document.getElementById('resultScreen').classList.add('hidden');
-    const group = getCurrentGroup(currentSetKey);
-    if (group === 'darjah3') {
-      document.getElementById('darjah3Screen').classList.remove('hidden');
-    } else if (group === 'tahun6') {
-      document.getElementById('tahun6Screen').classList.remove('hidden');
+    const group = getCurrentGroup(currentSetKey) || currentGroup;
+    if (group && currentSubject && subjectsOf(group).some(s => s.id === currentSubject)) {
+      showSubject(group, currentSubject);
+    } else if (group === 'darjah3' || group === 'tahun6') {
+      currentGroup = group;
+      renderSubjects(group);
+      document.getElementById(group === 'darjah3' ? 'darjah3Screen' : 'tahun6Screen').classList.remove('hidden');
     } else {
       document.getElementById('welcomeScreen').classList.remove('hidden');
     }
@@ -2309,6 +2475,7 @@
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('darjah3Screen').classList.add('hidden');
     document.getElementById('tahun6Screen').classList.add('hidden');
+    document.getElementById('topicScreen').classList.add('hidden');
     document.getElementById('resultScreen').classList.add('hidden');
     document.getElementById('quizScreen').classList.remove('hidden');
     showQuestion();
@@ -2468,7 +2635,7 @@
     qAnswered = true;
     const correct = questions[currentQ].answer;
     const feedback = document.getElementById('feedback');
-    feedback.innerHTML = `⏰ Masa habis!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
+    feedback.innerHTML = `⏰ Masa habis!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>` + hintHtml(questions[currentQ]);
     feedback.className = 'feedback wrong';
     const input = document.getElementById('answerInput');
     if (input) input.disabled = true;
@@ -2552,15 +2719,21 @@
       feedback.textContent = '✅ Betul!';
       feedback.className = 'feedback correct';
     } else {
-      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
+      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>` + hintHtml(q);
       feedback.className = 'feedback wrong';
     }
 
     setTimeout(advanceQuestion, isCorrect ? CORRECT_DELAY : WRONG_DELAY);
   }
 
+  // Petua konsep — ditunjuk hanya bila jawapan salah / masa habis
+  function hintHtml(q) {
+    return (q && q.hint) ? `<br><span class="ans-hint">💡 ${q.hint}</span>` : '';
+  }
+
   function submitChoice(value) {
     if (qAnswered || quizPaused) return;
+    const q = questions[currentQ];
     const correct = String(questions[currentQ].answer);
     const feedback = document.getElementById('feedback');
 
@@ -2579,7 +2752,7 @@
       feedback.textContent = '✅ Betul!';
       feedback.className = 'feedback correct';
     } else {
-      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>`;
+      feedback.innerHTML = `❌ Salah!<br><span class="ans-reveal">Jawapan betul: ${correct}</span>` + hintHtml(q);
       feedback.className = 'feedback wrong';
     }
 
@@ -2684,7 +2857,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-19 22:05';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-19 23:15';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
