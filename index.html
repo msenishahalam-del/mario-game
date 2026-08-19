@@ -572,6 +572,8 @@
   <button id="retryBtn" onclick="retryCurrentQuiz()" style="background: linear-gradient(135deg, #667eea, #764ba2); margin-top: 10px;">🔄 Cuba Lagi</button>
 </div>
 
+<script src="soalan-nombor.js?v=1"></script>
+
 <script>
   // ===== STATE =====
   const CORRECT_DELAY = 1200;   // betul → cepat ke soalan seterusnya
@@ -616,6 +618,9 @@
     duit:        { label: '💰 Duit Ringgit', sub: 'Soalan cerita beli-belah · pilih A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #84fab0, #8fd3f4);' },
     english:     { label: '🇬🇧 English', sub: 'Basic grammar · is/are, a/an, plural · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fa709a, #fee140);' },
     dino:        { label: '🦖 Dinosaur', sub: 'Count &amp; fun facts (English) · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #11998e, #38ef7d);' },
+    nilaiTempat: { label: '🏠 Nilai Tempat & Nilai Digit', sub: 'Sa · puluh · ratus · ribu · hingga 10 000 · 30 saat', style: 'background: linear-gradient(135deg, #5b6ef5, #9aa7ff);' },
+    tambah10k:   { label: '➕ Tambah hingga 10 000', sub: 'Mengumpul semula · anggaran · cerita · 40 saat', style: 'background: linear-gradient(135deg, #2a9d8f, #8ad3c9);' },
+    tolak10k:    { label: '➖ Tolak hingga 10 000', sub: 'Pinjam · pinjam melalui sifar · semak · 40 saat', style: 'background: linear-gradient(135deg, #e76f51, #f4a58a);' },
     warna:       { label: '🎨 Campuran Warna', sub: 'Campur 2 warna · pilih hasil · A/B/C/D · 30 saat', style: 'background: linear-gradient(135deg, #ff6a88, #ffb56b);' }
   };
 
@@ -623,7 +628,7 @@
   const SUBJECTS = {
     darjah3: [
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #4facfe, #00c4cc)',
-        topik: ['darab', 'bahagi', 'bahagi2', 'darabBahagi', 'cariX', 'bundar', 'pecahan', 'perpuluhan', 'masa', 'masa2'] },
+        topik: ['nilaiTempat', 'tambah10k', 'tolak10k', 'darab', 'bahagi', 'bahagi2', 'darabBahagi', 'cariX', 'bundar', 'pecahan', 'perpuluhan', 'masa', 'masa2'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #43e97b, #38f9d7)',
         topik: ['sains1', 'sains2', 'sains3'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #b94e2f, #e8a33d)',
@@ -648,7 +653,7 @@
   };
 
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k'],
     tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
@@ -1650,6 +1655,10 @@
     },
     // ===== CAMPURAN WARNA (Edris 6 Tahun) =====
     // 10 soalan: 4 senang → 3 sederhana → 3 susah (songsang). Semua A/B/C/D.
+    // ===== MATEMATIK TAHUN 3 — bank dalam soalan-*.js =====
+    nilaiTempat: { time: 30, generate() { return buildQuiz(BANK.nilaiTempat); } },
+    tambah10k:   { time: 40, generate() { return buildQuiz(BANK.tambah10k); } },
+    tolak10k:    { time: 40, generate() { return buildQuiz(BANK.tolak10k); } },
     warna: {
       time: 30,
       generate() {
@@ -2521,6 +2530,14 @@
 
   function subjectsOf(group) { return SUBJECTS[group] || []; }
 
+  // Topik yang banknya datang dari fail luar. Kalau fail gagal dimuat (rangkaian),
+  // topik itu disembunyikan daripada menu — bukan mematikan seluruh app.
+  const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1 };
+  function topikSedia(k) {
+    if (!TOPIK_BANK_LUAR[k]) return true;
+    return !!(window.BANK && window.BANK[k]);
+  }
+
   function renderSubjects(group) {
     const host = document.getElementById(group === 'darjah3' ? 'darjah3Subjects' : 'tahun6Subjects');
     if (!host) return;
@@ -2529,15 +2546,16 @@
       const btn = document.createElement('button');
       btn.className = 'big';
       btn.style.background = s.style;
-      if (s.soon || s.topik.length === 0) {
+      if (s.soon || s.topik.filter(topikSedia).length === 0) {
         btn.classList.add('soon');
         btn.disabled = true;
         btn.innerHTML = s.emoji + ' ' + s.nama + '\n<span class="set-sub">Akan datang — topik sedang disediakan</span>';
       } else {
-        const siap = s.topik.filter(k => completedSets.has(k)).length;
-        const semua = siap === s.topik.length;
+        const ada = s.topik.filter(topikSedia);
+        const siap = ada.filter(k => completedSets.has(k)).length;
+        const semua = siap === ada.length;
         btn.innerHTML = s.emoji + ' ' + s.nama + '\n<span class="set-sub">' +
-          s.topik.length + ' topik · ' + (semua ? '✓ semua siap' : siap + '/' + s.topik.length + ' siap') + '</span>';
+          ada.length + ' topik · ' + (semua ? '✓ semua siap' : siap + '/' + ada.length + ' siap') + '</span>';
         btn.addEventListener('click', () => showSubject(group, s.id));
       }
       host.appendChild(btn);
@@ -2556,7 +2574,7 @@
     document.getElementById('topicTitle').textContent = subj.emoji + ' ' + subj.nama;
     const host = document.getElementById('topicList');
     host.innerHTML = '';
-    subj.topik.forEach(k => {
+    subj.topik.filter(topikSedia).forEach(k => {
       const t = TOPICS[k];
       if (!t) return;
       const btn = document.createElement('button');
@@ -3025,7 +3043,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 00:30';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 01:10';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
