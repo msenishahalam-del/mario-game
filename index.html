@@ -554,12 +554,12 @@
   <br>
   <button class="big" data-set="masa" onclick="startQuiz('masa')" style="background: linear-gradient(135deg, #0e5c63, #5fc9d1);">
     ⏰ Masa &amp; Waktu
-    <span class="set-sub">Operasi masa + tukar unit · senang → susah · 25 saat</span>
+    <span class="set-sub">Operasi masa + tukar unit · senang → susah · 1 minit</span>
   </button>
   <br>
   <button class="big" data-set="masa2" onclick="startQuiz('masa2')" style="background: linear-gradient(135deg, #c0392b, #f0796a);">
     🕰️ Masa: Selesaikan Masalah
-    <span class="set-sub">Soalan cerita · jam / minit / saat · senang → susah · 40 saat</span>
+    <span class="set-sub">Soalan cerita · jam / minit / saat · senang → susah · 1 minit</span>
   </button>
   <br>
   <button onclick="goBackToWelcome()" style="background: linear-gradient(135deg, #888, #555); margin-top: 14px; font-size: 1.1em; padding: 12px 30px;">⬅ Kembali</button>
@@ -1603,11 +1603,11 @@
     // ===== MASA & WAKTU (Darjah 3) =====
     // Setiap kuiz 10 soalan: 4 senang → 3 sederhana → 3 susah (JANGAN shuffle — senang dulu)
     masa: {
-      time: 25,
+      time: 60,   // 1 minit satu soalan — bagi masa fikir & kira
       generate() { return buildMasaQuiz(MASA_OPERASI, false); }
     },
     masa2: {
-      time: 40,
+      time: 60,   // 1 minit satu soalan — soalan cerita perlu masa baca
       generate() { return buildMasaQuiz(MASA_MASALAH, true); }
     }
   };
@@ -2684,7 +2684,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-19 21:40';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-19 22:05';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
