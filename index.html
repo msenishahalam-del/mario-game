@@ -574,6 +574,7 @@
 
 <script src="soalan-nombor.js?v=1"></script>
 <script src="soalan-ukuran.js?v=1"></script>
+<script src="soalan-tahun6.js?v=1"></script>
 
 <script>
   // ===== STATE =====
@@ -611,7 +612,8 @@
     perpuluhan:  { label: '🔢 Pecahan → Perpuluhan', sub: 'Persepuluh · perseratus · tambah/tolak · 30 saat', style: 'background: linear-gradient(135deg, #2a9f6f, #06492c);' },
     masa:        { label: '⏰ Masa &amp; Waktu', sub: 'Operasi masa + tukar unit · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #0e5c63, #5fc9d1);' },
     masa2:       { label: '🕰️ Masa: Selesaikan Masalah', sub: 'Soalan cerita · jam / minit / saat · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #c0392b, #f0796a);' },
-    tambahtolak: { label: '➕ ➖ Tambah &amp; Tolak', sub: 'Single digit · key in jawapan · 30 saat', style: 'background: linear-gradient(135deg, #667eea, #764ba2);' },
+    tambah6:     { label: '➕ Tambah', sub: 'Bilang &amp; campur · cukupkan 10 · nombor hilang · 30 saat', style: 'background: linear-gradient(135deg, #4facfe, #6ee7f0);' },
+    tolak6:      { label: '➖ Tolak', sub: 'Ambil keluar · beza · semak dgn tambah · 30 saat', style: 'background: linear-gradient(135deg, #f6845a, #ffc38b);' },
     darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
     ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
     ejaan2:      { label: '⌨️ Ejaan BM 2.0', sub: 'Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat', style: 'background: linear-gradient(135deg, #f6a5c0, #7b4397);' },
@@ -645,7 +647,7 @@
     ],
     tahun6: [
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #667eea, #764ba2)',
-        topik: ['tambahtolak', 'darabAsas', 'duit'] },
+        topik: ['tambah6', 'tolak6', 'darabAsas', 'duit'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #fbc2eb, #a18cd1)',
         topik: ['ejaan', 'ejaan2'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
@@ -659,7 +661,7 @@
 
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambahtolak', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
+    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -875,36 +877,8 @@
         return qs;   // JANGAN shuffle — senang dulu, naik tahap kemudian
       }
     },
-    tambahtolak: {
-      time: 30,
-      generate() {
-        const qs = [];
-        // 7 soalan satu operasi (a + b atau a − b)
-        while (qs.length < 7) {
-          if (Math.random() < 0.5) {
-            const a = randInt(0, 9), b = randInt(0, 9);
-            qs.push({ text: `${a} + ${b}`, answer: a + b });
-          } else {
-            let a = randInt(0, 9), b = randInt(0, 9);
-            if (b > a) [a, b] = [b, a];   // pastikan jawapan tak negatif
-            qs.push({ text: `${a} − ${b}`, answer: a - b });
-          }
-        }
-        // 3 soalan susah sikit: 2 operasi (cth 2 + 5 + 7, 9 − 3 + 4)
-        let safety = 0;
-        while (qs.length < 10 && safety++ < 100) {
-          const a = randInt(1, 9), b = randInt(1, 9), c = randInt(1, 9);
-          const op1 = Math.random() < 0.5 ? '+' : '−';
-          const op2 = Math.random() < 0.5 ? '+' : '−';
-          let mid = op1 === '+' ? a + b : a - b;
-          if (mid < 0) continue;
-          let ans = op2 === '+' ? mid + c : mid - c;
-          if (ans < 0) continue;
-          qs.push({ text: `${a} ${op1} ${b} ${op2} ${c}`, answer: ans });
-        }
-        return qs;   // JANGAN shuffle — 1 operasi dulu, 2 operasi akhir
-      }
-    },
+    tambah6:     { time: 30, generate() { return buildQuiz(BANK.tambah6); } },
+    tolak6:      { time: 30, generate() { return buildQuiz(BANK.tolak6); } },
     darabAsas: {
       time: 60,   // 1 minit satu soalan — bagi masa lebih untuk faham konsep
       generate() {
@@ -2475,7 +2449,8 @@
   // Topik yang banknya datang dari fail luar. Kalau fail gagal dimuat (rangkaian),
   // topik itu disembunyikan daripada menu — bukan mematikan seluruh app.
   const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1, cariX: 1, perpuluhan: 1,
-                            wang100: 1, panjang: 1, jisim: 1, isipadu: 1 };
+                            wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
+                            tambah6: 1, tolak6: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -2986,7 +2961,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 02:40';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 03:20';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
