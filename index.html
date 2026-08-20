@@ -575,6 +575,7 @@
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
 <script src="soalan-tahun6.js?v=2"></script>
+<script src="soalan-sains3.js?v=1"></script>
 
 <script>
   // ===== STATE =====
@@ -626,6 +627,11 @@
     panjang:     { label: '📏 Ukuran Panjang', sub: 'mm · cm · m · km · tukar unit · banding · 40 saat', style: 'background: linear-gradient(135deg, #3a86ff, #8ecae6);' },
     jisim:       { label: '⚖️ Timbangan Jisim', sub: 'g &amp; kg · tukar unit · anggaran · 40 saat', style: 'background: linear-gradient(135deg, #8338ec, #c19ee0);' },
     isipadu:     { label: '🥤 Isipadu Cecair', sub: 'ml &amp; l · tukar unit · anggaran · 40 saat', style: 'background: linear-gradient(135deg, #ff6b6b, #ffa8a8);' },
+    sainsU1:     { label: '🔍 Unit 1: Kemahiran Saintifik', sub: 'Deria · alat &amp; unit · memerhati, mengelas, meramal · 30 saat', style: 'background: linear-gradient(135deg, #5b6ef5, #9aa7ff);' },
+    sainsU2:     { label: '🥽 Unit 2: Peraturan Bilik Sains', sub: 'Keselamatan makmal · simbol bahaya · tindakan kecemasan · 30 saat', style: 'background: linear-gradient(135deg, #e63946, #f79c9c);' },
+    sainsU3:     { label: '🧍 Unit 3: Manusia', sub: 'Organ · keperluan asas · tumbesaran · kesihatan · 30 saat', style: 'background: linear-gradient(135deg, #f4a261, #ffd6a5);' },
+    sainsU4:     { label: '🐾 Unit 4: Haiwan', sub: 'Pembiakan · kitaran hidup · tabiat makan · pergerakan · 30 saat', style: 'background: linear-gradient(135deg, #2a9d8f, #8ad3c9);' },
+    sainsU5:     { label: '🌱 Unit 5: Tumbuh-Tumbuhan', sub: 'Bahagian pokok · pembiakan · percambahan · penyebaran biji · 30 saat', style: 'background: linear-gradient(135deg, #52b788, #b7e4c7);' },
     nilaiTempat: { label: '🏠 Nilai Tempat & Nilai Digit', sub: 'Sa · puluh · ratus · ribu · hingga 10 000 · 30 saat', style: 'background: linear-gradient(135deg, #5b6ef5, #9aa7ff);' },
     tambah10k:   { label: '➕ Tambah hingga 10 000', sub: 'Mengumpul semula · anggaran · cerita · 40 saat', style: 'background: linear-gradient(135deg, #2a9d8f, #8ad3c9);' },
     tolak10k:    { label: '➖ Tolak hingga 10 000', sub: 'Pinjam · pinjam melalui sifar · semak · 40 saat', style: 'background: linear-gradient(135deg, #e76f51, #f4a58a);' },
@@ -638,7 +644,7 @@
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #4facfe, #00c4cc)',
         topik: ['nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu', 'darab', 'bahagi', 'bahagi2', 'darabBahagi', 'cariX', 'bundar', 'pecahan', 'perpuluhan', 'masa', 'masa2'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #43e97b, #38f9d7)',
-        topik: ['sains1', 'sains2', 'sains3'] },
+        topik: ['sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sains1', 'sains2', 'sains3'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #b94e2f, #e8a33d)',
         topik: ['pantun', 'peribahasa', 'penjodoh'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
@@ -661,7 +667,7 @@
   };
 
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
     tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
@@ -1570,6 +1576,11 @@
     // ===== CAMPURAN WARNA (Edris 6 Tahun) =====
     // 10 soalan: 4 senang → 3 sederhana → 3 susah (songsang). Semua A/B/C/D.
     // ===== MATEMATIK TAHUN 3 — bank dalam soalan-*.js =====
+    sainsU1:     { time: 30, generate() { return buildQuiz(BANK.sainsU1); } },
+    sainsU2:     { time: 30, generate() { return buildQuiz(BANK.sainsU2); } },
+    sainsU3:     { time: 30, generate() { return buildQuiz(BANK.sainsU3); } },
+    sainsU4:     { time: 30, generate() { return buildQuiz(BANK.sainsU4); } },
+    sainsU5:     { time: 30, generate() { return buildQuiz(BANK.sainsU5); } },
     nilaiTempat: { time: 30, generate() { return buildQuiz(BANK.nilaiTempat); } },
     wang100:     { time: 60, generate() { return buildQuiz(BANK.wang100); } },
     panjang:     { time: 40, generate() { return buildQuiz(BANK.panjang); } },
@@ -2452,7 +2463,8 @@
   // topik itu disembunyikan daripada menu — bukan mematikan seluruh app.
   const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1, cariX: 1, perpuluhan: 1,
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
-                            tambah6: 1, tolak6: 1, bahagiAsas: 1 };
+                            tambah6: 1, tolak6: 1, bahagiAsas: 1,
+                            sainsU1: 1, sainsU2: 1, sainsU3: 1, sainsU4: 1, sainsU5: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -2963,7 +2975,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 03:55';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 05:10';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
