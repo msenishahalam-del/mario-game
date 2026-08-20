@@ -142,4 +142,76 @@ window.BANK = window.BANK || {};
           h: '"Beri kepada orang" bermakna jumlahnya berkurang — guna TOLAK: ' + a + ' − ' + b + ' = ' + (a - b) + '.' }; }
     ]
   };
+  // ===================== BAHAGI ASAS (6 tahun) =====================
+  // Konsep teras: bahagi ialah KONGSI SAMA BANYAK.
+  // Liputan ÷2 dan ÷3 supaya berpasangan dengan darabAsas (×2 dan ×3).
+  BANK.bahagiAsas = {
+    senang: [
+      // visual: kongsi kepada kumpulan
+      () => { const e = BENDA[randInt(0, BENDA.length - 1)];
+        // mula dari 2 setiap kumpulan — "2 ikan kepada 2 kumpulan" terlalu remeh
+        const setiap = randInt(2, 4), kump = randInt(2, 3);
+        const jum = setiap * kump;
+        return { t: ikon(jum, e) + ' dikongsi kepada ' + kump + ' kumpulan sama banyak.<br>Berapa setiap kumpulan?',
+          a: setiap, w: 'word',
+          h: 'Bahagikan ' + jum + ' kepada ' + kump + ' kumpulan sama banyak — setiap kumpulan dapat ' + setiap + '.' }; },
+      // bahagi 1 — kekal
+      () => { const a = randInt(2, 9);
+        return { t: a + ' ÷ 1 = ▢', a: a,
+          h: 'Bahagi dengan 1 bermakna satu kumpulan sahaja, jadi semuanya kekal ' + a + '.' }; },
+      // bahagi diri sendiri = 1
+      () => { const a = randInt(2, 9);
+        return { t: a + ' ÷ ' + a + ' = ▢', a: 1,
+          h: 'Kongsi ' + a + ' kepada ' + a + ' kumpulan — setiap kumpulan dapat 1 sahaja.' }; },
+      // ÷2 kecil
+      () => { const h2 = randInt(1, 5);
+        return { t: (h2 * 2) + ' ÷ 2 = ▢', a: h2,
+          h: 'Bahagi 2 bermakna belah kepada DUA sama banyak. Separuh daripada ' + (h2 * 2) + ' ialah ' + h2 + '.' }; },
+      { t: '0 ÷ 5 = ▢', a: 0, h: 'Tiada apa nak dikongsi, jadi setiap kumpulan dapat 0.' }
+    ],
+    sederhana: [
+      () => { const h2 = randInt(4, 9);
+        return { t: (h2 * 2) + ' ÷ 2 = ▢', a: h2,
+          h: 'Separuh daripada ' + (h2 * 2) + ' ialah ' + h2 + '. Semak: ' + h2 + ' + ' + h2 + ' = ' + (h2 * 2) + '.' }; },
+      () => { const h3 = randInt(1, 6);
+        return { t: (h3 * 3) + ' ÷ 3 = ▢', a: h3,
+          h: 'Kongsi ' + (h3 * 3) + ' kepada 3 kumpulan sama banyak — setiap satu dapat ' + h3 + '.' }; },
+      // cerita kongsi
+      () => { const orang = randInt(2, 3), setiap = randInt(2, 5);
+        const e = BENDA[randInt(0, BENDA.length - 1)];
+        return { t: 'Ada ' + (orang * setiap) + ' ' + e + ' dikongsi sama rata kepada ' + orang +
+            ' orang. Berapa setiap orang dapat?', a: setiap, w: 'word',
+          h: 'Kongsi sama rata bermakna BAHAGI: ' + (orang * setiap) + ' ÷ ' + orang + ' = ' + setiap + '.' }; },
+      // berapa kumpulan
+      () => { const setiap = randInt(2, 3), kump = randInt(2, 5);
+        return { t: 'Ada ' + (setiap * kump) + ' biji gula-gula. Setiap budak dapat ' + setiap +
+            ' biji. Berapa ramai budak?', a: kump, w: 'word',
+          h: 'Cari berapa KUMPULAN: ' + (setiap * kump) + ' ÷ ' + setiap + ' = ' + kump + ' orang.' }; }
+    ],
+    susah: [
+      // songsang darab — paling penting
+      () => { const a = randInt(2, 3), b = randInt(2, 9);
+        return { t: 'Jika ' + a + ' × ' + b + ' = ' + (a * b) + ', berapakah ' + (a * b) + ' ÷ ' + a + '?', a: b,
+          h: 'Darab dan bahagi ialah SONGSANG. Kalau ' + a + ' × ' + b + ' = ' + (a * b) +
+             ', maka ' + (a * b) + ' ÷ ' + a + ' balik jadi ' + b + '.' }; },
+      // nombor hilang (yang dibahagi)
+      () => { const b = randInt(2, 3), hasil = randInt(2, 6);
+        return { t: '▢ ÷ ' + b + ' = ' + hasil, a: b * hasil,
+          h: 'Songsangkan: ' + hasil + ' × ' + b + ' = ' + (b * hasil) + '. Semak: ' + (b * hasil) + ' ÷ ' + b + ' = ' + hasil + '.' }; },
+      // nombor hilang (pembahagi)
+      () => { const b = randInt(2, 3), hasil = randInt(2, 6);
+        return { t: (b * hasil) + ' ÷ ▢ = ' + hasil, a: b,
+          h: 'Berapa kumpulan diperlukan supaya setiap satu dapat ' + hasil + '? ' + (b * hasil) + ' ÷ ' + hasil + ' = ' + b + '.' }; },
+      // konsep: operasi apa
+      () => { const orang = randInt(2, 3), setiap = randInt(2, 5);
+        return { t: 'Ada ' + (orang * setiap) + ' biskut untuk dikongsi SAMA BANYAK kepada ' + orang +
+            ' orang. Kita perlu buat apa?',
+          a: 'Bahagi', c: ['Bahagi', 'Darab', 'Tambah', 'Tolak'], w: 'word',
+          h: 'Bila kongsi sama banyak, kita guna BAHAGI: ' + (orang * setiap) + ' ÷ ' + orang + ' = ' + setiap + '.' }; },
+      // banding
+      { t: 'Mana lebih banyak: <b>10 ÷ 2</b> atau <b>9 ÷ 3</b>?', a: '10 ÷ 2',
+        c: ['10 ÷ 2', '9 ÷ 3', 'Sama banyak', 'Tak boleh banding'],
+        h: 'Kira dahulu: 10 ÷ 2 = 5 dan 9 ÷ 3 = 3. Jadi 10 ÷ 2 lebih banyak.' }
+    ]
+  };
 })();

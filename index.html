@@ -572,9 +572,9 @@
   <button id="retryBtn" onclick="retryCurrentQuiz()" style="background: linear-gradient(135deg, #667eea, #764ba2); margin-top: 10px;">🔄 Cuba Lagi</button>
 </div>
 
-<script src="soalan-nombor.js?v=1"></script>
-<script src="soalan-ukuran.js?v=1"></script>
-<script src="soalan-tahun6.js?v=1"></script>
+<script src="soalan-nombor.js?v=2"></script>
+<script src="soalan-ukuran.js?v=2"></script>
+<script src="soalan-tahun6.js?v=2"></script>
 
 <script>
   // ===== STATE =====
@@ -615,6 +615,7 @@
     tambah6:     { label: '➕ Tambah', sub: 'Bilang &amp; campur · cukupkan 10 · nombor hilang · 30 saat', style: 'background: linear-gradient(135deg, #4facfe, #6ee7f0);' },
     tolak6:      { label: '➖ Tolak', sub: 'Ambil keluar · beza · semak dgn tambah · 30 saat', style: 'background: linear-gradient(135deg, #f6845a, #ffc38b);' },
     darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
+    bahagiAsas:  { label: '➗ Bahagi Asas', sub: 'Kongsi sama banyak · ÷ 2 dan ÷ 3 · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #06beb6, #48b1bf);' },
     ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
     ejaan2:      { label: '⌨️ Ejaan BM 2.0', sub: 'Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat', style: 'background: linear-gradient(135deg, #f6a5c0, #7b4397);' },
     jawi:        { label: 'ج Jawi', sub: 'Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #2d6a4f, #95d5b2);' },
@@ -647,7 +648,7 @@
     ],
     tahun6: [
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #667eea, #764ba2)',
-        topik: ['tambah6', 'tolak6', 'darabAsas', 'duit'] },
+        topik: ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'duit'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #fbc2eb, #a18cd1)',
         topik: ['ejaan', 'ejaan2'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
@@ -661,7 +662,7 @@
 
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
+    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -879,6 +880,7 @@
     },
     tambah6:     { time: 30, generate() { return buildQuiz(BANK.tambah6); } },
     tolak6:      { time: 30, generate() { return buildQuiz(BANK.tolak6); } },
+    bahagiAsas:  { time: 60, generate() { return buildQuiz(BANK.bahagiAsas); } },
     darabAsas: {
       time: 60,   // 1 minit satu soalan — bagi masa lebih untuk faham konsep
       generate() {
@@ -2450,7 +2452,7 @@
   // topik itu disembunyikan daripada menu — bukan mematikan seluruh app.
   const TOPIK_BANK_LUAR = { nilaiTempat: 1, tambah10k: 1, tolak10k: 1, cariX: 1, perpuluhan: 1,
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
-                            tambah6: 1, tolak6: 1 };
+                            tambah6: 1, tolak6: 1, bahagiAsas: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -2961,7 +2963,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 03:20';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 03:55';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
