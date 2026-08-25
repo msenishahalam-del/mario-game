@@ -67,6 +67,21 @@
     letter-spacing: 0.1em;
   }
 
+  /* Makanan sihat — dua gambar besar dibanding sebelah-menyebelah */
+  .sihat-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+    font-size: 0.72em;
+    line-height: 1.1;
+  }
+  .sihat-vs b {
+    font-size: 0.34em;
+    color: #5a3a00;
+    letter-spacing: 0.04em;
+  }
+  .sihat-satu { display: block; font-size: 0.8em; line-height: 1.1; }
   /* Bahagi Asas — cerita bergambar untuk umur 6.
      Barang di atas, orang di bawah, supaya budak boleh BILANG dan kongsi sendiri. */
   .bagi-row {
@@ -623,7 +638,7 @@
 
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
-<script src="soalan-tahun6.js?v=8"></script>
+<script src="soalan-tahun6.js?v=9"></script>
 <script src="soalan-sains3.js?v=2"></script>
 
 <script>
@@ -667,6 +682,7 @@
     darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
     bahagiAsas:  { label: '➗ Bahagi Asas', sub: 'Kongsi sama banyak · ÷ 2 dan ÷ 3 · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #06beb6, #48b1bf);' },
     ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
+    sihat:       { label: '🥗 Makanan Sihat', sub: 'Banding 2 gambar · mana lebih sihat · 30 saat', style: 'background: linear-gradient(135deg, #52b788, #d8f3dc);' },
     agama6:      { label: '🕌 Asas Islam', sub: 'Rakaat solat · urutan wuduk · rukun Islam · adab · 30 saat', style: 'background: linear-gradient(135deg, #0f9b6e, #7bd8b0);' },
     spelling:    { label: '🔡 English Spelling', sub: 'Gambar · RA_ _ → taip IN · WA_ _ _ → taip TER · 1 minit', style: 'background: linear-gradient(135deg, #ff9a44, #fc6076);' },
     ejaan3:      { label: '📝 Ejaan BM 3.0', sub: 'Perkataan panjang · HU_ _ _ → taip JAN · 1 minit', style: 'background: linear-gradient(135deg, #7b4397, #dc2430);' },
@@ -713,7 +729,7 @@
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
         topik: ['spelling', 'english', 'dino'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #ff6a88, #ffb56b)',
-        topik: ['warna'] },
+        topik: ['sihat', 'warna'] },
       { id: 'pi', nama: 'Pendidikan Islam', emoji: '🕌', style: 'linear-gradient(135deg, #2d6a4f, #95d5b2)',
         topik: ['agama6', 'jawi'] }
     ]
@@ -721,7 +737,7 @@
 
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sainsU7', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'jawi', 'duit', 'english', 'dino', 'warna']
+    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'sihat', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -1353,6 +1369,7 @@
     ejaan3:      { time: 60, generate() { return buildQuiz(BANK.ejaan3); } },
     spelling:    { time: 60, generate() { return buildQuiz(BANK.spelling); } },
     agama6:      { time: 30, generate() { return buildQuiz(BANK.agama6); } },
+    sihat:       { time: 30, generate() { return buildQuiz(BANK.sihat); } },
     ejaan2: {
       time: 40,   // masa lebih — ajar fikir & guna keyboard
       generate() {
@@ -2523,7 +2540,7 @@
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
                             tambah6: 1, tolak6: 1, bahagiAsas: 1,
                             sainsU1: 1, sainsU2: 1, sainsU3: 1, sainsU4: 1, sainsU5: 1,
-                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1 };
+                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1, sihat: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -3034,7 +3051,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 08:20';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 09:10';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;

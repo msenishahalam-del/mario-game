@@ -363,4 +363,82 @@ window.BANK = window.BANK || {};
       {t:'Susunan waktu solat dari pagi ke malam yang betul?',a:'Subuh, Zuhur, Asar, Maghrib, Isyak',c:['Subuh, Zuhur, Asar, Maghrib, Isyak','Zuhur, Subuh, Asar, Isyak, Maghrib','Asar, Subuh, Zuhur, Maghrib, Isyak','Subuh, Asar, Zuhur, Isyak, Maghrib'],h:'Ikut peredaran matahari: pagi, tengah hari, petang, senja, malam.',w:W}
     ]
   };
+  // ===================== MAKANAN SIHAT (6 tahun) =====================
+  // Banding DUA gambar besar — Edris pilih yang lebih sihat tanpa perlu membaca.
+  // Sengaja 2 pilihan sahaja, bukan A/B/C/D: soalan ini memang perbandingan dua
+  // benda, jadi menambah pilihan palsu hanya melemahkannya.
+  // Nada: "lebih sihat" dan "sekali-sekala", bukan "makanan jahat".
+  function banding(eA, namaA, eB, namaB, sihatA, petua) {
+    const pilA = eA + ' ' + namaA, pilB = eB + ' ' + namaB;
+    return {
+      t: '<span class="sihat-vs">' + eA + '<b>ATAU</b>' + eB + '</span>' +
+         '<span class="bagi-soal">Mana lebih <b>sihat</b>?</span>',
+      a: sihatA ? pilA : pilB, c: [pilA, pilB], w: 'raw', h: petua
+    };
+  }
+  // pilih satu daripada empat gambar
+  function pilihSihat(senarai, betul, soalan, petua) {
+    return {
+      t: '<span class="sihat-satu">' + senarai.map(x => x.split(' ')[0]).join(' ') + '</span>' +
+         '<span class="bagi-soal">' + soalan + '</span>',
+      a: betul, c: senarai.slice(), w: 'raw', h: petua
+    };
+  }
+
+  BANK.sihat = {
+    // Banding dua — paling mudah, cuma tengok gambar
+    senang: [
+      () => banding('💧','Air kosong','🧋','Air Milo',true,'Air kosong tiada gula langsung. Air Milo sedap, tapi elok sekali-sekala sahaja.'),
+      () => banding('🍎','Buah epal','🍦','Ais krim',true,'Buah ada vitamin dan serat. Ais krim banyak gula — sedap, tapi sekali-sekala.'),
+      () => banding('🥜','Kacang','🍟','Kentang goreng',true,'Kacang ada protein untuk tumbesaran. Kentang goreng banyak minyak dan garam.'),
+      () => banding('🥛','Susu','🥤','Air gas',true,'Susu ada kalsium untuk tulang kuat. Air gas hanya gula sahaja.'),
+      () => banding('🍚','Nasi','🍬','Gula-gula',true,'Nasi beri tenaga untuk bermain. Gula-gula boleh merosakkan gigi.'),
+      () => banding('🥦','Sayur brokoli','🍩','Donat',true,'Sayur ada vitamin dan serat. Donat banyak gula dan minyak.'),
+      () => banding('🍌','Pisang','🍫','Coklat',true,'Pisang beri tenaga dan serat. Coklat banyak gula.'),
+      () => banding('🐟','Ikan','🌭','Sosej',true,'Ikan ada protein dan baik untuk otak. Sosej banyak garam dan pengawet.'),
+      () => banding('🥚','Telur','🍪','Biskut manis',true,'Telur ada protein untuk membesar. Biskut manis banyak gula.'),
+      () => banding('🍊','Oren','🧃','Air manis kotak',true,'Oren ada vitamin C dan serat. Air kotak selalunya banyak gula tambahan.'),
+      () => banding('🥕','Lobak merah','🍭','Lolipop',true,'Lobak baik untuk mata. Lolipop hanya gula.'),
+      () => banding('🍗','Ayam panggang','🍔','Burger',true,'Ayam panggang kurang minyak. Burger biasanya digoreng dan banyak lemak.'),
+      () => banding('🌽','Jagung rebus','🍿','Popcorn bermentega',true,'Jagung rebus tiada tambahan mentega dan garam.'),
+      () => banding('🍇','Anggur','🧁','Kek cawan',true,'Anggur manis semula jadi dan ada vitamin. Kek banyak gula tambahan.'),
+      () => banding('🍉','Tembikai','🥤','Air sirap',true,'Tembikai banyak air dan vitamin, tanpa gula tambahan.'),
+      () => banding('🥗','Salad','🍕','Pizza',true,'Salad penuh sayur. Pizza banyak keju dan lemak.'),
+      () => banding('🍠','Ubi rebus','🍰','Kek coklat',true,'Ubi rebus ada serat dan tenaga. Kek banyak gula.'),
+      () => banding('🥒','Timun','🍫','Coklat bar',true,'Timun banyak air dan rendah gula.')
+    ],
+    // Pilih satu daripada empat
+    sederhana: [
+      () => pilihSihat(['🍎 Epal','🍟 Kentang goreng','🍬 Gula-gula','🍦 Ais krim'],'🍎 Epal','Mana paling <b>sihat</b>?','Buah boleh dimakan setiap hari; tiga lagi itu untuk sekali-sekala.'),
+      () => pilihSihat(['💧 Air kosong','🥤 Air gas','🧃 Air kotak','🧋 Bubble tea'],'💧 Air kosong','Minuman mana paling <b>sihat</b>?','Air kosong ialah minuman terbaik — tiada gula langsung.'),
+      () => pilihSihat(['🥦 Brokoli','🍩 Donat','🍰 Kek','🍪 Biskut'],'🥦 Brokoli','Mana paling <b>sihat</b>?','Sayur ada vitamin dan serat yang badan perlukan setiap hari.'),
+      () => pilihSihat(['🐟 Ikan','🌭 Sosej','🍔 Burger','🍟 Kentang goreng'],'🐟 Ikan','Mana paling <b>sihat</b>?','Ikan ada protein dan baik untuk otak.'),
+      () => pilihSihat(['🍟 Kentang goreng','🍎 Epal','🥕 Lobak','🥦 Brokoli'],'🍟 Kentang goreng','Mana yang elok dimakan <b>sekali-sekala</b> sahaja?','Makanan bergoreng banyak minyak — sedap, tetapi bukan untuk setiap hari.'),
+      () => pilihSihat(['🍬 Gula-gula','🍌 Pisang','🍊 Oren','🍇 Anggur'],'🍬 Gula-gula','Mana yang elok dimakan <b>sekali-sekala</b> sahaja?','Gula-gula tiada zat dan boleh merosakkan gigi.'),
+      () => pilihSihat(['🥛 Susu','🥜 Kacang','🥚 Telur','🍭 Lolipop'],'🍭 Lolipop','Mana yang <b>paling sedikit</b> zatnya?','Susu, kacang dan telur ada protein atau kalsium. Lolipop hanya gula.'),
+      () => pilihSihat(['🥗 Salad','🍕 Pizza','🍔 Burger','🌭 Hot dog'],'🥗 Salad','Mana paling <b>sihat</b>?','Salad penuh sayur segar.'),
+      () => pilihSihat(['🍉 Tembikai','🍫 Coklat','🧁 Kek cawan','🍮 Puding'],'🍉 Tembikai','Mana paling <b>sihat</b>?','Buah manis secara semula jadi, tanpa gula tambahan.'),
+      () => pilihSihat(['🥤 Air gas','💧 Air kosong','🥛 Susu','🍊 Jus oren'],'🥤 Air gas','Minuman mana paling banyak <b>gula</b>?','Air gas hampir semuanya gula dan tiada zat.'),
+      () => pilihSihat(['🍚 Nasi','🍞 Roti','🥔 Ubi','🍩 Donat'],'🍩 Donat','Mana yang paling banyak <b>gula dan minyak</b>?','Nasi, roti dan ubi beri tenaga. Donat digoreng dan bergula.'),
+      () => pilihSihat(['🥦 Sayur','🍎 Buah','🐟 Ikan','🍿 Popcorn bermentega'],'🍿 Popcorn bermentega','Mana yang <b>bukan</b> makanan harian?','Tiga yang lain patut ada dalam pinggan setiap hari.')
+    ],
+    // Kenapa — sebab di sebalik pilihan
+    susah: [
+      {t:'Kenapa <b>air kosong</b> lebih baik daripada air manis?',a:'Air kosong tiada gula',c:['Air kosong tiada gula','Air kosong lebih sejuk','Air kosong lebih murah','Air kosong lebih cantik'],h:'Gula berlebihan boleh merosakkan gigi dan menaikkan berat badan.',w:W},
+      {t:'Terlalu banyak <b>gula</b> boleh menyebabkan?',a:'Gigi rosak',c:['Gigi rosak','Mata terang','Rambut panjang','Kaki kuat'],h:'Kuman dalam mulut suka gula, dan ia merosakkan gigi.',w:W},
+      {t:'<b>Buah dan sayur</b> banyak mengandungi?',a:'Vitamin',c:['Vitamin','Minyak','Gula tambahan','Garam'],h:'Vitamin menjaga badan supaya tidak mudah sakit.'},
+      {t:'<b>Ikan, telur dan kacang</b> banyak mengandungi?',a:'Protein',c:['Protein','Gula','Minyak','Garam'],h:'Protein ialah bahan untuk membina badan supaya membesar.'},
+      {t:'<b>Susu</b> baik untuk?',a:'Tulang dan gigi',c:['Tulang dan gigi','Rambut sahaja','Kuku sahaja','Mata sahaja'],h:'Kalsium dalam susu menguatkan tulang dan gigi.'},
+      {t:'<b>Nasi dan roti</b> memberi kita?',a:'Tenaga',c:['Tenaga','Vitamin C','Kalsium','Air'],h:'Karbohidrat memberi tenaga untuk belajar dan bermain.'},
+      {t:'Kenapa makanan <b>bergoreng</b> elok dimakan sekali-sekala?',a:'Ia banyak minyak',c:['Ia banyak minyak','Ia terlalu sejuk','Ia terlalu keras','Ia tiada rasa'],h:'Terlalu banyak minyak tidak baik untuk jantung.',w:W},
+      {t:'Kenapa <b>sayur</b> membantu perut kita?',a:'Ia ada serat',c:['Ia ada serat','Ia ada gula','Ia ada minyak','Ia ada garam'],h:'Serat membantu penghadaman supaya senang membuang air besar.',w:W},
+      {t:'Edris dahaga selepas bermain. Apa <b>terbaik</b> diminum?',a:'💧 Air kosong',c:['💧 Air kosong','🥤 Air gas','🧋 Bubble tea','🧃 Air kotak'],h:'Badan kehilangan air semasa berpeluh — air kosong menggantikannya terus.',w:W},
+      {t:'Manakah <b>pinggan seimbang</b> untuk makan tengah hari?',a:'Nasi, ikan dan sayur',c:['Nasi, ikan dan sayur','Kek dan air gas','Gula-gula dan coklat','Donat dan ais krim'],h:'Pinggan seimbang ada tenaga, protein dan sayur.',w:W},
+      {t:'Kenapa kita perlu makan <b>pelbagai</b> jenis makanan?',a:'Setiap makanan beri zat berbeza',c:['Setiap makanan beri zat berbeza','Supaya tidak bosan','Supaya kenyang lama','Supaya murah'],h:'Tiada satu makanan pun ada semua zat yang badan perlukan.',w:W},
+      {t:'Bolehkah kita makan ais krim?',a:'Boleh, tetapi sekali-sekala',c:['Boleh, tetapi sekali-sekala','Tidak boleh langsung','Boleh setiap hari','Boleh sepanjang hari'],h:'Tiada makanan yang haram dimakan — cuma yang manis dan berminyak elok dihadkan.',w:W},
+      {t:'Sebelum makan, tangan perlu?',a:'Dibasuh',c:['Dibasuh','Dilap pada baju','Dibiar','Digosok pada meja'],h:'Kuman pada tangan boleh masuk ke perut melalui makanan.'},
+      {t:'Berapa kali sehari kita patut makan <b>buah atau sayur</b>?',a:'Setiap hari',c:['Setiap hari','Sekali seminggu','Sekali sebulan','Tidak perlu'],h:'Buah dan sayur perlu setiap hari kerana badan tidak menyimpan vitamin lama.'},
+      {t:'Sarapan pagi penting kerana?',a:'Beri tenaga untuk belajar',c:['Beri tenaga untuk belajar','Supaya cepat besar','Supaya tidak mengantuk sahaja','Supaya gigi putih'],h:'Selepas tidur badan perlukan tenaga semula untuk berfikir dan bermain.',w:W}
+    ]
+  };
 })();
