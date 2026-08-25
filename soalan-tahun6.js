@@ -189,25 +189,28 @@ window.BANK = window.BANK || {};
       () => kongsi('🍓', 'strawberi', 4, 2),
       () => kongsi('🧁', 'kek', 3, 2)
     ],
-    // Cerita sebenar — pizza, gula-gula dengan kawan
+    // Cerita sebenar. Bilangan orang DINYATAKAN TERUS dalam ayat, supaya budak
+    // tidak perlu menambah dirinya sendiri ke dalam kiraan.
     sederhana: [
       () => kongsi('🍕', 'slice pizza', 2, 2, 'Pizza ada 4 slice, dimakan oleh 2 orang.'),
       () => kongsi('🍕', 'slice pizza', 2, 3, 'Pizza ada 6 slice, dimakan oleh 3 orang.'),
       () => kongsi('🍕', 'slice pizza', 3, 2, 'Pizza ada 6 slice, dimakan oleh 2 orang.'),
-      () => kongsi('🍬', 'gula-gula', 2, 3, 'Edris ada 6 gula-gula. Dia kongsi dengan 2 orang kawan.'),
-      () => kongsi('🍬', 'gula-gula', 3, 3, 'Edris ada 9 gula-gula. Dia kongsi dengan 2 orang kawan.'),
-      () => kongsi('🍪', 'biskut', 2, 4, 'Ada 8 biskut untuk 4 orang adik-beradik.'),
-      () => kongsi('🍭', 'lolipop', 4, 2, 'Ibu beli 8 lolipop untuk 2 orang anak.'),
-      () => kongsi('🥪', 'sandwic', 3, 3, 'Ada 9 sandwic untuk 3 orang kawan.'),
-      () => kongsi('🍊', 'oren', 5, 2, 'Ada 10 biji oren untuk 2 orang.'),
-      () => kongsi('🍩', 'donat', 2, 5, 'Ada 10 donat untuk 5 orang kawan.')
+      () => kongsi('🍕', 'slice pizza', 2, 4, 'Pizza ada 8 slice, dimakan oleh 4 orang.'),
+      () => kongsi('🍕', 'slice pizza', 4, 2, 'Pizza ada 8 slice, dimakan oleh 2 orang.'),
+      () => kongsi('🍬', 'gula-gula', 2, 3, 'Ada 6 gula-gula, dikongsi oleh 3 orang.'),
+      () => kongsi('🍬', 'gula-gula', 3, 3, 'Ada 9 gula-gula, dikongsi oleh 3 orang.'),
+      () => kongsi('🍪', 'biskut', 2, 4, 'Ada 8 biskut, dikongsi oleh 4 orang.'),
+      () => kongsi('🍭', 'lolipop', 4, 2, 'Ada 8 lolipop, dikongsi oleh 2 orang.'),
+      () => kongsi('🥪', 'sandwic', 3, 3, 'Ada 9 sandwic, dikongsi oleh 3 orang.'),
+      () => kongsi('🍊', 'oren', 5, 2, 'Ada 10 biji oren, dikongsi oleh 2 orang.'),
+      () => kongsi('🍩', 'donat', 2, 5, 'Ada 10 donat, dikongsi oleh 5 orang.')
     ],
     // Masih bergambar, cuma nombor lebih besar atau songsang yang KONKRIT
     susah: [
       () => kongsi('🍬', 'gula-gula', 4, 3),
       () => kongsi('🍪', 'biskut', 3, 4),
       () => kongsi('⭐', 'bintang', 5, 2),
-      () => kongsi('🍕', 'slice pizza', 4, 3, 'Dua biji pizza dipotong jadi 12 slice, untuk 3 orang.'),
+      () => kongsi('🍕', 'slice pizza', 4, 3, 'Pizza ada 12 slice, dimakan oleh 3 orang.'),
       () => kongsiOrang('🍬', 'gula-gula', 2, 3),
       () => kongsiOrang('🍪', 'biskut', 3, 2),
       () => kongsiOrang('🍎', 'epal', 2, 4),
