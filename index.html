@@ -596,8 +596,8 @@
 
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
-<script src="soalan-tahun6.js?v=3"></script>
-<script src="soalan-sains3.js?v=1"></script>
+<script src="soalan-tahun6.js?v=4"></script>
+<script src="soalan-sains3.js?v=2"></script>
 
 <script>
   // ===== STATE =====
@@ -640,6 +640,7 @@
     darabAsas:   { label: '✖️ Darab Asas (Sifir 2 &amp; 3)', sub: '× 2 dan × 3 · isi tempat kosong · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #f6d365, #fda085);' },
     bahagiAsas:  { label: '➗ Bahagi Asas', sub: 'Kongsi sama banyak · ÷ 2 dan ÷ 3 · 1 minit satu soalan', style: 'background: linear-gradient(135deg, #06beb6, #48b1bf);' },
     ejaan:       { label: '🔤 Ejaan BM', sub: 'Tengok gambar · pilih suku kata betul · A/B/C/D · 20 saat', style: 'background: linear-gradient(135deg, #fbc2eb, #a18cd1);' },
+    spelling:    { label: '🔡 English Spelling', sub: 'Gambar · RA_ _ → taip IN · WA_ _ _ → taip TER · 1 minit', style: 'background: linear-gradient(135deg, #ff9a44, #fc6076);' },
     ejaan3:      { label: '📝 Ejaan BM 3.0', sub: 'Perkataan panjang · HU_ _ _ → taip JAN · 1 minit', style: 'background: linear-gradient(135deg, #7b4397, #dc2430);' },
     ejaan2:      { label: '⌨️ Ejaan BM 2.0', sub: 'Tengok gambar · clue diberi (BA_ _) · TAIP suku kata hilang · 40 saat', style: 'background: linear-gradient(135deg, #f6a5c0, #7b4397);' },
     jawi:        { label: 'ج Jawi', sub: 'Tengok gambar · pilih suku kata Jawi · A/B/C/D · 22 saat', style: 'background: linear-gradient(135deg, #2d6a4f, #95d5b2);' },
@@ -650,6 +651,7 @@
     panjang:     { label: '📏 Ukuran Panjang', sub: 'mm · cm · m · km · tukar unit · banding · 40 saat', style: 'background: linear-gradient(135deg, #3a86ff, #8ecae6);' },
     jisim:       { label: '⚖️ Timbangan Jisim', sub: 'g &amp; kg · tukar unit · anggaran · 40 saat', style: 'background: linear-gradient(135deg, #8338ec, #c19ee0);' },
     isipadu:     { label: '🥤 Isipadu Cecair', sub: 'ml &amp; l · tukar unit · anggaran · 40 saat', style: 'background: linear-gradient(135deg, #ff6b6b, #ffa8a8);' },
+    sainsU7:     { label: '🛟 Unit 7: Ketumpatan', sub: 'Timbul atau tenggelam · air &amp; minyak · bola pingpong · 30 saat', style: 'background: linear-gradient(135deg, #0093e9, #80d0c7);' },
     sainsU1:     { label: '🔍 Unit 1: Kemahiran Saintifik', sub: 'Deria · alat &amp; unit · memerhati, mengelas, meramal · 30 saat', style: 'background: linear-gradient(135deg, #5b6ef5, #9aa7ff);' },
     sainsU2:     { label: '🥽 Unit 2: Peraturan Bilik Sains', sub: 'Keselamatan makmal · simbol bahaya · tindakan kecemasan · 30 saat', style: 'background: linear-gradient(135deg, #e63946, #f79c9c);' },
     sainsU3:     { label: '🧍 Unit 3: Manusia', sub: 'Organ · keperluan asas · tumbesaran · kesihatan · 30 saat', style: 'background: linear-gradient(135deg, #f4a261, #ffd6a5);' },
@@ -667,7 +669,7 @@
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #4facfe, #00c4cc)',
         topik: ['nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu', 'darab', 'bahagi', 'bahagi2', 'darabBahagi', 'cariX', 'bundar', 'pecahan', 'perpuluhan', 'masa', 'masa2'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #43e97b, #38f9d7)',
-        topik: ['sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sains1', 'sains2', 'sains3'] },
+        topik: ['sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sainsU7', 'sains1', 'sains2', 'sains3'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #b94e2f, #e8a33d)',
         topik: ['pantun', 'peribahasa', 'penjodoh'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
@@ -681,7 +683,7 @@
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #fbc2eb, #a18cd1)',
         topik: ['ejaan', 'ejaan2', 'ejaan3'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
-        topik: ['english', 'dino'] },
+        topik: ['spelling', 'english', 'dino'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #ff6a88, #ffb56b)',
         topik: ['warna'] },
       { id: 'pi', nama: 'Pendidikan Islam', emoji: '🕌', style: 'linear-gradient(135deg, #2d6a4f, #95d5b2)',
@@ -690,8 +692,8 @@
   };
 
   const SET_GROUPS = {
-    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'jawi', 'duit', 'english', 'dino', 'warna']
+    darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sainsU7', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
+    tahun6:  ['tambah6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -1321,6 +1323,7 @@
       }
     },
     ejaan3:      { time: 60, generate() { return buildQuiz(BANK.ejaan3); } },
+    spelling:    { time: 60, generate() { return buildQuiz(BANK.spelling); } },
     ejaan2: {
       time: 40,   // masa lebih — ajar fikir & guna keyboard
       generate() {
@@ -1601,6 +1604,7 @@
     // 10 soalan: 4 senang → 3 sederhana → 3 susah (songsang). Semua A/B/C/D.
     // ===== MATEMATIK TAHUN 3 — bank dalam soalan-*.js =====
     sainsU1:     { time: 30, generate() { return buildQuiz(BANK.sainsU1); } },
+    sainsU7:     { time: 30, generate() { return buildQuiz(BANK.sainsU7); } },
     sainsU2:     { time: 30, generate() { return buildQuiz(BANK.sainsU2); } },
     sainsU3:     { time: 30, generate() { return buildQuiz(BANK.sainsU3); } },
     sainsU4:     { time: 30, generate() { return buildQuiz(BANK.sainsU4); } },
@@ -2490,7 +2494,7 @@
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
                             tambah6: 1, tolak6: 1, bahagiAsas: 1,
                             sainsU1: 1, sainsU2: 1, sainsU3: 1, sainsU4: 1, sainsU5: 1,
-                            ejaan3: 1 };
+                            ejaan3: 1, spelling: 1, sainsU7: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -3001,7 +3005,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 06:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-08-20 07:15';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;

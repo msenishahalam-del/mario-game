@@ -261,4 +261,38 @@ window.BANK = window.BANK || {};
       ejaan3('🐧','PE','NGUIN'),  ejaan3('📱','TE','LEFON'),  ejaan3('💻','KOM','PUTER')
     ]
   };
+  // ===================== ENGLISH SPELLING (6 tahun) =====================
+  // Sama seperti Ejaan BM: bahagian awal diberi, Edris taip BAKI perkataan.
+  //   RAIN  -> tunjuk "RA" + 2 kotak -> taip IN
+  //   WATER -> tunjuk "WA" + 3 kotak -> taip TER
+  BANK.spelling = {
+    // 2 huruf perlu ditaip
+    senang: [
+      ejaan3('🌧️','RA','IN'),   ejaan3('🐟','FI','SH'),   ejaan3('🐦','BI','RD'),
+      ejaan3('🌳','TR','EE'),   ejaan3('📖','BO','OK'),   ejaan3('🍎','APP','LE'),
+      ejaan3('🚗','C','AR'),    ejaan3('⭐','ST','AR'),   ejaan3('🌙','MO','ON'),
+      ejaan3('☀️','S','UN'),    ejaan3('🐕','D','OG'),    ejaan3('🐈','C','AT'),
+      ejaan3('🏠','HO','ME'),   ejaan3('🥛','MI','LK'),   ejaan3('🎩','H','AT'),
+      ejaan3('🐝','B','EE'),    ejaan3('🥚','E','GG'),    ejaan3('👁️','E','YE'),
+      ejaan3('🦶','FO','OT'),   ejaan3('✋','HA','ND')
+    ],
+    // 3 huruf perlu ditaip
+    sederhana: [
+      ejaan3('💧','WA','TER'),  ejaan3('🌸','FLO','WER'), ejaan3('🪟','WIN','DOW'),
+      ejaan3('🚪','D','OOR'),   ejaan3('🪑','CH','AIR'),  ejaan3('🍞','BR','EAD'),
+      ejaan3('🐔','CHIC','KEN'),ejaan3('🌈','RAIN','BOW'),ejaan3('👟','S','HOE'),
+      ejaan3('🧦','S','OCK'),   ejaan3('🐁','MO','USE'),  ejaan3('🏫','SCH','OOL'),
+      ejaan3('🍌','BAN','ANA'), ejaan3('🦁','L','ION'),   ejaan3('🐒','MON','KEY'),
+      ejaan3('🖐️','FIN','GER'), ejaan3('🌊','OC','EAN'),  ejaan3('🐅','TI','GER'),
+      ejaan3('🦆','D','UCK'),   ejaan3('🦈','SH','ARK'),  ejaan3('🪁','K','ITE'),
+      ejaan3('🐳','WH','ALE'),  ejaan3('🥕','CAR','ROT'), ejaan3('🎈','BALL','OON')
+    ],
+    // 4 huruf perlu ditaip
+    susah: [
+      ejaan3('🐧','PEN','GUIN'),   ejaan3('🍊','OR','ANGE'),   ejaan3('💻','COMP','UTER'),
+      ejaan3('🏥','HOSP','ITAL'),  ejaan3('🥪','SAND','WICH'), ejaan3('🦒','GIR','AFFE'),
+      ejaan3('🌟','STAR','FISH'),  ejaan3('🍕','P','IZZA'),    ejaan3('🐎','H','ORSE'),
+      ejaan3('🎸','GU','ITAR'),    ejaan3('🚀','RO','CKET'),   ejaan3('🌵','CA','CTUS')
+    ]
+  };
 })();

@@ -305,4 +305,65 @@ window.BANK = window.BANK || {};
       {t:'Kenapa tumbuhan tidak perlu bergerak mencari makanan?',a:'Ia membuat makanan sendiri di tempatnya',c:['Ia membuat makanan sendiri di tempatnya','Ia tidak lapar','Ia terlalu berat','Akarnya terikat'],h:'Cahaya, air dan udara sampai kepadanya, jadi tidak perlu berpindah.',w:W}
     ]
   };
+  // ============ UNIT 7: KETUMPATAN ============
+  // Timbul atau tenggelam. Konsep teras: bahan yang KURANG TUMPAT daripada air
+  // akan timbul; yang LEBIH TUMPAT akan tenggelam.
+  BANK.sainsU7 = {
+    senang: [
+      {t:'Bola pingpong dimasukkan ke dalam air. Apa berlaku?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Cair'],h:'Bola pingpong berongga dan ringan untuk saiznya, jadi ia timbul.',w:W},
+      {t:'Batu dimasukkan ke dalam air. Apa berlaku?',a:'Tenggelam',c:['Tenggelam','Timbul','Larut','Terbang'],h:'Batu lebih tumpat daripada air, jadi ia tenggelam.',w:W},
+      {t:'Minyak masak dituang ke dalam air. Minyak berada di?',a:'Atas air',c:['Atas air','Bawah air','Bercampur rata','Hilang'],h:'Minyak kurang tumpat daripada air, jadi ia terapung di atas.',w:W},
+      {t:'Ketulan kayu dimasukkan ke dalam air. Apa berlaku?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Hancur'],h:'Kayu kurang tumpat daripada air.',w:W},
+      {t:'Syiling dimasukkan ke dalam air. Apa berlaku?',a:'Tenggelam',c:['Tenggelam','Timbul','Larut','Terapung'],h:'Logam lebih tumpat daripada air.',w:W},
+      {t:'Daun kering di atas kolam akan?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Cair'],h:'Daun kering ringan dan berongga udara, jadi ia terapung.',w:W},
+      {t:'Paku besi dimasukkan ke dalam air. Apa berlaku?',a:'Tenggelam',c:['Tenggelam','Timbul','Larut','Melekat'],h:'Besi jauh lebih tumpat daripada air.',w:W},
+      {t:'Bola getah yang berongga udara akan?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Pecah'],h:'Udara di dalamnya menjadikannya ringan untuk saiznya.',w:W},
+      {t:'Objek yang TIMBUL bermakna ia?',a:'Kurang tumpat daripada air',c:['Kurang tumpat daripada air','Lebih tumpat daripada air','Sama tumpat','Tiada kaitan'],h:'Timbul berlaku apabila bahan itu kurang tumpat daripada air.'},
+      {t:'Objek yang TENGGELAM bermakna ia?',a:'Lebih tumpat daripada air',c:['Lebih tumpat daripada air','Kurang tumpat daripada air','Sama tumpat','Tiada kaitan'],h:'Tenggelam berlaku apabila bahan itu lebih tumpat daripada air.'},
+      {t:'Span kering dimasukkan ke dalam air pada mulanya akan?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Cair'],h:'Span penuh dengan rongga udara, jadi ia ringan untuk saiznya.',w:W},
+      {t:'Ketulan ais dalam segelas air akan?',a:'Timbul',c:['Timbul','Tenggelam','Larut serta-merta','Melekat di dasar'],h:'Ais kurang tumpat daripada air cair, jadi ia terapung.',w:W},
+      {t:'Guli kaca dimasukkan ke dalam air. Apa berlaku?',a:'Tenggelam',c:['Tenggelam','Timbul','Larut','Terapung'],h:'Kaca pejal lebih tumpat daripada air.',w:W},
+      {t:'Botol plastik kosong bertutup di dalam air akan?',a:'Timbul',c:['Timbul','Tenggelam','Larut','Pecah'],h:'Udara di dalam botol menjadikannya ringan untuk saiznya.',w:W},
+      {t:'Manakah bahan yang TIMBUL di atas air?',a:'Gabus',c:['Gabus','Besi','Batu','Syiling'],h:'Gabus sangat ringan untuk saiznya.'},
+      {t:'Manakah bahan yang TENGGELAM dalam air?',a:'Batu',c:['Batu','Kayu','Gabus','Daun kering'],h:'Batu lebih tumpat daripada air.'},
+      {t:'Air dan minyak dibiarkan di dalam gelas. Berapa lapisan terbentuk?',a:'Dua',c:['Dua','Satu','Tiga','Tiada'],h:'Minyak di atas, air di bawah — dua lapisan berasingan.',w:W}
+    ],
+    sederhana: [
+      {t:'Kenapa minyak berada di ATAS air dan bukan di bawah?',a:'Minyak kurang tumpat daripada air',c:['Minyak kurang tumpat daripada air','Minyak lebih berat','Minyak lebih panas','Minyak lebih licin'],h:'Bahan yang kurang tumpat sentiasa naik ke atas bahan yang lebih tumpat.',w:W},
+      {t:'Kenapa bola pingpong timbul walaupun batu kecil tenggelam?',a:'Bola berongga udara, batu pejal',c:['Bola berongga udara, batu pejal','Bola lebih besar','Batu lebih sejuk','Bola berwarna putih'],h:'Udara di dalam bola menjadikan ketumpatannya rendah walaupun saiznya besar.',w:W},
+      {t:'Air dan minyak tidak bercampur kerana?',a:'Ketumpatannya berbeza',c:['Ketumpatannya berbeza','Warnanya berbeza','Suhunya berbeza','Baunya berbeza'],h:'Cecair berlainan ketumpatan akan berlapis, bukan bercampur.',w:W},
+      {t:'Dua bola sama SAIZ, satu berongga satu pejal. Yang mana timbul?',a:'Yang berongga',c:['Yang berongga','Yang pejal','Kedua-duanya','Tiada'],h:'Saiz sama tetapi yang berongga lebih ringan, jadi kurang tumpat.',w:W},
+      {t:'Kapal besar diperbuat daripada besi tetapi tidak tenggelam. Kenapa?',a:'Bahagian dalamnya berongga udara',c:['Bahagian dalamnya berongga udara','Besi ringan','Air laut kuat','Kapal bergerak laju'],h:'Ruang udara yang besar menjadikan keseluruhan kapal kurang tumpat daripada air.',w:W},
+      {t:'Span yang sudah menyerap penuh air akan?',a:'Tenggelam',c:['Tenggelam','Kekal timbul','Larut','Mengapung lebih tinggi'],h:'Air menggantikan udara dalam rongga, jadi span menjadi lebih tumpat.',w:W},
+      {t:'Dalam eksperimen air dan minyak, apa yang PALING mudah diperhati?',a:'Dua lapisan berasingan',c:['Dua lapisan berasingan','Warna bertukar','Bunyi keluar','Gelas panas'],h:'Perbezaan ketumpatan kelihatan sebagai lapisan yang jelas.',w:W},
+      {t:'Yang mana lebih tumpat: air atau minyak?',a:'Air',c:['Air','Minyak','Sama','Tak boleh tahu'],h:'Air lebih tumpat, sebab itu ia berada di bawah minyak.'},
+      {t:'Botol plastik yang DIISI PENUH air, dimasukkan ke dalam air akan?',a:'Tenggelam atau melayang',c:['Tenggelam atau melayang','Timbul tinggi','Terbang','Larut'],h:'Tanpa udara di dalamnya, ketumpatannya hampir sama dengan air.',w:W},
+      {t:'Bola pingpong ditekan ke dasar air, kemudian dilepaskan. Apa berlaku?',a:'Ia naik semula ke atas',c:['Ia naik semula ke atas','Ia kekal di dasar','Ia larut','Ia pecah'],h:'Air menolak naik objek yang kurang tumpat daripadanya.',w:W},
+      {t:'Manakah susunan BETUL dari atas ke bawah dalam gelas?',a:'Minyak, air',c:['Minyak, air','Air, minyak','Bercampur','Minyak sahaja'],h:'Yang kurang tumpat di atas, jadi minyak di atas air.'},
+      {t:'Kenapa ketulan ais timbul dalam air?',a:'Ais kurang tumpat daripada air cair',c:['Ais kurang tumpat daripada air cair','Ais lebih sejuk','Ais lebih keras','Ais lebih ringan sedikit sahaja'],h:'Apabila air membeku ia mengembang, jadi ketumpatannya berkurang.',w:W},
+      {t:'Untuk menguji timbul atau tenggelam, kita perlukan?',a:'Bekas berisi air dan objek',c:['Bekas berisi air dan objek','Api dan mancis','Neraca sahaja','Pembaris sahaja'],h:'Ujian ketumpatan ringkas hanya perlukan air dan objek yang diuji.',w:W},
+      {t:'Objek yang MELAYANG di tengah air bermakna ketumpatannya?',a:'Hampir sama dengan air',c:['Hampir sama dengan air','Jauh lebih tinggi','Jauh lebih rendah','Tiada ketumpatan'],h:'Melayang berlaku apabila ketumpatan objek hampir sama dengan air.'},
+      {t:'Dua ketulan kayu, satu besar satu kecil. Yang mana timbul?',a:'Kedua-duanya timbul',c:['Kedua-duanya timbul','Hanya yang kecil','Hanya yang besar','Kedua-duanya tenggelam'],h:'Ketumpatan bergantung pada jenis bahan, bukan saiz.',w:W},
+      {t:'Manakah BUKAN bahan yang timbul dalam air?',a:'Paku besi',c:['Paku besi','Gabus','Kayu','Bola pingpong'],h:'Besi jauh lebih tumpat daripada air.'},
+      {t:'Selepas eksperimen air dan minyak, kesimpulan yang betul?',a:'Minyak kurang tumpat daripada air',c:['Minyak kurang tumpat daripada air','Minyak lebih tumpat','Kedua-duanya sama','Minyak larut dalam air'],h:'Kedudukan minyak di atas ialah buktinya.',w:W}
+    ],
+    susah: [
+      {t:'Dua objek SAIZ SAMA, satu 50 g satu 200 g. Yang mana lebih mungkin tenggelam?',a:'Yang 200 g',c:['Yang 200 g','Yang 50 g','Kedua-duanya sama','Tak boleh tahu'],h:'Saiz sama tetapi lebih berat bermakna lebih tumpat, jadi lebih mungkin tenggelam.',w:W},
+      {t:'Kenapa besi tenggelam tetapi kapal besi timbul?',a:'Bentuk kapal memerangkap banyak udara',c:['Bentuk kapal memerangkap banyak udara','Besi kapal berbeza','Air laut lebih kuat','Kapal ada enjin'],h:'Ketumpatan dikira untuk KESELURUHAN objek, termasuk udara di dalamnya.',w:W},
+      {t:'Ramalkan: bola pingpong dalam minyak. Apa berlaku?',a:'Ia timbul',c:['Ia timbul','Ia tenggelam','Ia larut','Ia melayang di dasar'],h:'Bola pingpong kurang tumpat daripada minyak, sama seperti dalam air.',w:W},
+      {t:'Air, minyak dan batu dalam satu gelas. Susunan dari atas ke bawah?',a:'Minyak, air, batu',c:['Minyak, air, batu','Batu, air, minyak','Air, minyak, batu','Minyak, batu, air'],h:'Yang paling kurang tumpat di atas sekali, yang paling tumpat di dasar.',w:W},
+      {t:'Kenapa span timbul mula-mula tetapi tenggelam kemudian?',a:'Air masuk menggantikan udara dalam rongga',c:['Air masuk menggantikan udara dalam rongga','Span jadi lebih besar','Air jadi lebih ringan','Span larut'],h:'Ketumpatan span berubah apabila rongga udaranya terisi air.',w:W},
+      {t:'Bagaimana membuat ujian timbul-tenggelam yang ADIL?',a:'Guna bekas air yang sama untuk semua objek',c:['Guna bekas air yang sama untuk semua objek','Guna air berbeza','Guna objek berbeza saiz sahaja','Tukar suhu setiap kali'],h:'Hanya objek boleh berbeza; air mesti sama supaya perbandingan sah.',w:W},
+      {t:'Objek A timbul dalam air. Apa yang PASTI benar tentang A?',a:'Ketumpatannya kurang daripada air',c:['Ketumpatannya kurang daripada air','Ia sangat ringan','Ia sangat kecil','Ia diperbuat daripada kayu'],h:'Timbul bergantung pada ketumpatan, bukan berat atau saiz semata-mata.',w:W},
+      {t:'Kenapa perbandingan "berat" sahaja tidak cukup untuk meramal timbul?',a:'Saiz juga penting, bukan berat sahaja',c:['Saiz juga penting, bukan berat sahaja','Berat tidak boleh diukur','Berat sentiasa berubah','Berat tiada kaitan langsung'],h:'Kapal sangat berat tetapi timbul; ketumpatan ialah berat DIBAHAGI saiz.',w:W},
+      {t:'Ketulan ais dalam gelas minyak. Ramalan yang paling munasabah?',a:'Ais tenggelam dalam minyak',c:['Ais tenggelam dalam minyak','Ais timbul dalam minyak','Ais larut serta-merta','Ais terbang'],h:'Ais lebih tumpat daripada minyak walaupun kurang tumpat daripada air.',w:W},
+      {t:'Dalam gelas berisi air dan minyak, guli kaca dilepaskan. Ia berhenti di?',a:'Dasar gelas',c:['Dasar gelas','Antara minyak dan air','Atas minyak','Terapung di tengah minyak'],h:'Guli lebih tumpat daripada kedua-dua cecair, jadi ia terus ke dasar.',w:W},
+      {t:'Kenapa eksperimen ini perlu diulang beberapa kali?',a:'Untuk pastikan keputusan sama setiap kali',c:['Untuk pastikan keputusan sama setiap kali','Supaya nampak rajin','Supaya air habis','Tiada sebab'],h:'Keputusan yang berulang sama menjadikan kesimpulan boleh dipercayai.',w:W},
+      {t:'Apa berlaku jika botol plastik separuh berisi air dimasukkan ke dalam air?',a:'Ia terapung separuh tenggelam',c:['Ia terapung separuh tenggelam','Ia tenggelam terus','Ia timbul sepenuhnya','Ia pecah'],h:'Ketumpatan keseluruhannya berada antara udara dan air.',w:W},
+      {t:'Nelayan guna pelampung gabus pada jaring. Kenapa?',a:'Gabus timbul dan menanda kedudukan jaring',c:['Gabus timbul dan menanda kedudukan jaring','Gabus menarik ikan','Gabus berat','Gabus larut'],h:'Sifat timbul gabus digunakan untuk kegunaan harian.',w:W},
+      {t:'Manakah kesimpulan yang SALAH?',a:'Semua objek besar akan tenggelam',c:['Semua objek besar akan tenggelam','Kayu timbul dalam air','Besi tenggelam dalam air','Minyak timbul di atas air'],h:'Kapal sangat besar tetapi timbul — saiz bukan penentu.',w:W},
+      {t:'Air garam pekat menjadikan telur timbul. Kenapa?',a:'Air garam lebih tumpat daripada air biasa',c:['Air garam lebih tumpat daripada air biasa','Telur jadi ringan','Garam menolak telur','Air garam lebih panas'],h:'Menambah garam meningkatkan ketumpatan air sehingga melebihi telur.',w:W},
+      {t:'Apa yang eksperimen air dan minyak AJAR kita?',a:'Cecair berbeza ketumpatan akan berlapis',c:['Cecair berbeza ketumpatan akan berlapis','Semua cecair bercampur','Minyak ialah air','Ketumpatan tiada kaitan'],h:'Lapisan yang terbentuk ialah bukti langsung perbezaan ketumpatan.',w:W}
+    ]
+  };
 })();
