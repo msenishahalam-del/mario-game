@@ -143,75 +143,77 @@ window.BANK = window.BANK || {};
     ]
   };
   // ===================== BAHAGI ASAS (6 tahun) =====================
-  // Konsep teras: bahagi ialah KONGSI SAMA BANYAK.
-  // Liputan ÷2 dan ÷3 supaya berpasangan dengan darabAsas (×2 dan ×3).
+  // Semuanya CERITA BERGAMBAR. Budak 6 tahun boleh bilang barang, bilang orang,
+  // kemudian kongsi sendiri. Tiada simbol abstrak seperti "18 ÷ ▢ = 6".
+  const ORANG = ['🧒', '👦', '👧'];
+
+  // barang dikongsi kepada beberapa orang -> berapa SETIAP ORANG dapat
+  function kongsi(emoji, namaBarang, setiap, orang, ceritaAwal) {
+    const jum = setiap * orang;
+    const barisBarang = new Array(jum).fill(emoji).join('');
+    const barisOrang = Array.from({ length: orang }, (_, i) => ORANG[i % ORANG.length]).join('');
+    return {
+      t: (ceritaAwal ? '<span class="bagi-label">' + ceritaAwal + '</span>' : '') +
+         '<span class="bagi-row">' + barisBarang + '</span>' +
+         '<span class="bagi-label">dikongsi sama banyak kepada</span>' +
+         '<span class="bagi-row">' + barisOrang + '</span>' +
+         '<span class="bagi-soal">Berapa ' + namaBarang + ' setiap orang dapat?</span>',
+      a: setiap, w: 'raw',
+      h: 'Bilang barang: ' + jum + '. Bilang orang: ' + orang + '. Kongsi sama banyak — setiap orang dapat ' + setiap + '.'
+    };
+  }
+
+  // berapa ORANG boleh dapat, kalau setiap orang dapat sekian banyak
+  function kongsiOrang(emoji, namaBarang, setiap, orang) {
+    const jum = setiap * orang;
+    return {
+      t: '<span class="bagi-row">' + new Array(jum).fill(emoji).join('') + '</span>' +
+         '<span class="bagi-soal">Setiap orang dapat ' + setiap + ' ' + namaBarang +
+         '.<br>Berapa ramai orang boleh dapat?</span>',
+      a: orang, w: 'raw',
+      h: 'Ada ' + jum + ' ' + namaBarang + '. Asingkan ' + setiap + ' untuk setiap orang — dapat ' + orang + ' kumpulan.'
+    };
+  }
+
   BANK.bahagiAsas = {
+    // Nombor kecil, jawapan 2 atau 3, mudah dibilang
     senang: [
-      // visual: kongsi kepada kumpulan
-      () => { const e = BENDA[randInt(0, BENDA.length - 1)];
-        // mula dari 2 setiap kumpulan — "2 ikan kepada 2 kumpulan" terlalu remeh
-        const setiap = randInt(2, 4), kump = randInt(2, 3);
-        const jum = setiap * kump;
-        return { t: ikon(jum, e) + ' dikongsi kepada ' + kump + ' kumpulan sama banyak.<br>Berapa setiap kumpulan?',
-          a: setiap, w: 'word',
-          h: 'Bahagikan ' + jum + ' kepada ' + kump + ' kumpulan sama banyak — setiap kumpulan dapat ' + setiap + '.' }; },
-      // bahagi 1 — kekal
-      () => { const a = randInt(2, 9);
-        return { t: a + ' ÷ 1 = ▢', a: a,
-          h: 'Bahagi dengan 1 bermakna satu kumpulan sahaja, jadi semuanya kekal ' + a + '.' }; },
-      // bahagi diri sendiri = 1
-      () => { const a = randInt(2, 9);
-        return { t: a + ' ÷ ' + a + ' = ▢', a: 1,
-          h: 'Kongsi ' + a + ' kepada ' + a + ' kumpulan — setiap kumpulan dapat 1 sahaja.' }; },
-      // ÷2 kecil
-      () => { const h2 = randInt(1, 5);
-        return { t: (h2 * 2) + ' ÷ 2 = ▢', a: h2,
-          h: 'Bahagi 2 bermakna belah kepada DUA sama banyak. Separuh daripada ' + (h2 * 2) + ' ialah ' + h2 + '.' }; },
-      { t: '0 ÷ 5 = ▢', a: 0, h: 'Tiada apa nak dikongsi, jadi setiap kumpulan dapat 0.' }
+      () => kongsi('🍬', 'gula-gula', 3, 2),
+      () => kongsi('🍎', 'epal', 2, 2),
+      () => kongsi('🍪', 'biskut', 2, 3),
+      () => kongsi('⭐', 'bintang', 4, 2),
+      () => kongsi('🎈', 'belon', 3, 3),
+      () => kongsi('🍌', 'pisang', 2, 4),
+      () => kongsi('🐟', 'ikan', 3, 2),
+      () => kongsi('🚗', 'kereta', 2, 2),
+      () => kongsi('🍓', 'strawberi', 4, 2),
+      () => kongsi('🧁', 'kek', 3, 2)
     ],
+    // Cerita sebenar — pizza, gula-gula dengan kawan
     sederhana: [
-      () => { const h2 = randInt(4, 9);
-        return { t: (h2 * 2) + ' ÷ 2 = ▢', a: h2,
-          h: 'Separuh daripada ' + (h2 * 2) + ' ialah ' + h2 + '. Semak: ' + h2 + ' + ' + h2 + ' = ' + (h2 * 2) + '.' }; },
-      () => { const h3 = randInt(1, 6);
-        return { t: (h3 * 3) + ' ÷ 3 = ▢', a: h3,
-          h: 'Kongsi ' + (h3 * 3) + ' kepada 3 kumpulan sama banyak — setiap satu dapat ' + h3 + '.' }; },
-      // cerita kongsi
-      () => { const orang = randInt(2, 3), setiap = randInt(2, 5);
-        const e = BENDA[randInt(0, BENDA.length - 1)];
-        return { t: 'Ada ' + (orang * setiap) + ' ' + e + ' dikongsi sama rata kepada ' + orang +
-            ' orang. Berapa setiap orang dapat?', a: setiap, w: 'word',
-          h: 'Kongsi sama rata bermakna BAHAGI: ' + (orang * setiap) + ' ÷ ' + orang + ' = ' + setiap + '.' }; },
-      // berapa kumpulan
-      () => { const setiap = randInt(2, 3), kump = randInt(2, 5);
-        return { t: 'Ada ' + (setiap * kump) + ' biji gula-gula. Setiap budak dapat ' + setiap +
-            ' biji. Berapa ramai budak?', a: kump, w: 'word',
-          h: 'Cari berapa KUMPULAN: ' + (setiap * kump) + ' ÷ ' + setiap + ' = ' + kump + ' orang.' }; }
+      () => kongsi('🍕', 'slice pizza', 2, 2, 'Pizza ada 4 slice, dimakan oleh 2 orang.'),
+      () => kongsi('🍕', 'slice pizza', 2, 3, 'Pizza ada 6 slice, dimakan oleh 3 orang.'),
+      () => kongsi('🍕', 'slice pizza', 3, 2, 'Pizza ada 6 slice, dimakan oleh 2 orang.'),
+      () => kongsi('🍬', 'gula-gula', 2, 3, 'Edris ada 6 gula-gula. Dia kongsi dengan 2 orang kawan.'),
+      () => kongsi('🍬', 'gula-gula', 3, 3, 'Edris ada 9 gula-gula. Dia kongsi dengan 2 orang kawan.'),
+      () => kongsi('🍪', 'biskut', 2, 4, 'Ada 8 biskut untuk 4 orang adik-beradik.'),
+      () => kongsi('🍭', 'lolipop', 4, 2, 'Ibu beli 8 lolipop untuk 2 orang anak.'),
+      () => kongsi('🥪', 'sandwic', 3, 3, 'Ada 9 sandwic untuk 3 orang kawan.'),
+      () => kongsi('🍊', 'oren', 5, 2, 'Ada 10 biji oren untuk 2 orang.'),
+      () => kongsi('🍩', 'donat', 2, 5, 'Ada 10 donat untuk 5 orang kawan.')
     ],
+    // Masih bergambar, cuma nombor lebih besar atau songsang yang KONKRIT
     susah: [
-      // songsang darab — paling penting
-      () => { const a = randInt(2, 3), b = randInt(2, 9);
-        return { t: 'Jika ' + a + ' × ' + b + ' = ' + (a * b) + ', berapakah ' + (a * b) + ' ÷ ' + a + '?', a: b,
-          h: 'Darab dan bahagi ialah SONGSANG. Kalau ' + a + ' × ' + b + ' = ' + (a * b) +
-             ', maka ' + (a * b) + ' ÷ ' + a + ' balik jadi ' + b + '.' }; },
-      // nombor hilang (yang dibahagi)
-      () => { const b = randInt(2, 3), hasil = randInt(2, 6);
-        return { t: '▢ ÷ ' + b + ' = ' + hasil, a: b * hasil,
-          h: 'Songsangkan: ' + hasil + ' × ' + b + ' = ' + (b * hasil) + '. Semak: ' + (b * hasil) + ' ÷ ' + b + ' = ' + hasil + '.' }; },
-      // nombor hilang (pembahagi)
-      () => { const b = randInt(2, 3), hasil = randInt(2, 6);
-        return { t: (b * hasil) + ' ÷ ▢ = ' + hasil, a: b,
-          h: 'Berapa kumpulan diperlukan supaya setiap satu dapat ' + hasil + '? ' + (b * hasil) + ' ÷ ' + hasil + ' = ' + b + '.' }; },
-      // konsep: operasi apa
-      () => { const orang = randInt(2, 3), setiap = randInt(2, 5);
-        return { t: 'Ada ' + (orang * setiap) + ' biskut untuk dikongsi SAMA BANYAK kepada ' + orang +
-            ' orang. Kita perlu buat apa?',
-          a: 'Bahagi', c: ['Bahagi', 'Darab', 'Tambah', 'Tolak'], w: 'word',
-          h: 'Bila kongsi sama banyak, kita guna BAHAGI: ' + (orang * setiap) + ' ÷ ' + orang + ' = ' + setiap + '.' }; },
-      // banding
-      { t: 'Mana lebih banyak: <b>10 ÷ 2</b> atau <b>9 ÷ 3</b>?', a: '10 ÷ 2',
-        c: ['10 ÷ 2', '9 ÷ 3', 'Sama banyak', 'Tak boleh banding'],
-        h: 'Kira dahulu: 10 ÷ 2 = 5 dan 9 ÷ 3 = 3. Jadi 10 ÷ 2 lebih banyak.' }
+      () => kongsi('🍬', 'gula-gula', 4, 3),
+      () => kongsi('🍪', 'biskut', 3, 4),
+      () => kongsi('⭐', 'bintang', 5, 2),
+      () => kongsi('🍕', 'slice pizza', 4, 3, 'Dua biji pizza dipotong jadi 12 slice, untuk 3 orang.'),
+      () => kongsiOrang('🍬', 'gula-gula', 2, 3),
+      () => kongsiOrang('🍪', 'biskut', 3, 2),
+      () => kongsiOrang('🍎', 'epal', 2, 4),
+      () => kongsiOrang('🎈', 'belon', 4, 2),
+      () => kongsiOrang('🍓', 'strawberi', 3, 3),
+      () => kongsiOrang('🧁', 'kek', 2, 5)
     ]
   };
   // ===================== EJAAN BM 3.0 (6 tahun) =====================

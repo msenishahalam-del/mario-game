@@ -67,6 +67,33 @@
     letter-spacing: 0.1em;
   }
 
+  /* Bahagi Asas — cerita bergambar untuk umur 6.
+     Barang di atas, orang di bawah, supaya budak boleh BILANG dan kongsi sendiri. */
+  .bagi-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.12em;
+    font-size: 0.42em;
+    line-height: 1.15;
+    margin: 0.1em 0;
+  }
+  .bagi-label {
+    display: block;
+    font-size: 0.24em;
+    font-weight: bold;
+    color: #5a3a00;
+    margin: 0.5em 0 0.3em;
+    line-height: 1.4;
+  }
+  .bagi-soal {
+    display: block;
+    font-size: 0.27em;
+    font-weight: bold;
+    color: #5a3a00;
+    margin-top: 0.7em;
+    line-height: 1.4;
+  }
   /* Ejaan 3.0 — klu + satu kotak bagi setiap huruf yang perlu ditaip.
      Guna flex supaya muat walau 6 huruf; .ejaan-partial mewarisi 4em dan pecah baris. */
   .ejaan3-row {
@@ -596,7 +623,7 @@
 
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
-<script src="soalan-tahun6.js?v=4"></script>
+<script src="soalan-tahun6.js?v=5"></script>
 <script src="soalan-sains3.js?v=2"></script>
 
 <script>
