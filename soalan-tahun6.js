@@ -214,4 +214,51 @@ window.BANK = window.BANK || {};
         h: 'Kira dahulu: 10 ÷ 2 = 5 dan 9 ÷ 3 = 3. Jadi 10 ÷ 2 lebih banyak.' }
     ]
   };
+  // ===================== EJAAN BM 3.0 (6 tahun) =====================
+  // Suku kata PERTAMA diberi sebagai clue, Edris taip BAKI perkataan.
+  //   HUJAN  -> tunjuk "HU _ _ _"   taip JAN
+  //   KERUSI -> tunjuk "KE _ _ _ _" taip RUSI
+  // Aras ditentukan oleh berapa banyak huruf perlu ditaip: 3, 4, kemudian 5-6.
+  function ejaan3(emoji, clue, baki) {
+    const kotak = new Array(baki.length).fill('<i></i>').join('');
+    return {
+      t: '<span class="ejaan-emoji">' + emoji + '</span><span class="ejaan3-row"><b>' + clue + '</b>' + kotak + '</span>',
+      a: baki, m: 'text', maxLen: baki.length, w: 'raw',
+      h: 'Perkataannya ' + clue + baki + '. Bahagian yang perlu ditaip ialah ' + baki + '.'
+    };
+  }
+
+  BANK.ejaan3 = {
+    // 3 huruf perlu ditaip
+    senang: [
+      ejaan3('🌧️','HU','JAN'),   ejaan3('🐘','GA','JAH'),   ejaan3('🏠','RU','MAH'),
+      ejaan3('🌙','BU','LAN'),   ejaan3('🐟','I','KAN'),    ejaan3('🐓','A','YAM'),
+      ejaan3('🌴','PO','KOK'),   ejaan3('👟','KA','SUT'),   ejaan3('🐜','SE','MUT'),
+      ejaan3('🦆','I','TIK'),    ejaan3('🛏️','KA','TIL'),   ejaan3('🐛','U','LAT'),
+      ejaan3('🦀','KE','TAM'),   ejaan3('🍍','NA','NAS'),   ejaan3('🥕','LO','BAK'),
+      ejaan3('🐍','U','LAR'),    ejaan3('🐝','LE','BAH'),   ejaan3('🦁','SI','NGA'),
+      ejaan3('🧺','BA','KUL'),   ejaan3('🍳','TE','LUR'),   ejaan3('✏️','PEN','SEL'),
+      ejaan3('🪟','TING','KAP'), ejaan3('🧦','STO','KIN'),  ejaan3('🪞','CER','MIN'),
+      ejaan3('🍽️','PING','GAN'), ejaan3('🏖️','PAN','TAI'),  ejaan3('🌊','OM','BAK'),
+      ejaan3('🎈','BE','LON'),   ejaan3('🧴','SA','BUN'),   ejaan3('🪥','BE','RUS'),
+      ejaan3('🦵','LU','TUT'),   ejaan3('📻','RA','DIO'),   ejaan3('🐒','MON','YET')
+    ],
+    // 4 huruf perlu ditaip
+    sederhana: [
+      ejaan3('🪑','KE','RUSI'),  ejaan3('🍌','PI','SANG'),  ejaan3('🚗','KE','RETA'),
+      ejaan3('⭐','BIN','TANG'), ejaan3('🐦','BU','RUNG'),  ejaan3('🥥','KE','LAPA'),
+      ejaan3('🌽','JA','GUNG'),  ejaan3('🧅','BA','WANG'),  ejaan3('☂️','PA','YUNG'),
+      ejaan3('⛰️','GU','NUNG'),  ejaan3('🎁','HA','DIAH'),  ejaan3('🧕','TU','DUNG'),
+      ejaan3('🥔','KEN','TANG'), ejaan3('🐐','KAM','BING'), ejaan3('🦐','U','DANG'),
+      ejaan3('🐙','SO','TONG'),  ejaan3('🪆','BO','NEKA'),  ejaan3('🥁','GEN','DANG')
+    ],
+    // 5-6 huruf perlu ditaip — paling mencabar
+    susah: [
+      ejaan3('🚲','BA','SIKAL'),  ejaan3('🐅','HA','RIMAU'),  ejaan3('🏫','SE','KOLAH'),
+      ejaan3('🌈','PE','LANGI'),  ejaan3('🧹','PE','NYAPU'),  ejaan3('🍉','TEM','BIKAI'),
+      ejaan3('🥤','MI','NUMAN'),  ejaan3('🚑','AM','BULANS'), ejaan3('🍜','MA','KANAN'),
+      ejaan3('🏥','HOS','PITAL'), ejaan3('🎺','TE','ROMPET'), ejaan3('🦒','ZI','RAFAH'),
+      ejaan3('🐧','PE','NGUIN'),  ejaan3('📱','TE','LEFON'),  ejaan3('💻','KOM','PUTER')
+    ]
+  };
 })();
