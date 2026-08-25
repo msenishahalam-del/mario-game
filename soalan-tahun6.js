@@ -10,6 +10,7 @@ window.BANK = window.BANK || {};
 (function () {
   'use strict';
 
+  const W = 'word';   // balut sebagai soalan berayat (teks panjang)
   const BENDA = ['🍎', '⭐', '🐟', '🎈', '🍪', '🚗'];
   const ikon = (n, e) => new Array(n).fill(e).join('');
 
@@ -298,6 +299,68 @@ window.BANK = window.BANK || {};
       ejaan3('🏥','HOSP','ITAL'),  ejaan3('🥪','SAND','WICH'), ejaan3('🦒','GIR','AFFE'),
       ejaan3('🌟','STAR','FISH'),  ejaan3('🍕','P','IZZA'),    ejaan3('🐎','H','ORSE'),
       ejaan3('🎸','GU','ITAR'),    ejaan3('🚀','RO','CKET'),   ejaan3('🌵','CA','CTUS')
+    ]
+  };
+  // ===================== PENDIDIKAN ISLAM ASAS (6 tahun) =====================
+  // Asas yang perlu dihafal & difahami umur 6: bilangan rakaat, urutan wuduk,
+  // rukun Islam, waktu solat, dan adab harian. Semua A/B/C/D.
+  BANK.agama6 = {
+    senang: [
+      {t:'Solat <b>Subuh</b> berapa rakaat?',a:'2 rakaat',c:['2 rakaat','3 rakaat','4 rakaat','5 rakaat'],h:'Subuh ialah solat yang paling sedikit rakaatnya, iaitu 2.'},
+      {t:'Solat <b>Zuhur</b> berapa rakaat?',a:'4 rakaat',c:['4 rakaat','2 rakaat','3 rakaat','5 rakaat'],h:'Zuhur 4 rakaat, sama seperti Asar dan Isyak.'},
+      {t:'Solat <b>Asar</b> berapa rakaat?',a:'4 rakaat',c:['4 rakaat','2 rakaat','3 rakaat','5 rakaat'],h:'Asar 4 rakaat.'},
+      {t:'Solat <b>Maghrib</b> berapa rakaat?',a:'3 rakaat',c:['3 rakaat','2 rakaat','4 rakaat','5 rakaat'],h:'Maghrib satu-satunya solat fardhu yang 3 rakaat.'},
+      {t:'Solat <b>Isyak</b> berapa rakaat?',a:'4 rakaat',c:['4 rakaat','2 rakaat','3 rakaat','5 rakaat'],h:'Isyak 4 rakaat.'},
+      {t:'Berapa <b>waktu</b> solat fardhu dalam sehari semalam?',a:'5 waktu',c:['5 waktu','3 waktu','4 waktu','6 waktu'],h:'Subuh, Zuhur, Asar, Maghrib dan Isyak — lima waktu.'},
+      {t:'Semasa berwuduk, bahagian apa yang dibasuh <b>paling akhir</b>?',a:'Kaki',c:['Kaki','Muka','Tangan','Kepala'],h:'Urutan wuduk berakhir dengan membasuh kaki hingga buku lali.'},
+      {t:'Apakah <b>rukun wuduk yang pertama</b>?',a:'Niat',c:['Niat','Basuh kaki','Sapu kepala','Berkumur'],h:'Setiap ibadah bermula dengan niat di dalam hati.'},
+      {t:'Kitab suci umat Islam ialah?',a:'Al-Quran',c:['Al-Quran','Buku cerita','Kamus','Buku teks'],h:'Al-Quran diturunkan kepada Nabi Muhammad SAW.'},
+      {t:'Nabi terakhir umat Islam ialah?',a:'Nabi Muhammad SAW',c:['Nabi Muhammad SAW','Nabi Adam AS','Nabi Musa AS','Nabi Isa AS'],h:'Nabi Muhammad SAW ialah nabi dan rasul yang terakhir.'},
+      {t:'Sebelum makan kita baca?',a:'Bismillah',c:['Bismillah','Alhamdulillah','Subhanallah','Allahu Akbar'],h:'Bismillah bermaksud "dengan nama Allah" — dibaca sebelum memulakan sesuatu.'},
+      {t:'Selepas makan kita baca?',a:'Alhamdulillah',c:['Alhamdulillah','Bismillah','Astaghfirullah','Insya-Allah'],h:'Alhamdulillah ialah ucapan syukur selepas menerima nikmat.'},
+      {t:'Tempat umat Islam solat berjemaah ialah?',a:'Masjid',c:['Masjid','Pasar','Sekolah','Padang'],h:'Masjid dan surau ialah tempat solat berjemaah.'},
+      {t:'Umat Islam berpuasa pada bulan?',a:'Ramadan',c:['Ramadan','Syawal','Rejab','Muharam'],h:'Ramadan ialah bulan puasa, bulan kesembilan dalam kalendar Islam.'},
+      {t:'Sebelum solat kita mesti?',a:'Ambil wuduk',c:['Ambil wuduk','Makan dahulu','Tidur dahulu','Bermain dahulu'],h:'Wuduk menyucikan diri sebelum mengadap Allah.'},
+      {t:'Apabila bertemu orang Islam kita ucap?',a:'Assalamualaikum',c:['Assalamualaikum','Selamat tinggal','Terima kasih','Maaf'],h:'Memberi salam ialah doa keselamatan untuk orang yang kita temui.'},
+      {t:'Berapa <b>rukun Islam</b> semuanya?',a:'5',c:['5','3','4','6'],h:'Lima: syahadah, solat, puasa, zakat dan haji.'},
+      {t:'Solat mana yang dilakukan pada waktu <b>pagi</b>?',a:'Subuh',c:['Subuh','Zuhur','Asar','Isyak'],h:'Subuh dilakukan sebelum matahari naik.'}
+    ],
+    sederhana: [
+      {t:'Solat manakah yang <b>3 rakaat</b>?',a:'Maghrib',c:['Maghrib','Subuh','Zuhur','Isyak'],h:'Hanya Maghrib yang 3 rakaat; Subuh 2, yang lain 4.'},
+      {t:'Solat manakah yang <b>paling sedikit</b> rakaatnya?',a:'Subuh',c:['Subuh','Maghrib','Zuhur','Asar'],h:'Subuh 2 rakaat, paling sedikit antara solat fardhu.'},
+      {t:'Selepas berkumur semasa wuduk, apa yang dibasuh?',a:'Muka',c:['Muka','Kaki','Kepala','Telinga'],h:'Urutan: tangan, kumur, hidung, kemudian MUKA, tangan hingga siku, kepala, kaki.'},
+      {t:'Selepas membasuh muka semasa wuduk, apa pula?',a:'Tangan hingga siku',c:['Tangan hingga siku','Kaki','Rambut','Telinga'],h:'Selepas muka, basuh kedua tangan hingga siku.'},
+      {t:'Semasa wuduk, kepala kita?',a:'Disapu',c:['Disapu','Dibasuh sepenuhnya','Dibiar','Digosok kuat'],h:'Kepala hanya disapu dengan tangan basah, tidak dibasuh sepenuhnya.'},
+      {t:'Kaki dibasuh hingga ke?',a:'Buku lali',c:['Buku lali','Lutut','Peha','Jari sahaja'],h:'Membasuh kaki mesti sampai buku lali supaya sempurna.'},
+      {t:'Rukun Islam yang <b>pertama</b> ialah?',a:'Mengucap dua kalimah syahadah',c:['Mengucap dua kalimah syahadah','Solat','Puasa','Zakat'],h:'Syahadah ialah pengakuan tiada Tuhan selain Allah dan Muhammad itu rasul-Nya.'},
+      {t:'Rukun Islam yang <b>kedua</b> ialah?',a:'Mendirikan solat',c:['Mendirikan solat','Puasa','Zakat','Haji'],h:'Selepas syahadah, solat ialah rukun yang kedua.'},
+      {t:'Umat Islam solat menghadap ke arah?',a:'Kiblat',c:['Kiblat','Matahari','Utara','Laut'],h:'Kiblat ialah arah Kaabah di Mekah.'},
+      {t:'Kaabah terletak di negara?',a:'Arab Saudi',c:['Arab Saudi','Malaysia','Indonesia','Mesir'],h:'Kaabah berada di Kota Mekah, Arab Saudi.'},
+      {t:'Solat mana dilakukan pada waktu <b>tengah hari</b>?',a:'Zuhur',c:['Zuhur','Subuh','Maghrib','Isyak'],h:'Zuhur masuk selepas matahari condong dari tengah langit.'},
+      {t:'Solat mana dilakukan selepas <b>matahari terbenam</b>?',a:'Maghrib',c:['Maghrib','Asar','Subuh','Isyak'],h:'Maghrib masuk sebaik matahari terbenam.'},
+      {t:'Solat mana dilakukan pada waktu <b>malam</b>?',a:'Isyak',c:['Isyak','Subuh','Zuhur','Asar'],h:'Isyak ialah solat terakhir dalam sehari.'},
+      {t:'Sebelum tidur kita digalakkan?',a:'Membaca doa',c:['Membaca doa','Menonton TV','Bermain','Makan banyak'],h:'Berdoa sebelum tidur ialah adab yang diajar Nabi.'},
+      {t:'Apa yang <b>membatalkan</b> wuduk?',a:'Membuang air kecil',c:['Membuang air kecil','Minum air','Berjalan','Membaca buku'],h:'Keluar sesuatu daripada qubul atau dubur membatalkan wuduk.'},
+      {t:'Berapa <b>jumlah rakaat</b> Zuhur dan Asar digabungkan?',a:'8 rakaat',c:['8 rakaat','6 rakaat','7 rakaat','10 rakaat'],h:'Zuhur 4 + Asar 4 = 8 rakaat.'},
+      {t:'Hari raya selepas sebulan berpuasa ialah?',a:'Aidilfitri',c:['Aidilfitri','Aidiladha','Maulidur Rasul','Awal Muharam'],h:'Aidilfitri disambut pada 1 Syawal, selepas Ramadan.'},
+      {t:'Semasa solat, kita bercakap dengan?',a:'Allah',c:['Allah','Kawan','Guru','Ibu'],h:'Solat ialah waktu kita mengadap dan berdoa kepada Allah.'}
+    ],
+    susah: [
+      {t:'Berapa <b>jumlah rakaat</b> solat fardhu dalam sehari semalam?',a:'17 rakaat',c:['17 rakaat','15 rakaat','20 rakaat','12 rakaat'],h:'2 + 4 + 4 + 3 + 4 = 17 rakaat semuanya.'},
+      {t:'Berapa solat fardhu yang mempunyai <b>4 rakaat</b>?',a:'3 solat',c:['3 solat','2 solat','4 solat','1 solat'],h:'Zuhur, Asar dan Isyak — ketiga-tiganya 4 rakaat.'},
+      {t:'Susunan wuduk yang <b>betul</b>?',a:'Muka, tangan, kepala, kaki',c:['Muka, tangan, kepala, kaki','Kaki, muka, tangan, kepala','Kepala, kaki, muka, tangan','Tangan, kaki, muka, kepala'],h:'Bermula dari atas ke bawah: muka, tangan hingga siku, sapu kepala, akhir sekali kaki.',w:W},
+      {t:'Jika Maghrib 3 rakaat dan Subuh 2 rakaat, berapa jumlahnya?',a:'5 rakaat',c:['5 rakaat','4 rakaat','6 rakaat','7 rakaat'],h:'3 + 2 = 5 rakaat.',w:W},
+      {t:'Edris sudah solat Subuh dan Zuhur. Berapa rakaat semuanya?',a:'6 rakaat',c:['6 rakaat','4 rakaat','8 rakaat','5 rakaat'],h:'Subuh 2 + Zuhur 4 = 6 rakaat.',w:W},
+      {t:'Kenapa kita perlu berwuduk sebelum solat?',a:'Untuk menyucikan diri',c:['Untuk menyucikan diri','Supaya sejuk','Supaya bersih baju','Supaya tidak mengantuk'],h:'Wuduk ialah bersuci, syarat sah sebelum menunaikan solat.',w:W},
+      {t:'Apa berlaku jika wuduk terbatal sebelum sempat solat?',a:'Perlu ambil wuduk semula',c:['Perlu ambil wuduk semula','Terus solat sahaja','Tidak perlu solat','Tunggu esok'],h:'Solat mesti dilakukan dalam keadaan berwuduk, jadi perlu diulang.',w:W},
+      {t:'Kenapa Maghrib mudah diingat?',a:'Ia satu-satunya solat 3 rakaat',c:['Ia satu-satunya solat 3 rakaat','Ia paling panjang','Ia pada waktu pagi','Ia 5 rakaat'],h:'Antara lima solat fardhu, hanya Maghrib yang 3 rakaat.',w:W},
+      {t:'Berapa rakaat lagi selepas Subuh untuk cukup 17 rakaat sehari?',a:'15 rakaat',c:['15 rakaat','13 rakaat','16 rakaat','12 rakaat'],h:'Jumlah 17, tolak Subuh 2 rakaat, tinggal 15 rakaat.',w:W},
+      {t:'Rukun Islam ketiga, keempat dan kelima ialah?',a:'Puasa, zakat, haji',c:['Puasa, zakat, haji','Solat, puasa, zakat','Syahadah, solat, puasa','Zakat, haji, solat'],h:'Urutannya: syahadah, solat, puasa, zakat, haji.',w:W},
+      {t:'Kenapa kita memberi salam kepada orang lain?',a:'Ia doa keselamatan untuk mereka',c:['Ia doa keselamatan untuk mereka','Supaya nampak sopan sahaja','Kerana disuruh guru','Supaya dapat hadiah'],h:'Assalamualaikum bermaksud "semoga keselamatan ke atas kamu".',w:W},
+      {t:'Solat Isyak dan Maghrib berapa rakaat semuanya?',a:'7 rakaat',c:['7 rakaat','6 rakaat','8 rakaat','5 rakaat'],h:'Isyak 4 + Maghrib 3 = 7 rakaat.',w:W},
+      {t:'Manakah <b>bukan</b> rukun Islam?',a:'Membaca buku',c:['Membaca buku','Solat','Puasa','Zakat'],h:'Rukun Islam ada lima: syahadah, solat, puasa, zakat dan haji.'},
+      {t:'Kenapa niat penting semasa wuduk dan solat?',a:'Ia menentukan tujuan ibadah kita',c:['Ia menentukan tujuan ibadah kita','Supaya cepat siap','Supaya orang nampak','Tiada sebab'],h:'Niat membezakan antara ibadah dengan perbuatan biasa.',w:W},
+      {t:'Susunan waktu solat dari pagi ke malam yang betul?',a:'Subuh, Zuhur, Asar, Maghrib, Isyak',c:['Subuh, Zuhur, Asar, Maghrib, Isyak','Zuhur, Subuh, Asar, Isyak, Maghrib','Asar, Subuh, Zuhur, Maghrib, Isyak','Subuh, Asar, Zuhur, Isyak, Maghrib'],h:'Ikut peredaran matahari: pagi, tengah hari, petang, senja, malam.',w:W}
     ]
   };
 })();
