@@ -811,8 +811,7 @@ function selesaikanMisiSiap() {
   if (m.sasaran === 'bos')    { ZUHAL.r = 25; bos.hp = 0; mesej('RAJA METEOR KALAH! 👾'); letupan(ZUHAL.x, ZUHAL.y, 60, '#ff4d4d', 300); kilatSkrin = 0.2; }
 
   // isi semula caj jaring ikut kadar
-  if (mudah) isiJaring();
-  else if (misiSiapJumlah % T.cajIsiSetiap === 0) isiJaring();
+  if (misiSiapJumlah % T.cajIsiSetiap === 0) isiJaring();
   isiPerisai();
 
   // pangkat naik?
@@ -1212,7 +1211,7 @@ function langkahFizik(dt) {
     } else if (s.jenis === 'perisai') {
       kick(s.nx, s.ny, 300);
       s.kilat = 0.4;
-      if (!T.perisaiKekal) {
+      if (!T.perisaiKekal || masaBolaIni > 150) {
         perisaiGuna--;
         if (perisaiGuna <= 0) { PERISAI_KIRI.hidup = false; PERISAI_KANAN.hidup = false; }
       }
