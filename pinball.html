@@ -321,9 +321,12 @@ bul(145, 214, 8, { id: 'tiangL1' });
 bul(215, 208, 8, { id: 'tiangL2' });
 
 // --- bumper planet -------------------------------------------------------
-const MARIKH = bul(108, 330, 26, { jenis: 'bumper', id: 'marikh' });
-const NEPTUN = bul(252, 330, 26, { jenis: 'bumper', id: 'neptun' });
-const ZUHAL  = bul(180, 288, 25, { jenis: 'bumper', id: 'zuhal' });
+// §13 item 11: lambungan flipper biasa mesti sampai ke kelompok bumper.
+// Kedudukan asal (y 288-330) berada di luar laluan bola sebenar, jadi kelompok
+// diturunkan ke dalam trafik. Bola TIDAK dilajukan.
+const MARIKH = bul(104, 392, 26, { jenis: 'bumper', id: 'marikh' });
+const NEPTUN = bul(256, 392, 26, { jenis: 'bumper', id: 'neptun' });
+const ZUHAL  = bul(180, 342, 25, { jenis: 'bumper', id: 'zuhal' });
 MARIKH.cd = 0; NEPTUN.cd = 0; ZUHAL.cd = 0;
 MARIKH.kilat = 0; NEPTUN.kilat = 0; ZUHAL.kilat = 0;
 
@@ -363,8 +366,11 @@ const SOS = [];
 let sosBangkitT = 0;
 
 // --- perisai outlane -----------------------------------------------------
-const PERISAI_KIRI  = seg(14, 700, 44, 700,  { jenis: 'perisai', id: 'pKiri',  r: 4, nx: 0.45,  ny: -0.89, hidup: true, kilat: 0 });
-const PERISAI_KANAN = seg(316, 700, 346, 700, { jenis: 'perisai', id: 'pKanan', r: 4, nx: -0.45, ny: -0.89, hidup: true, kilat: 0 });
+// Palang perisai mesti merentang PENUH dari dinding luar hingga ke kaki pembahagi
+// inlane (52 / 308). Kalau tidak, ada celah 6 unit di mana bola jatuh mati tanpa
+// perisai sempat menyelamatkannya.
+const PERISAI_KIRI  = seg(14, 700, 52, 700,  { jenis: 'perisai', id: 'pKiri',  r: 4, nx: 0.45,  ny: -0.89, hidup: true, kilat: 0 });
+const PERISAI_KANAN = seg(308, 700, 346, 700, { jenis: 'perisai', id: 'pKanan', r: 4, nx: -0.45, ny: -0.89, hidup: true, kilat: 0 });
 
 // --- jaring graviti ------------------------------------------------------
 const JARING = seg(96, 768, 264, 768, { jenis: 'jaring', id: 'jaring', r: 4, caj: 1, kilat: 0 });
