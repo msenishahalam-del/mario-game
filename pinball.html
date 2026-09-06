@@ -1,1317 +1,2286 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>Space Cadet Pinball</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Pinball Angkasa</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin:0; padding:0; box-sizing:border-box; }
   html, body {
-    height: 100%;
-    background: #000;
-    overflow: hidden;
-    font-family: 'Courier New', monospace;
-    color: #fff;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+    height:100%;
+    overflow:hidden;
+    background:#05030f;
+    font-family:'Courier New', monospace;
+    color:#fff;
+    user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+    overscroll-behavior:none;
   }
-  body { display: flex; align-items: center; justify-content: center; }
-  #backBtn {
-    position: fixed; top: 10px; left: 10px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #00ffaa;
-    padding: 6px 14px;
-    border: 2px solid #00ffaa;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 13px;
-    letter-spacing: 2px;
-    z-index: 999;
+  #wrap {
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
-  #backBtn:hover { background: #00ffaa; color: #000; }
   canvas {
-    display: block;
-    background: #000;
-    image-rendering: pixelated;
-    max-width: 100vw;
-    max-height: 100vh;
-    box-shadow: 0 0 30px rgba(0, 255, 170, 0.5);
-    border: 2px solid #00ffaa;
+    display:block;
+    touch-action:none;
+    border:2px solid #ff44cc;
+    box-shadow:0 0 30px rgba(255,68,204,0.45);
+    border-radius:8px;
+  }
+  #backBtn {
+    position:fixed; top:12px; left:12px;
+    background:rgba(0,0,0,0.85); color:#fff;
+    padding:8px 16px; border:2px solid #ff44cc; border-radius:6px;
+    text-decoration:none; font-size:14px; letter-spacing:2px; z-index:60;
+    font-family:'Courier New', monospace;
+  }
+  #backBtn:hover { background:#ff44cc; color:#000; }
+
+  #zones {
+    position:fixed; left:0; right:0; top:96px; bottom:0;
+    z-index:20; display:flex; touch-action:none;
+  }
+  .zone { flex:1; position:relative; }
+  .pil {
+    position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+    width:70%; height:56px; line-height:56px; text-align:center;
+    font-size:16px; letter-spacing:3px; border-radius:28px;
+    background:rgba(255,68,204,0.10); border:2px solid rgba(255,68,204,0.35);
+    color:rgba(255,255,255,0.55); pointer-events:none; transition:opacity .3s;
+  }
+  .zone.on .pil { background:rgba(255,68,204,0.32); border-color:#ff44cc; color:#fff; }
+  #zones.malap .pil { opacity:0.25; }
+
+  #btnLancar {
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    z-index:40; width:150px; height:62px; font-size:17px; letter-spacing:2px;
+    background:rgba(255,210,77,0.18); border:3px solid #ffd24d; color:#ffd24d;
+    border-radius:14px; font-family:inherit; display:none; cursor:pointer;
+    animation:denyut 1.1s ease-in-out infinite;
+  }
+  @keyframes denyut {
+    0%,100% { box-shadow:0 0 0 rgba(255,210,77,0); }
+    50%     { box-shadow:0 0 22px rgba(255,210,77,0.75); }
+  }
+  #btnGoncang {
+    position:fixed; bottom:20px; right:14px; z-index:40;
+    width:56px; height:56px; border-radius:50%; font-size:13px;
+    background:rgba(0,229,255,0.15); border:2px solid #00e5ff; color:#00e5ff;
+    font-family:inherit; display:none; cursor:pointer;
   }
 </style>
 </head>
 <body>
-
 <a id="backBtn" href="arcade.html">◀ HUB</a>
-<canvas id="game" width="460" height="780"></canvas>
-
-<script>
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
-  const PF_RIGHT = 390;     // x-coord of playfield right wall
-  const LANE_LEFT = 405;    // x-coord of launch lane left wall
-  const LANE_RIGHT = 442;   // x-coord of launch lane right wall (just inside canvas)
-  const PLUNGER_TOP = 705;  // y where plunger top sits at rest
-
-  // ============================================================
-  // AUDIO (Web Audio API — no external files)
-  // ============================================================
-  let actx = null;
-  function ensureAudio() {
-    if (actx) return;
-    try { actx = new (window.AudioContext || window.webkitAudioContext)(); }
-    catch (e) { actx = null; }
-  }
-  function tone(freq, dur, type = 'square', vol = 0.07, freqEnd = null) {
-    if (!actx) return;
-    const t0 = actx.currentTime;
-    const osc = actx.createOscillator();
-    const g = actx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (freqEnd !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0 + dur);
-    g.gain.setValueAtTime(vol, t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g).connect(actx.destination);
-    osc.start(t0);
-    osc.stop(t0 + dur);
-  }
-  function noiseBurst(dur, vol = 0.1) {
-    if (!actx) return;
-    const t0 = actx.currentTime;
-    const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-    const src = actx.createBufferSource();
-    const g = actx.createGain();
-    src.buffer = buf;
-    g.gain.setValueAtTime(vol, t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(g).connect(actx.destination);
-    src.start(t0);
-  }
-  const SFX = {
-    wall:    () => tone(180, 0.04, 'square', 0.04),
-    bumper:  () => { tone(880, 0.06, 'square', 0.08, 1500); tone(440, 0.08, 'sine', 0.05); },
-    flipper: () => tone(320, 0.06, 'square', 0.05, 480),
-    plunger: () => tone(150, 0.35, 'sawtooth', 0.09, 600),
-    drain:   () => tone(440, 0.45, 'sawtooth', 0.12, 80),
-    drop:    () => tone(1200, 0.07, 'square', 0.06, 700),
-    dropAll: () => {
-      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'square', 0.08), i * 70));
-    },
-    spinner: () => tone(700, 0.04, 'sawtooth', 0.04, 900),
-    letter:  () => { tone(880, 0.07, 'sine', 0.07); setTimeout(() => tone(1320, 0.1, 'sine', 0.07), 70); },
-    rankUp:  () => {
-      [262, 330, 392, 523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.16, 'square', 0.09), i * 90));
-    },
-    multiball: () => {
-      noiseBurst(0.4, 0.15);
-      [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'square', 0.1, f * 1.3), i * 90));
-    },
-    ready:   () => tone(660, 0.1, 'sine', 0.05)
-  };
-
-  // ============================================================
-  // INPUT
-  // ============================================================
-  const keys = Object.create(null);
-  const BLOCKED = new Set(['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
-  window.addEventListener('keydown', e => {
-    ensureAudio();
-    if (BLOCKED.has(e.code)) e.preventDefault();
-    if (!keys[e.code]) {
-      keys[e.code] = true;
-      onKeyPress(e.code);
-    }
-  });
-  window.addEventListener('keyup', e => {
-    if (keys[e.code]) {
-      keys[e.code] = false;
-      onKeyRelease(e.code);
-    }
-  });
-  function held(...codes) { return codes.some(c => keys[c]); }
-
-  function onKeyPress(code) {
-    if (state === 'start' && code === 'Enter') startGame();
-    else if (state === 'gameover' && (code === 'KeyR' || code === 'Enter')) startGame();
-  }
-  function onKeyRelease(code) {
-    if (code === 'Space' && state === 'ready' && plungerCharge > 0.05) {
-      launchBall();
-    }
-  }
-
-  // ============================================================
-  // STATE
-  // ============================================================
-  let state = 'start';        // start | ready | playing | gameover
-  let score = 0;
-  let highScore = parseInt(localStorage.getItem('pinball_v2_hi') || '0', 10);
-  let ballsLeft = 3;
-  let multiplier = 1;
-  let bonusPending = 0;       // points to award at end of ball
-  let plungerCharge = 0;      // 0..1 charge level
-  let plungerVisualY = 0;     // visual offset for plunger
-  let stuckBallTimer = 0;     // detect stuck ball
-
-  let rankIndex = 0;
-  const RANKS = [
-    { name: 'CADET',       min: 0 },
-    { name: 'ENSIGN',      min: 5000 },
-    { name: 'LIEUTENANT',  min: 15000 },
-    { name: 'COMMANDER',   min: 30000 },
-    { name: 'CAPTAIN',     min: 60000 },
-    { name: 'ADMIRAL',     min: 100000 },
-    { name: 'FLEET ADMIRAL', min: 200000 }
-  ];
-  let rankupAnim = 0;         // popup timer for rank up
-  let rankupText = '';
-
-  // Multi-ball array
-  const balls = [];           // { x, y, vx, vy, r, alive }
-  let particles = [];
-  let flashes = [];
-
-  // Physics constants
-  const GRAVITY = 0.00065;
-  const BALL_R = 9;
-  const MAX_SPEED = 1.4;
-
-  // Flippers
-  const flipperL = {
-    px: 140, py: 690,
-    restAngle: 0.42, upAngle: -0.45,
-    angle: 0.42, raised: false, vAngle: 0,
-    length: 78
-  };
-  const flipperR = {
-    px: 270, py: 690,
-    restAngle: Math.PI - 0.42, upAngle: Math.PI + 0.45,
-    angle: Math.PI - 0.42, raised: false, vAngle: 0,
-    length: 78
-  };
-  const FLIPPER_SPEED = 0.025;
-
-  // ── PLAYFIELD WALLS (line segments) ──
-  // Top arc covers playfield + launch lane (one wide ceiling)
-  // Main playfield is bounded x: 20..PF_RIGHT  y: ~70..bottom
-  // Launch lane is bounded x: LANE_LEFT..LANE_RIGHT  y: ~70..PLUNGER_TOP
-  // Between PF_RIGHT and LANE_LEFT (380..405): 25px opening near top where ball transitions
-  const walls = [
-    // ── Top arc (single curve over playfield + launch lane) ──
-    { x1: 20,  y1: 110, x2: 50,  y2: 60 },
-    { x1: 50,  y1: 60,  x2: 130, y2: 28 },
-    { x1: 130, y1: 28,  x2: 320, y2: 28 },
-    { x1: 320, y1: 28,  x2: 405, y2: 60 },
-    { x1: 405, y1: 60,  x2: 442, y2: 95 },
-    // ── Launch lane (right channel) ──
-    { x1: 442, y1: 95,  x2: 442, y2: 720 },   // right wall
-    { x1: LANE_LEFT, y1: 145, x2: LANE_LEFT, y2: 720 },   // left wall (starts below top opening)
-    // ── Playfield right wall (with one-way gate top region) ──
-    { x1: PF_RIGHT, y1: 145, x2: PF_RIGHT, y2: 555 },
-    // ── Right slope to flipper ──
-    { x1: PF_RIGHT, y1: 555, x2: 270, y2: 700 },
-    // ── Left slope to flipper ──
-    { x1: 140, y1: 700, x2: 20, y2: 555 },
-    // ── Left wall ──
-    { x1: 20, y1: 555, x2: 20, y2: 110 }
-  ];
-
-  // Diagonal deflector at top of launch lane — pushes ball into playfield when it comes over
-  const launchDeflectors = [
-    { x1: LANE_LEFT, y1: 145, x2: 380, y2: 90 }    // angled to push leftward into playfield
-  ];
-
-  // Bumpers
-  const bumpers = [
-    { x: 130, y: 200, r: 24, score: 100, color: '#ff44cc' },
-    { x: 270, y: 200, r: 24, score: 100, color: '#44ddff' },
-    { x: 200, y: 130, r: 22, score: 100, color: '#ffd24d' }
-  ];
-
-  // Slingshots (orange triangle bumpers above flippers)
-  const slings = [
-    { x1: 60,  y1: 510, x2: 100, y2: 620 },
-    { x1: 340, y1: 510, x2: 300, y2: 620 }
-  ];
-
-  // Drop targets — 5 small bars in a row across middle
-  const DROP_Y = 320;
-  const dropTargets = [];
-  function initDropTargets() {
-    dropTargets.length = 0;
-    const startX = 80;
-    const spacing = 50;
-    for (let i = 0; i < 5; i++) {
-      dropTargets.push({
-        x: startX + i * spacing, y: DROP_Y, w: 36, h: 12,
-        down: false, downTime: 0
-      });
-    }
-  }
-
-  // Spinner — vertical bar that rotates when ball passes
-  const spinner = {
-    cx: 200, cy: 420, halfLen: 14,
-    angle: 0, vAngle: 0,    // current rotation
-    glow: 0
-  };
-
-  // S-P-A-C-E letters — 5 lights along the LEFT wall
-  // Lighting up by hitting left wall
-  const LETTERS = ['S', 'P', 'A', 'C', 'E'];
-  const letterLights = [false, false, false, false, false];
-  const letterY = [180, 250, 320, 390, 460];
-  let leftWallCooldown = 0;   // prevent triple-counting same hit
-
-  // Plunger area visual
-  function plungerY() { return PLUNGER_TOP + plungerVisualY; }
-
-  // ============================================================
-  // INIT
-  // ============================================================
-  function startGame() {
-    score = 0;
-    ballsLeft = 3;
-    multiplier = 1;
-    bonusPending = 0;
-    rankIndex = 0;
-    rankupAnim = 0;
-    rankupText = '';
-    balls.length = 0;
-    particles.length = 0;
-    flashes.length = 0;
-    initDropTargets();
-    for (let i = 0; i < 5; i++) letterLights[i] = false;
-    state = 'ready';
-    placeBallInLaunchLane();
-    SFX.ready();
-  }
-
-  function placeBallInLaunchLane() {
-    // ball sits on top of plunger, waiting
-    balls.push({
-      x: (LANE_LEFT + LANE_RIGHT) / 2,
-      y: plungerY() - BALL_R - 1,
-      vx: 0, vy: 0, r: BALL_R,
-      alive: true, inLane: true
-    });
-  }
-
-  function launchBall() {
-    if (balls.length === 0) return;
-    // Find the lane-ball (should be only one at this point)
-    const b = balls.find(x => x.inLane && x.alive);
-    if (!b) return;
-    const power = 0.5 + plungerCharge * 1.4;
-    b.vy = -power;
-    b.vx = 0;
-    b.inLane = false;   // once launched, ball is "free"
-    plungerCharge = 0;
-    plungerVisualY = 0;
-    state = 'playing';
-    SFX.plunger();
-    stuckBallTimer = 0;
-  }
-
-  function nextBallReady() {
-    // Used after a ball drains and lives remain
-    state = 'ready';
-    plungerCharge = 0;
-    plungerVisualY = 0;
-    placeBallInLaunchLane();
-    SFX.ready();
-  }
-
-  function endOfBall() {
-    // Award pending bonus
-    if (bonusPending > 0) {
-      addScore(bonusPending);
-      bonusPending = 0;
-    }
-    ballsLeft--;
-    if (ballsLeft <= 0) {
-      if (score > highScore) {
-        highScore = score;
-        try { localStorage.setItem('pinball_v2_hi', String(highScore)); } catch {}
-      }
-      state = 'gameover';
-    } else {
-      // Reset multiplier between balls
-      multiplier = 1;
-      setTimeout(nextBallReady, 800);
-    }
-  }
-
-  function addScore(points) {
-    const real = points * multiplier;
-    score += real;
-    checkRankUp();
-  }
-
-  function checkRankUp() {
-    while (rankIndex + 1 < RANKS.length && score >= RANKS[rankIndex + 1].min) {
-      rankIndex++;
-      rankupText = 'RANK UP: ' + RANKS[rankIndex].name + '!';
-      rankupAnim = 2200;
-      SFX.rankUp();
-    }
-  }
-
-  // ============================================================
-  // PHYSICS HELPERS
-  // ============================================================
-  function lineCircleHit(x1, y1, x2, y2, cx, cy, r) {
-    const dx = x2 - x1, dy = y2 - y1;
-    const len2 = dx * dx + dy * dy;
-    if (len2 < 0.001) return null;
-    let t = ((cx - x1) * dx + (cy - y1) * dy) / len2;
-    t = Math.max(0, Math.min(1, t));
-    const px = x1 + t * dx, py = y1 + t * dy;
-    const ddx = cx - px, ddy = cy - py;
-    const distSq = ddx * ddx + ddy * ddy;
-    if (distSq < r * r) {
-      const dist = Math.sqrt(distSq);
-      return { px, py, dist, nx: dist > 0.001 ? ddx / dist : 0, ny: dist > 0.001 ? ddy / dist : -1, t };
-    }
-    return null;
-  }
-
-  function reflect(b, nx, ny, bounce = 0.85, damp = 0.98) {
-    const dot = b.vx * nx + b.vy * ny;
-    if (dot >= 0) return;
-    b.vx = (b.vx - 2 * dot * nx) * bounce;
-    b.vy = (b.vy - 2 * dot * ny) * bounce;
-    b.vx *= damp;
-    b.vy *= damp;
-  }
-
-  function pushOut(b, nx, ny, overlap) {
-    b.x += nx * (overlap + 0.5);
-    b.y += ny * (overlap + 0.5);
-  }
-
-  // ============================================================
-  // FLIPPER
-  // ============================================================
-  function flipperTip(f) {
-    return { x: f.px + Math.cos(f.angle) * f.length, y: f.py + Math.sin(f.angle) * f.length };
-  }
-
-  function updateFlipper(f, raised, dt) {
-    const target = raised ? f.upAngle : f.restAngle;
-    const diff = target - f.angle;
-    const maxStep = FLIPPER_SPEED * dt;
-    const prev = f.angle;
-    if (Math.abs(diff) <= maxStep) f.angle = target;
-    else f.angle += Math.sign(diff) * maxStep;
-    f.vAngle = (f.angle - prev) / Math.max(1, dt);
-    f.raised = raised;
-  }
-
-  function collideFlipper(b, f) {
-    const tip = flipperTip(f);
-    const hit = lineCircleHit(f.px, f.py, tip.x, tip.y, b.x, b.y, b.r);
-    if (!hit) return;
-    pushOut(b, hit.nx, hit.ny, b.r - hit.dist);
-    reflect(b, hit.nx, hit.ny, 0.82);
-    if (Math.abs(f.vAngle) > 0.001) {
-      const armDx = tip.x - f.px, armDy = tip.y - f.py;
-      const armLen = Math.hypot(armDx, armDy) || 1;
-      const hitDistFromPivot = Math.hypot(hit.px - f.px, hit.py - f.py);
-      const tangX = -armDy / armLen;
-      const tangY = armDx / armLen;
-      const kickMag = f.vAngle * hitDistFromPivot * 1.7;
-      b.vx += tangX * kickMag;
-      b.vy += tangY * kickMag;
-    }
-    SFX.flipper();
-  }
-
-  // ============================================================
-  // BALL UPDATE
-  // ============================================================
-  function updateBalls(dt) {
-    // Plunger charging visual
-    if (state === 'ready' && held('Space')) {
-      plungerCharge = Math.min(1, plungerCharge + dt / 1200);
-      plungerVisualY = plungerCharge * 22;
-      // Lane ball follows plunger
-      const lb = balls.find(b => b.inLane);
-      if (lb) {
-        lb.y = plungerY() - BALL_R - 1;
-        lb.vx = 0; lb.vy = 0;
-      }
-      return;
-    }
-    if (state === 'ready') return;   // no physics until launched
-
-    leftWallCooldown = Math.max(0, leftWallCooldown - dt);
-
-    for (const b of balls) {
-      if (!b.alive) continue;
-      // Gravity (smaller in launch lane to make plunger feel right)
-      const gravFactor = b.inLane ? 0.3 : 1;
-      b.vy += GRAVITY * dt * gravFactor;
-      // Cap speed
-      const sp = Math.hypot(b.vx, b.vy);
-      if (sp > MAX_SPEED) {
-        b.vx = (b.vx / sp) * MAX_SPEED;
-        b.vy = (b.vy / sp) * MAX_SPEED;
-      }
-      // Sub-step to prevent tunneling
-      const dx = b.vx * dt, dy = b.vy * dt;
-      const stepLen = Math.hypot(dx, dy);
-      const steps = Math.max(1, Math.ceil(stepLen / (b.r * 0.6)));
-      for (let s = 0; s < steps; s++) {
-        b.x += dx / steps;
-        b.y += dy / steps;
-        collideEverything(b);
-      }
-      // One-way gate: prevent ball from re-entering launch lane after launch
-      if (!b.inLane && b.x > PF_RIGHT - b.r && b.y > 145 && b.y < 555) {
-        b.x = PF_RIGHT - b.r;
-        if (b.vx > 0) b.vx = -b.vx * 0.5;
-      }
-      // Plunger (bottom of launch lane)
-      if (b.x > LANE_LEFT && b.x < LANE_RIGHT) {
-        if (b.y + b.r > plungerY()) {
-          b.y = plungerY() - b.r;
-          if (b.vy > 0) b.vy = -b.vy * 0.4;
-        }
-      }
-      // Drain check
-      if (b.y > 770 + b.r) {
-        b.alive = false;
-        spawnExplosion(b.x, 740, '#ff4488', 16);
-        SFX.drain();
-      }
-    }
-
-    // Clean up dead balls
-    for (let i = balls.length - 1; i >= 0; i--) {
-      if (!balls[i].alive) balls.splice(i, 1);
-    }
-    // No active balls? End of ball.
-    if (balls.length === 0 && state === 'playing') {
-      state = 'draining';
-      setTimeout(endOfBall, 600);
-    }
-
-    // Stuck ball detector (only when one ball)
-    if (state === 'playing' && balls.length === 1) {
-      const b = balls[0];
-      const sp = Math.hypot(b.vx, b.vy);
-      if (sp < 0.05) {
-        stuckBallTimer += dt;
-        if (stuckBallTimer > 4000) {
-          // nudge
-          b.vx += (Math.random() - 0.5) * 0.3;
-          b.vy -= 0.25;
-          stuckBallTimer = 0;
-        }
-      } else {
-        stuckBallTimer = 0;
-      }
-    }
-  }
-
-  function collideEverything(b) {
-    // Walls
-    for (const w of walls) {
-      const hit = lineCircleHit(w.x1, w.y1, w.x2, w.y2, b.x, b.y, b.r);
-      if (hit) {
-        pushOut(b, hit.nx, hit.ny, b.r - hit.dist);
-        reflect(b, hit.nx, hit.ny, 0.86);
-        SFX.wall();
-        // Letter award: hit on left wall
-        if (w.x1 === 20 && w.x2 === 20 && leftWallCooldown <= 0) {
-          tryLightLetter(b.y);
-          leftWallCooldown = 250;
-        }
-      }
-    }
-    // Launch deflector (only push ball out — one-way like)
-    for (const d of launchDeflectors) {
-      const hit = lineCircleHit(d.x1, d.y1, d.x2, d.y2, b.x, b.y, b.r);
-      if (hit) {
-        pushOut(b, hit.nx, hit.ny, b.r - hit.dist);
-        reflect(b, hit.nx, hit.ny, 0.85);
-        SFX.wall();
-      }
-    }
-    // Slingshots
-    for (const sl of slings) {
-      const hit = lineCircleHit(sl.x1, sl.y1, sl.x2, sl.y2, b.x, b.y, b.r);
-      if (hit) {
-        pushOut(b, hit.nx, hit.ny, b.r - hit.dist);
-        reflect(b, hit.nx, hit.ny, 0.95);
-        b.vx += hit.nx * 0.35;
-        b.vy += hit.ny * 0.35;
-        addScore(25);
-        SFX.bumper();
-        flashes.push({ kind: 'sling', sling: sl, time: 200 });
-        spawnSparks(hit.px, hit.py, '#ffaa00');
-      }
-    }
-    // Bumpers
-    for (const bm of bumpers) {
-      const dx = b.x - bm.x, dy = b.y - bm.y;
-      const dsq = dx * dx + dy * dy;
-      const rr = b.r + bm.r;
-      if (dsq < rr * rr) {
-        const dist = Math.sqrt(dsq) || 0.001;
-        const nx = dx / dist, ny = dy / dist;
-        pushOut(b, nx, ny, rr - dist);
-        reflect(b, nx, ny, 1.0);
-        b.vx += nx * 0.36;
-        b.vy += ny * 0.36;
-        addScore(bm.score);
-        SFX.bumper();
-        flashes.push({ kind: 'bumper', bumper: bm, time: 220 });
-        spawnSparks(bm.x + nx * bm.r, bm.y + ny * bm.r, bm.color);
-      }
-    }
-    // Drop targets (treat as small rectangles)
-    for (const dt of dropTargets) {
-      if (dt.down) continue;
-      // AABB-circle hit
-      const cx = Math.max(dt.x - dt.w / 2, Math.min(b.x, dt.x + dt.w / 2));
-      const cy = Math.max(dt.y - dt.h / 2, Math.min(b.y, dt.y + dt.h / 2));
-      const dx = b.x - cx, dy = b.y - cy;
-      const dsq = dx * dx + dy * dy;
-      if (dsq < b.r * b.r) {
-        const dist = Math.sqrt(dsq) || 0.001;
-        const nx = dx / dist, ny = dy / dist;
-        pushOut(b, nx, ny, b.r - dist);
-        reflect(b, nx, ny, 0.9);
-        dt.down = true;
-        dt.downTime = 0;
-        addScore(500);
-        SFX.drop();
-        spawnSparks(dt.x, dt.y, '#ffd24d', 6);
-        checkAllDropsDown();
-      }
-    }
-    // Spinner — line that allows passage but adds spin/score
-    {
-      const hit = lineCircleHit(spinner.cx - spinner.halfLen, spinner.cy, spinner.cx + spinner.halfLen, spinner.cy, b.x, b.y, b.r);
-      if (hit && !b._spinnerCooldown) {
-        // Don't bounce — let ball pass through, but add spin & score
-        spinner.vAngle += (b.vy > 0 ? 1 : -1) * 0.08;
-        spinner.glow = 1;
-        addScore(50);
-        SFX.spinner();
-        b._spinnerCooldown = 80;   // ms cooldown so we don't multi-trigger
-        spawnSparks(b.x, b.y, '#88ff88', 3);
-      }
-    }
-    if (b._spinnerCooldown) {
-      b._spinnerCooldown -= 16;
-      if (b._spinnerCooldown < 0) b._spinnerCooldown = 0;
-    }
-    // Flippers
-    collideFlipper(b, flipperL);
-    collideFlipper(b, flipperR);
-  }
-
-  // ============================================================
-  // OBJECTIVE LOGIC
-  // ============================================================
-  function tryLightLetter(yPos) {
-    for (let i = 0; i < 5; i++) {
-      const ly = letterY[i];
-      if (Math.abs(yPos - ly) < 35 && !letterLights[i]) {
-        letterLights[i] = true;
-        addScore(250);
-        SFX.letter();
-        flashes.push({ kind: 'letter', idx: i, time: 600 });
-        if (letterLights.every(l => l)) {
-          // Bonus + multiplier
-          addScore(2500);
-          multiplier = Math.min(5, multiplier + 1);
-          rankupText = 'SPACE! MULTIPLIER X' + multiplier;
-          rankupAnim = 1500;
-          SFX.rankUp();
-          for (let j = 0; j < 5; j++) letterLights[j] = false;
-        }
-        return;
-      }
-    }
-  }
-
-  function checkAllDropsDown() {
-    if (dropTargets.every(t => t.down)) {
-      // Trigger MULTIBALL
-      addScore(2000);
-      rankupText = 'MULTIBALL!';
-      rankupAnim = 2000;
-      SFX.multiball();
-      // Spawn 2 extra balls from top center
-      for (let i = 0; i < 2; i++) {
-        balls.push({
-          x: W / 2 + (Math.random() - 0.5) * 80,
-          y: 100,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: 0.3 + Math.random() * 0.2,
-          r: BALL_R,
-          alive: true,
-          inLane: false
-        });
-      }
-      // Reset targets after delay
-      setTimeout(() => {
-        for (const t of dropTargets) { t.down = false; t.downTime = 0; }
-      }, 1500);
-    }
-  }
-
-  // ============================================================
-  // PARTICLES
-  // ============================================================
-  function spawnSparks(x, y, color, count = 8) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = 0.08 + Math.random() * 0.22;
-      particles.push({
-        x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 220 + Math.random() * 180, maxLife: 400,
-        color, size: 1.5 + Math.random() * 2
-      });
-    }
-  }
-  function spawnExplosion(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = 0.08 + Math.random() * 0.3;
-      particles.push({
-        x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 400 + Math.random() * 300, maxLife: 700,
-        color, size: 2 + Math.random() * 2.5
-      });
-    }
-  }
-  function updateParticles(dt) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vy += 0.0003 * dt;
-      p.life -= dt;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-    for (let i = flashes.length - 1; i >= 0; i--) {
-      flashes[i].time -= dt;
-      if (flashes[i].time <= 0) flashes.splice(i, 1);
-    }
-  }
-
-  // ============================================================
-  // RENDER
-  // ============================================================
-  function drawBackground() {
-    // Deep space gradient
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0a0220');
-    g.addColorStop(0.5, '#1a0840');
-    g.addColorStop(1, '#050018');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
-    // Stars
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-    for (let i = 0; i < 50; i++) {
-      const x = ((i * 37) % W);
-      const y = ((i * 53) % H);
-      ctx.fillRect(x, y, 1, 1);
-    }
-    ctx.fillStyle = 'rgba(180, 200, 255, 0.3)';
-    for (let i = 0; i < 30; i++) {
-      const x = ((i * 71 + 11) % W);
-      const y = ((i * 89 + 17) % H);
-      ctx.fillRect(x, y, 2, 2);
-    }
-
-    // Subtle nebula
-    const neb = ctx.createRadialGradient(W * 0.3, H * 0.3, 30, W * 0.3, H * 0.3, 220);
-    neb.addColorStop(0, 'rgba(180, 80, 200, 0.18)');
-    neb.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = neb;
-    ctx.fillRect(0, 0, W, H);
-    const neb2 = ctx.createRadialGradient(W * 0.75, H * 0.65, 30, W * 0.75, H * 0.65, 200);
-    neb2.addColorStop(0, 'rgba(80, 120, 220, 0.15)');
-    neb2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = neb2;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  function drawWalls() {
-    ctx.strokeStyle = '#00ffaa';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.shadowColor = '#00ffaa';
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    for (const w of walls) {
-      ctx.moveTo(w.x1, w.y1);
-      ctx.lineTo(w.x2, w.y2);
-    }
-    ctx.stroke();
-    // Launch deflectors
-    ctx.strokeStyle = '#00aaff';
-    ctx.beginPath();
-    for (const d of launchDeflectors) {
-      ctx.moveTo(d.x1, d.y1);
-      ctx.lineTo(d.x2, d.y2);
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Slingshots (orange triangles)
-    ctx.strokeStyle = '#ffaa00';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = '#ffaa00';
-    ctx.shadowBlur = 6;
-    for (const sl of slings) {
-      const flash = flashes.find(f => f.kind === 'sling' && f.sling === sl);
-      if (flash) {
-        const a = Math.min(1, flash.time / 200) * 0.5;
-        ctx.fillStyle = `rgba(255, 220, 100, ${a})`;
-        if (sl.x1 < W / 2) {
-          ctx.beginPath();
-          ctx.moveTo(20, 600); ctx.lineTo(sl.x1, sl.y1); ctx.lineTo(sl.x2, sl.y2); ctx.closePath();
-          ctx.fill();
-        } else {
-          ctx.beginPath();
-          ctx.moveTo(PF_RIGHT, 600); ctx.lineTo(sl.x1, sl.y1); ctx.lineTo(sl.x2, sl.y2); ctx.closePath();
-          ctx.fill();
-        }
-      }
-      ctx.beginPath();
-      ctx.moveTo(sl.x1, sl.y1);
-      ctx.lineTo(sl.x2, sl.y2);
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-  }
-
-  function drawBumpers() {
-    for (const bm of bumpers) {
-      const flash = flashes.find(f => f.kind === 'bumper' && f.bumper === bm);
-      const pulse = flash ? Math.min(1, flash.time / 220) : 0;
-      const glow = ctx.createRadialGradient(bm.x, bm.y, bm.r * 0.4, bm.x, bm.y, bm.r + 14 + pulse * 16);
-      glow.addColorStop(0, bm.color);
-      glow.addColorStop(0.4, bm.color + '88');
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(bm.x, bm.y, bm.r + 14 + pulse * 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#1a0030';
-      ctx.beginPath();
-      ctx.arc(bm.x, bm.y, bm.r + 3, 0, Math.PI * 2);
-      ctx.fill();
-      const ring = ctx.createRadialGradient(bm.x - bm.r * 0.3, bm.y - bm.r * 0.3, 2, bm.x, bm.y, bm.r);
-      ring.addColorStop(0, '#ffffff');
-      ring.addColorStop(0.4, bm.color);
-      ring.addColorStop(1, bm.color + '44');
-      ctx.fillStyle = ring;
-      ctx.beginPath();
-      ctx.arc(bm.x, bm.y, bm.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = pulse > 0 ? '#ffffff' : '#1a0030';
-      ctx.beginPath();
-      ctx.arc(bm.x, bm.y, bm.r * 0.45, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.beginPath();
-      ctx.arc(bm.x - bm.r * 0.4, bm.y - bm.r * 0.4, bm.r * 0.18, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function drawDropTargets() {
-    for (const t of dropTargets) {
-      if (t.down) {
-        // Show as recessed (small dim outline)
-        ctx.fillStyle = 'rgba(60, 60, 80, 0.5)';
-        ctx.fillRect(t.x - t.w / 2, t.y - 2, t.w, 4);
-        ctx.strokeStyle = '#444';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(t.x - t.w / 2, t.y - 2, t.w, 4);
-      } else {
-        // Standing target — glowing
-        const g = ctx.createLinearGradient(t.x - t.w / 2, t.y - t.h / 2, t.x + t.w / 2, t.y + t.h / 2);
-        g.addColorStop(0, '#ffe066');
-        g.addColorStop(0.5, '#ffaa00');
-        g.addColorStop(1, '#cc6600');
-        ctx.fillStyle = g;
-        ctx.fillRect(t.x - t.w / 2, t.y - t.h / 2, t.w, t.h);
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(t.x - t.w / 2, t.y - t.h / 2, t.w, t.h);
-        // glow
-        ctx.shadowColor = '#ffd24d';
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = 'rgba(255, 220, 100, 0.5)';
-        ctx.fillRect(t.x - t.w / 2 + 1, t.y - t.h / 2 + 1, t.w - 2, t.h - 2);
-        ctx.shadowBlur = 0;
-      }
-    }
-  }
-
-  function drawSpinner() {
-    spinner.glow = Math.max(0, spinner.glow - 0.02);
-    spinner.angle += spinner.vAngle;
-    spinner.vAngle *= 0.985;
-    // Background circle (track)
-    ctx.strokeStyle = `rgba(136, 255, 136, ${0.3 + spinner.glow * 0.5})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(spinner.cx, spinner.cy, spinner.halfLen + 5, 0, Math.PI * 2);
-    ctx.stroke();
-    // Spinner bar
-    ctx.save();
-    ctx.translate(spinner.cx, spinner.cy);
-    ctx.rotate(spinner.angle);
-    const g = ctx.createLinearGradient(-spinner.halfLen, 0, spinner.halfLen, 0);
-    g.addColorStop(0, '#aaffaa');
-    g.addColorStop(0.5, '#ffffff');
-    g.addColorStop(1, '#88ff88');
-    ctx.fillStyle = g;
-    ctx.shadowColor = '#88ff88';
-    ctx.shadowBlur = 6 + spinner.glow * 10;
-    ctx.fillRect(-spinner.halfLen, -2, spinner.halfLen * 2, 4);
-    ctx.shadowBlur = 0;
-    // Center hub
-    ctx.fillStyle = '#003a1a';
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    // Label
-    ctx.fillStyle = 'rgba(136, 255, 136, 0.7)';
-    ctx.font = '8px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('+50', spinner.cx, spinner.cy + 22);
-  }
-
-  function drawLetters() {
-    for (let i = 0; i < 5; i++) {
-      const lit = letterLights[i];
-      const flash = flashes.find(f => f.kind === 'letter' && f.idx === i);
-      const pulse = flash ? Math.min(1, flash.time / 600) : 0;
-      const x = 36;
-      const y = letterY[i];
-      // Light bulb circle
-      const g = ctx.createRadialGradient(x, y, 1, x, y, 10);
-      if (lit) {
-        g.addColorStop(0, '#ffffff');
-        g.addColorStop(0.5, '#ffd24d');
-        g.addColorStop(1, '#aa6600');
-      } else {
-        g.addColorStop(0, '#553300');
-        g.addColorStop(1, '#1a1000');
-      }
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, 9 + pulse * 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = lit ? '#ffd24d' : '#553300';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      if (lit) {
-        ctx.shadowColor = '#ffd24d';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-      // Letter text
-      ctx.fillStyle = lit ? '#000' : '#552200';
-      ctx.font = 'bold 10px Courier New';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(LETTERS[i], x, y);
-    }
-  }
-
-  function drawFlipper(f) {
-    ctx.save();
-    ctx.translate(f.px, f.py);
-    ctx.rotate(f.angle);
-    const g = ctx.createLinearGradient(0, -8, 0, 8);
-    g.addColorStop(0, '#ddeeff');
-    g.addColorStop(0.5, '#7a98c8');
-    g.addColorStop(1, '#3a4a78');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(f.length, -6);
-    ctx.lineTo(f.length, 6);
-    ctx.lineTo(0, 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = '#444';
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#aaa';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = '#aaa';
-    ctx.beginPath();
-    ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawPlunger() {
-    // Spring & plunger at bottom of launch lane
-    const plungerX = (LANE_LEFT + LANE_RIGHT) / 2;
-    const py = plungerY();
-    // Spring (coils)
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 2;
-    const springTop = py + 20;
-    const springBottom = 770;
-    const coils = 6;
-    const compression = 1 - plungerCharge * 0.6;
-    ctx.beginPath();
-    for (let i = 0; i <= coils; i++) {
-      const t = i / coils;
-      const sy = springTop + (springBottom - springTop) * t;
-      const sx = plungerX + (i % 2 === 0 ? -8 : 8);
-      if (i === 0) ctx.moveTo(plungerX, springTop);
-      ctx.lineTo(sx, sy);
-    }
-    ctx.lineTo(plungerX, springBottom);
-    ctx.stroke();
-    // Plunger top (cylinder)
-    const pg = ctx.createLinearGradient(plungerX - 14, py, plungerX + 14, py);
-    pg.addColorStop(0, '#888');
-    pg.addColorStop(0.5, '#eee');
-    pg.addColorStop(1, '#888');
-    ctx.fillStyle = pg;
-    ctx.fillRect(plungerX - 14, py, 28, 18);
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(plungerX - 14, py, 28, 18);
-    // Charge indicator (bar)
-    if (state === 'ready' && plungerCharge > 0.02) {
-      const bw = 24 * plungerCharge;
-      ctx.fillStyle = `rgb(${Math.floor(255 * plungerCharge)}, ${Math.floor(255 * (1 - plungerCharge))}, 0)`;
-      ctx.fillRect(plungerX - 12, py + 4, bw, 10);
-    }
-  }
-
-  function drawBalls() {
-    for (const b of balls) {
-      if (!b.alive) continue;
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.beginPath();
-      ctx.ellipse(b.x + 1, b.y + 3, b.r, b.r * 0.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-      const g = ctx.createRadialGradient(b.x - b.r * 0.4, b.y - b.r * 0.4, 1, b.x, b.y, b.r);
-      g.addColorStop(0, '#ffffff');
-      g.addColorStop(0.4, '#cce0ff');
-      g.addColorStop(0.8, '#6a88aa');
-      g.addColorStop(1, '#1a2a44');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.beginPath();
-      ctx.arc(b.x - b.r * 0.4, b.y - b.r * 0.4, b.r * 0.25, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function drawParticles() {
-    for (const p of particles) {
-      const a = Math.max(0, Math.min(1, p.life / p.maxLife));
-      ctx.globalAlpha = a;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawHUD() {
-    // Top strip
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, W, 24);
-    // Score (left)
-    ctx.fillStyle = '#00ffaa';
-    ctx.font = 'bold 14px Courier New';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(String(score).padStart(8, '0'), 6, 6);
-    // Rank (center)
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffd24d';
-    ctx.font = 'bold 11px Courier New';
-    ctx.fillText(RANKS[rankIndex].name, W / 2, 7);
-    // Multiplier (right)
-    ctx.textAlign = 'right';
-    ctx.fillStyle = multiplier > 1 ? '#ff44cc' : '#888';
-    ctx.font = 'bold 14px Courier New';
-    ctx.fillText('X' + multiplier, W - 6, 6);
-
-    // Bottom HUD: balls + best
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, H - 18, W, 18);
-    ctx.fillStyle = '#ffd24d';
-    ctx.font = 'bold 10px Courier New';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    let s = '';
-    for (let i = 0; i < ballsLeft; i++) s += '● ';
-    ctx.fillText('BALLS ' + s.trim(), 6, H - 14);
-    if (highScore > 0) {
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#aaaaff';
-      ctx.fillText('BEST ' + highScore, W - 6, H - 14);
-    }
-
-    // Ready prompt
-    if (state === 'ready') {
-      const blink = Math.floor(performance.now() / 350) % 2 === 0;
-      if (blink || plungerCharge > 0.02) {
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = plungerCharge > 0.02 ? '#ff44cc' : '#ffd24d';
-        ctx.font = 'bold 14px Courier New';
-        ctx.fillText(plungerCharge > 0.02 ? 'CHARGING...' : 'HOLD SPACE TO CHARGE', W / 2, H / 2 + 100);
-      }
-    }
-
-    // Rank up / event popup
-    if (rankupAnim > 0) {
-      const a = Math.min(1, rankupAnim / 600);
-      ctx.fillStyle = `rgba(0, 0, 0, ${a * 0.6})`;
-      ctx.fillRect(0, 220, W, 60);
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = `rgba(255, 215, 80, ${a})`;
-      ctx.shadowColor = '#ffd24d';
-      ctx.shadowBlur = 14;
-      ctx.font = 'bold 18px Courier New';
-      ctx.fillText(rankupText, W / 2, 250);
-      ctx.shadowBlur = 0;
-    }
-  }
-
-  function drawStartScreen() {
-    drawBackground();
-    drawWalls();
-    drawBumpers();
-    drawDropTargets();
-    drawSpinner();
-    drawLetters();
-    drawFlipper(flipperL);
-    drawFlipper(flipperR);
-    drawPlunger();
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const glow = (Math.sin(performance.now() * 0.004) + 1) * 0.5;
-    ctx.fillStyle = '#00ffaa';
-    ctx.shadowColor = '#00ffaa';
-    ctx.shadowBlur = 16 + glow * 16;
-    ctx.font = 'bold 32px Courier New';
-    ctx.fillText('SPACE CADET', W / 2, 130);
-    ctx.fillText('PINBALL', W / 2, 168);
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = '#ffd24d';
-    ctx.font = '13px Courier New';
-    ctx.fillText('Rise through the ranks, Cadet!', W / 2, 220);
-
-    ctx.fillStyle = '#cceeff';
-    ctx.font = '12px Courier New';
-    ctx.fillText('Z  =  Left Flipper', W / 2, 290);
-    ctx.fillText('/  =  Right Flipper', W / 2, 312);
-    ctx.fillText('SPACE  =  Plunger (hold to charge)', W / 2, 334);
-
-    ctx.fillStyle = '#ff88cc';
-    ctx.font = 'bold 12px Courier New';
-    ctx.fillText('★ Hit drop targets → MULTIBALL', W / 2, 400);
-    ctx.fillText('★ Spell S-P-A-C-E → MULTIPLIER UP', W / 2, 422);
-    ctx.fillText('★ Score 100,000 → ADMIRAL', W / 2, 444);
-
-    const blinkOn = Math.floor(performance.now() / 400) % 2 === 0;
-    if (blinkOn) {
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 18px Courier New';
-      ctx.fillText('PRESS ENTER TO START', W / 2, 530);
-    }
-
-    if (highScore > 0) {
-      ctx.fillStyle = '#aaaaff';
-      ctx.font = '12px Courier New';
-      ctx.fillText('HIGH SCORE: ' + highScore, W / 2, 600);
-    }
-  }
-
-  function drawGameOver() {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ff44cc';
-    ctx.shadowColor = '#ff44cc';
-    ctx.shadowBlur = 18;
-    ctx.font = 'bold 32px Courier New';
-    ctx.fillText('GAME OVER', W / 2, H / 2 - 80);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = '15px Courier New';
-    ctx.fillText('FINAL SCORE: ' + score, W / 2, H / 2 - 30);
-    ctx.fillStyle = '#ffd24d';
-    ctx.font = 'bold 16px Courier New';
-    ctx.fillText('RANK: ' + RANKS[rankIndex].name, W / 2, H / 2);
-    if (highScore > 0) {
-      ctx.fillStyle = '#aaaaff';
-      ctx.font = '13px Courier New';
-      ctx.fillText('BEST: ' + highScore, W / 2, H / 2 + 30);
-    }
-    const blink = Math.floor(performance.now() / 400) % 2 === 0;
-    if (blink) {
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 18px Courier New';
-      ctx.fillText("PRESS 'R' TO RESTART", W / 2, H / 2 + 90);
-    }
-  }
-
-  // Wall between playfield + launch lane (cosmetic — show the divider visually)
-  function drawLaneDivider() {
-    // Semi-transparent vertical line at PF_RIGHT, dim, just to hint
-    ctx.strokeStyle = 'rgba(0, 255, 170, 0.25)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(LANE_LEFT, 145);
-    ctx.lineTo(LANE_LEFT, 700);
-    ctx.stroke();
-    // Lane label
-    ctx.save();
-    ctx.translate(424, 400);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = 'rgba(0, 255, 170, 0.35)';
-    ctx.font = 'bold 10px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('LAUNCH LANE', 0, 4);
-    ctx.restore();
-  }
-
-  // ============================================================
-  // MAIN LOOP
-  // ============================================================
-  let lastT = 0;
-  function loop(t) {
-    if (!lastT) lastT = t;
-    const dt = Math.min(40, t - lastT);
-    lastT = t;
-
-    if (state !== 'start') {
-      updateFlipper(flipperL, held('KeyZ'), dt);
-      updateFlipper(flipperR, held('Slash'), dt);
-      updateBalls(dt);
-      updateParticles(dt);
-      // Drop target reset cosmetic
-      for (const d of dropTargets) if (d.down) d.downTime += dt;
-      // Rank up animation timer
-      if (rankupAnim > 0) rankupAnim -= dt;
-    }
-
-    if (state === 'start') {
-      drawStartScreen();
-    } else {
-      drawBackground();
-      drawLaneDivider();
-      drawWalls();
-      drawBumpers();
-      drawDropTargets();
-      drawSpinner();
-      drawLetters();
-      drawFlipper(flipperL);
-      drawFlipper(flipperR);
-      drawPlunger();
-      drawParticles();
-      drawBalls();
-      drawHUD();
-      if (state === 'gameover') drawGameOver();
-    }
-
-    requestAnimationFrame(loop);
-  }
-  startGame();   // terus main — tiada skrin mula (bola sedia di plunger)
-  requestAnimationFrame(loop);
-})();
-</script>
-
-<style>
-  #touchpad { display: none; }
-  @media (pointer: coarse), (max-width: 950px) {
-    #touchpad {
-      display: flex; position: fixed; left: 0; right: 0; bottom: 0;
-      justify-content: space-between; align-items: flex-end;
-      padding: 10px 14px; gap: 10px; z-index: 9998; pointer-events: none;
-    }
-    #touchpad .pad { display: flex; gap: 10px; pointer-events: auto; align-items: flex-end; }
-    #touchpad button {
-      border-radius: 50%; background: rgba(255,255,255,0.14); border: 3px solid rgba(255,255,255,0.5);
-      color: #fff; font-size: 20px; font-weight: bold; font-family: inherit;
-      display: flex; align-items: center; justify-content: center;
-      width: 60px; height: 60px; user-select: none; -webkit-user-select: none; touch-action: none;
-    }
-    #touchpad button:active { background: rgba(255,255,255,0.42); transform: scale(0.92); }
-    #touchpad .flip { width: 80px; height: 80px; background: rgba(255,68,204,0.3); border-color: #ff44cc; font-size: 30px; }
-    #touchpad .launch { background: rgba(255,210,77,0.3); border-color: #ffd24d; font-size: 14px; }
-  }
-</style>
-<div id="touchpad">
-  <div class="pad">
-    <button class="flip" data-hold="KeyZ">◀</button>
-  </div>
-  <div class="pad">
-    <button class="launch" data-hold="Space">TOLAK</button>
-    <button data-tap="Enter">OK</button>
-    <button class="flip" data-hold="Slash">▶</button>
-  </div>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<div id="zones">
+  <div class="zone zone-l"><span class="pil">◀ KIRI</span></div>
+  <div class="zone zone-r"><span class="pil">KANAN ▶</span></div>
 </div>
+<button id="btnLancar">🚀 LANCAR</button>
+<button id="btnGoncang">🤝 GONCANG</button>
+
 <script>
-(function(){
-  const KEY = { Space:' ', Enter:'Enter', Slash:'/', KeyZ:'z' };
-  function fire(type, code){ window.dispatchEvent(new KeyboardEvent(type, { code, key: KEY[code]||code, bubbles:true })); }
-  document.querySelectorAll('#touchpad button').forEach(b=>{
-    const hold=b.dataset.hold, tap=b.dataset.tap;
-    if(hold){
-      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',hold);}, {passive:false});
-      const up=e=>{e.preventDefault(); fire('keyup',hold);};
-      b.addEventListener('touchend', up, {passive:false});
-      b.addEventListener('touchcancel', up, {passive:false});
-    } else if(tap){
-      b.addEventListener('touchstart', e=>{e.preventDefault(); fire('keydown',tap); fire('keyup',tap);}, {passive:false});
+(function () {
+'use strict';
+
+// ==========================================================================
+// 1. ASAS: KANVAS, SKALA
+// ==========================================================================
+const LW = 400, LH = 800;
+const PF_ATAS = 176, PF_BAWAH = 800, GARIS_LONGKANG = 790;
+const BOLA_R = 9;
+
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const zonesEl  = document.getElementById('zones');
+const zoneL    = zonesEl.children[0];
+const zoneR    = zonesEl.children[1];
+const btnLancar  = document.getElementById('btnLancar');
+const btnGoncang = document.getElementById('btnGoncang');
+
+let skalaLuar = 1;
+
+function saiz() {
+  const vw = window.innerWidth;
+  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  const s  = Math.min(vw / LW, vh / LH);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  skalaLuar = s;
+  cv.width  = Math.round(LW * s * dpr);
+  cv.height = Math.round(LH * s * dpr);
+  cv.style.width  = (LW * s) + 'px';
+  cv.style.height = (LH * s) + 'px';
+  ctx.setTransform(s * dpr, 0, 0, s * dpr, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+}
+window.addEventListener('resize', saiz);
+window.addEventListener('orientationchange', saiz);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', saiz);
+saiz();
+
+// helper roundRect (fallback sendiri, tak bergantung pada ctx.roundRect)
+function rr(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+function fon(px, tebal) { ctx.font = (tebal ? 'bold ' : '') + px + 'px "Courier New", monospace'; }
+function teksMuat(t, maxW, px0, pxMin, tebal) {
+  let px = px0;
+  fon(px, tebal);
+  while (ctx.measureText(t).width > maxW && px > pxMin) { px--; fon(px, tebal); }
+  return px;
+}
+const klip = (v, a, b) => v < a ? a : (v > b ? b : v);
+const rnd  = (a, b) => a + Math.random() * (b - a);
+
+// ==========================================================================
+// 2. AUDIO
+// ==========================================================================
+let actx = null;
+let senyap = false;
+try { senyap = localStorage.getItem('pinballAngkasa.senyap') === '1'; } catch (e) {}
+
+function ensureAudio() {
+  if (actx) { if (actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } return; }
+  try { actx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { actx = null; }
+}
+function tone(freq, dur, type, vol, freqEnd) {
+  if (!actx || senyap) return;
+  type = type || 'square'; vol = (vol === undefined ? 0.08 : vol);
+  const t0 = actx.currentTime;
+  const osc = actx.createOscillator();
+  const g = actx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqEnd !== undefined && freqEnd !== null) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), t0 + dur);
+  }
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(actx.destination);
+  osc.start(t0); osc.stop(t0 + dur);
+}
+function noiseBurst(dur, vol) {
+  if (!actx || senyap) return;
+  vol = (vol === undefined ? 0.12 : vol);
+  const t0 = actx.currentTime;
+  const buf = actx.createBuffer(1, Math.max(1, Math.floor(actx.sampleRate * dur)), actx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource();
+  const g = actx.createGain();
+  src.buffer = buf;
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(g).connect(actx.destination);
+  src.start(t0);
+}
+function urutan(nada, jarak, dur, type, vol) {
+  if (!actx || senyap) return;
+  for (let i = 0; i < nada.length; i++) {
+    (function (n, i) { setTimeout(function () { tone(n, dur, type, vol); }, i * jarak); })(nada[i], i);
+  }
+}
+const SFX = {
+  flipper()   { tone(200, 0.04, 'square', 0.06); },
+  bumper()    { tone(660, 0.08, 'square', 0.08, 900); },
+  sling()     { tone(500, 0.06, 'square', 0.07, 700); },
+  rollover()  { tone(880, 0.07, 'sine', 0.07, 1200); },
+  sasaran()   { tone(1100, 0.05, 'square', 0.06); },
+  ramp()      { urutan([440, 554, 659, 880], 60, 0.06, 'square', 0.07); },
+  kincir()    { urutan([1400, 1400, 1400, 1400, 1400, 1400], 60, 0.03, 'square', 0.04); },
+  cacing()    { tone(900, 0.5, 'sine', 0.09, 180); },
+  bulan()     { tone(300, 0.3, 'sine', 0.08, 520); },
+  perisai()   { tone(1200, 0.12, 'sine', 0.09, 1600); },
+  misiSiap()  { urutan([523, 659, 784, 1047], 110, 0.16, 'square', 0.09); },
+  pangkat()   { urutan([523, 659, 784, 1047, 1319, 1568], 110, 0.18, 'square', 0.09); },
+  bos()       { tone(120, 0.15, 'sawtooth', 0.10, 60); },
+  bolaJatuh() { tone(280, 0.45, 'sawtooth', 0.08, 90); },
+  lancar()    { noiseBurst(0.18, 0.12); },
+  goncang()   { noiseBurst(0.08, 0.08); },
+  tik()       { tone(1500, 0.02, 'square', 0.03); },
+  bintang()   { tone(1320, 0.09, 'sine', 0.07, 1800); }
+};
+function getar(p) { try { if (navigator.vibrate && !senyap) navigator.vibrate(p); } catch (e) {} }
+
+// ==========================================================================
+// 3. SIMPANAN
+// ==========================================================================
+const KUNCI = { edris: 'pinballAngkasa.edris', enisa: 'pinballAngkasa.enisa' };
+function bacaRekod(p) {
+  const kosong = { pangkatTertinggi: 0, skorTerbaik: 0, misiSiap: [false,false,false,false,false,false], pusinganTerbaik: 1, jumlahMain: 0 };
+  try {
+    const raw = localStorage.getItem(KUNCI[p]);
+    if (!raw) return kosong;
+    const o = JSON.parse(raw);
+    return {
+      pangkatTertinggi: o.pangkatTertinggi | 0,
+      skorTerbaik: o.skorTerbaik | 0,
+      misiSiap: Array.isArray(o.misiSiap) ? o.misiSiap : kosong.misiSiap,
+      pusinganTerbaik: o.pusinganTerbaik || 1,
+      jumlahMain: o.jumlahMain | 0
+    };
+  } catch (e) { return kosong; }
+}
+function tulisRekod(p, o) { try { localStorage.setItem(KUNCI[p], JSON.stringify(o)); } catch (e) {} }
+function simpanSenyap() { try { localStorage.setItem('pinballAngkasa.senyap', senyap ? '1' : '0'); } catch (e) {} }
+function simpanProfil(p) { try { localStorage.setItem('pinballAngkasa.profil', p); } catch (e) {} }
+
+// ==========================================================================
+// 4. PANGKAT
+// ==========================================================================
+const PANGKAT = [
+  { nama: 'KADET',           logam: '#8a8aa5', chev: 1, bintang: 0 },
+  { nama: 'JURUTERBANG',     logam: '#c08040', chev: 2, bintang: 0 },
+  { nama: 'LEFTENAN',        logam: '#d8d8e8', chev: 2, bintang: 1 },
+  { nama: 'KAPTEN',          logam: '#d8d8e8', chev: 3, bintang: 1 },
+  { nama: 'KOMANDER',        logam: '#ffd24d', chev: 3, bintang: 2, sayap: true },
+  { nama: 'LAKSAMANA',       logam: '#ffd24d', chev: 3, bintang: 3, sayap: true, aura: true },
+  { nama: 'ADIWIRA ANGKASA', logam: '#ffd24d', chev: 0, bintang: 5, adiwira: true }
+];
+
+// ==========================================================================
+// 5. MISI
+// ==========================================================================
+const MISI = [
+  { nama: 'MISI 1: LATIHAN KADET',  pilih: 'PILIH: LATIHAN KADET 🚀',  warna: '#00e5ff', perlu: 6, bonus: 2000,  sasaran: 'planet' },
+  { nama: 'MISI 2: KUTIP BINTANG',  pilih: 'PILIH: KUTIP BINTANG ⭐',  warna: '#ffd24d', perlu: 3, bonus: 3000,  sasaran: 'lorong' },
+  { nama: 'MISI 3: SELAMAT KAWAN',  pilih: 'PILIH: SELAMAT KAWAN 🧑‍🚀', warna: '#38ef7d', perlu: 3, bonus: 4000,  sasaran: 'sos' },
+  { nama: 'MISI 4: PECUT ROKET',    pilih: 'PILIH: PECUT ROKET ☄',     warna: '#ff8c00', perlu: 3, bonus: 5000,  sasaran: 'ramp' },
+  { nama: 'MISI 5: DARAT DI BULAN', pilih: 'PILIH: DARAT DI BULAN 🌙', warna: '#c0d0e0', perlu: 2, bonus: 6000,  sasaran: 'bulan' },
+  { nama: 'MISI 6: RAJA METEOR',    pilih: 'PILIH: RAJA METEOR 👾',    warna: '#ff4d4d', perlu: 8, bonus: 12000, sasaran: 'bos' }
+];
+
+// ==========================================================================
+// 6. GEOMETRI PAPAN  (satu sumber untuk lukisan DAN kolisi)
+// ==========================================================================
+const segmen  = [];   // {x1,y1,x2,y2,e,r,jenis,id}
+const bulatan = [];   // {x,y,r,e,jenis,id}
+
+function seg(x1, y1, x2, y2, o) {
+  const s = { x1: x1, y1: y1, x2: x2, y2: y2, e: 0.55, r: 3, jenis: 'dinding', id: '' };
+  if (o) for (const k in o) s[k] = o[k];
+  segmen.push(s); return s;
+}
+function bul(x, y, r, o) {
+  const b = { x: x, y: y, r: r, e: 0.60, jenis: 'tiang', id: '' };
+  if (o) for (const k in o) b[k] = o[k];
+  bulatan.push(b); return b;
+}
+
+// --- dinding utama -------------------------------------------------------
+seg(12, 322, 12, 700, { r: 4, id: 'W1' });
+seg(12, 700, 30, 785, { r: 4, id: 'W2' });
+seg(348, 272, 348, 800, { r: 4, id: 'W3' });
+seg(348, 700, 330, 785, { r: 4, id: 'W4' });
+seg(394, 370, 394, 800, { r: 4, id: 'W5' });
+seg(348, 800, 394, 800, { r: 4, id: 'W6' });
+// pintu lorong lancar (kekal pejal — keluar lorong adalah berskrip)
+seg(348, 272, 364, 256, { r: 3, id: 'G1' });
+bul(348, 272, 5, { id: 'topDivider' });
+
+// --- busur gerbang atas A1 ----------------------------------------------
+const ARC_CX = 200, ARC_CY = 370, ARC_R = 194;
+(function buatBusur() {
+  const a1 = Math.atan2(322 - ARC_CY, 12 - ARC_CX);   // ~ -2.891 rad
+  const a2 = 0;                                        // (394,370)
+  const N = 24;
+  for (let i = 0; i < N; i++) {
+    const t1 = a1 + (a2 - a1) * (i / N);
+    const t2 = a1 + (a2 - a1) * ((i + 1) / N);
+    seg(ARC_CX + ARC_R * Math.cos(t1), ARC_CY + ARC_R * Math.sin(t1),
+        ARC_CX + ARC_R * Math.cos(t2), ARC_CY + ARC_R * Math.sin(t2),
+        { r: 4, jenis: 'busur', id: 'A1' });
+  }
+})();
+
+// --- tiang pemisah lorong atas -------------------------------------------
+bul(145, 250, 7, { id: 'tiangL1' });
+bul(215, 250, 7, { id: 'tiangL2' });
+
+// --- bumper planet -------------------------------------------------------
+const MARIKH = bul(108, 330, 26, { jenis: 'bumper', id: 'marikh' });
+const NEPTUN = bul(252, 330, 26, { jenis: 'bumper', id: 'neptun' });
+const ZUHAL  = bul(180, 288, 25, { jenis: 'bumper', id: 'zuhal' });
+MARIKH.cd = 0; NEPTUN.cd = 0; ZUHAL.cd = 0;
+MARIKH.kilat = 0; NEPTUN.kilat = 0; ZUHAL.kilat = 0;
+
+// --- muka slingshot ------------------------------------------------------
+const SL_KIRI  = seg(90, 586, 134, 636, { jenis: 'sling', id: 'slKiri',  nx: 0.75,  ny: -0.66, kilat: 0, r: 4 });
+const SL_KANAN = seg(270, 586, 226, 636, { jenis: 'sling', id: 'slKanan', nx: -0.75, ny: -0.66, kilat: 0, r: 4 });
+// sisi lain segi tiga = dinding biasa
+seg(90, 586, 90, 652, { r: 4, id: 'slKiriA' });
+seg(90, 652, 134, 636, { r: 4, id: 'slKiriB' });
+seg(270, 586, 270, 652, { r: 4, id: 'slKananA' });
+seg(270, 652, 226, 636, { r: 4, id: 'slKananB' });
+
+// --- pembahagi inlane/outlane -------------------------------------------
+seg(44, 600, 52, 700, { r: 3, id: 'divKiri' });
+seg(316, 600, 308, 700, { r: 3, id: 'divKanan' });
+
+// --- sasaran jatuh S-O-S -------------------------------------------------
+const SOS = [];
+(function buatSOS() {
+  const pusat = [[54, 500], [80, 490], [106, 480]];
+  const huruf = ['S', 'O', 'S'];
+  const a = -21 * Math.PI / 180, hl = 14;
+  for (let i = 0; i < 3; i++) {
+    const cx = pusat[i][0], cy = pusat[i][1];
+    const dx = Math.cos(a) * hl, dy = Math.sin(a) * hl;
+    const s = seg(cx - dx, cy - dy, cx + dx, cy + dy, {
+      jenis: 'sasaran', id: 'sos' + i, r: 5, e: 0.5,
+      tumbang: false, anim: 0, huruf: huruf[i], cx: cx, cy: cy, sudut: a, idx: i
+    });
+    SOS.push(s);
+  }
+})();
+let sosBangkitT = 0;
+
+// --- perisai outlane -----------------------------------------------------
+const PERISAI_KIRI  = seg(14, 700, 44, 700,  { jenis: 'perisai', id: 'pKiri',  r: 4, nx: 0.45,  ny: -0.89, hidup: true, kilat: 0 });
+const PERISAI_KANAN = seg(316, 700, 346, 700, { jenis: 'perisai', id: 'pKanan', r: 4, nx: -0.45, ny: -0.89, hidup: true, kilat: 0 });
+
+// --- jaring graviti ------------------------------------------------------
+const JARING = seg(96, 768, 264, 768, { jenis: 'jaring', id: 'jaring', r: 4, caj: 1, kilat: 0 });
+
+// --- mulut ramp ----------------------------------------------------------
+const RAMP_KIRI  = seg(40, 536, 76, 504,  { jenis: 'ramp', id: 'rampKiri',  r: 4, sisi: 'K', kincir: 0 });
+const RAMP_KANAN = seg(324, 536, 288, 504, { jenis: 'ramp', id: 'rampKanan', r: 4, sisi: 'N', kincir: 0 });
+
+const LALUAN_RAMP = {
+  K: { p: [[58, 520], [14, 430], [34, 272], [126, 206]], keluar: [78, 650] },
+  N: { p: [[302, 520], [346, 430], [326, 272], [274, 206]], keluar: [282, 650] }
+};
+
+// --- lubang --------------------------------------------------------------
+const CACING = { x: 180, y: 430, rv: 30, rc: 16, putar: 0 };
+const BULAN  = { x: 300, y: 470, rv: 28, rc: 17 };
+
+// --- lorong atas ---------------------------------------------------------
+const LORONG = [
+  { x1: 88,  x2: 132, nyala: false, cd: 0 },
+  { x1: 158, x2: 202, nyala: false, cd: 0 },
+  { x1: 228, x2: 272, nyala: false, cd: 0 }
+];
+const LORONG_Y = 250;
+
+// --- flipper -------------------------------------------------------------
+const FLIP = {
+  L: { px: 98,  py: 712, dir: 1,  sudut: 26 * Math.PI / 180, w: 0, tekan: false },
+  R: { px: 262, py: 712, dir: -1, sudut: 26 * Math.PI / 180, w: 0, tekan: false }
+};
+const SUDUT_REHAT = 26 * Math.PI / 180;
+const SUDUT_AKTIF = -30 * Math.PI / 180;
+const FLIP_R = 8;
+
+// ==========================================================================
+// 7. KEADAAN PERMAINAN
+// ==========================================================================
+let keadaan = 'mula';      // 'mula' | 'main' | 'jeda' | 'tamat'
+let profil  = 'enisa';
+let mudah   = false;
+
+const T = {
+  grav: 420, hadLaju: 520, flipPanjang: 66,
+  cajJaring: 1, cajIsiSetiap: 2, perisaiKekal: false, bolaSelamat: 15
+};
+function tetapkanMod(p) {
+  profil = p;
+  mudah = (p === 'edris');
+  if (mudah) {
+    T.grav = 360; T.hadLaju = 470; T.flipPanjang = 70;
+    T.cajJaring = 4; T.cajIsiSetiap = 1; T.perisaiKekal = true; T.bolaSelamat = 25;
+  } else {
+    T.grav = 420; T.hadLaju = 520; T.flipPanjang = 66;
+    T.cajJaring = 1; T.cajIsiSetiap = 2; T.perisaiKekal = false; T.bolaSelamat = 15;
+  }
+}
+tetapkanMod('enisa');
+
+let skor = 0, skorPapar = 0;
+let bolaTinggal = 3, bolaMaks = 3;
+let bonusBolaDiberi = false;
+let pendarabT = 0;
+let misiSiapJumlah = 0;
+let pusingan = 1;
+let misiSiapRound = [false, false, false, false, false, false];
+let misiAktif = -1, misiP = 0, misiSorot = 0;
+let sorotT = 0, autoMulaT = 0;
+let perisaiGuna = 1;
+let planetBolaIni = 0;
+let masaBolaIni = 0;
+let simpanT = 0;
+let gegar = 0, kilatSkrin = 0, kilatWarna = '#ffffff';
+let masaMain = 0, pilMalapT = 0, pilTerangT = 0;
+let bos = { hp: 0, maks: 8, goyang: 0, retak: 0 };
+let goncangCd = 0;
+let sudahMain = false;
+
+const bola = {
+  x: 373, y: 776, vx: 0, vy: 0, mode: 'sedia', r: BOLA_R,
+  pv: { x: 373, y: 776 }, lambatT: 0, jejak: []
+};
+let simpanV = { x: 0, y: 0 };
+
+let lancarTekan = false, lancarKuasa = 0, lancarAutoT = 0;
+const zarah = [];
+const teksApung = [];
+
+// giliran mesej
+const giliran = [];
+let mesejSemasa = null, mesejT = 0;
+
+function mesej(t) {
+  if (giliran.length >= 4) giliran.shift();
+  giliran.push(t);
+}
+function barisMisi() {
+  if (misiAktif < 0) {
+    if (sorotT > 0 && misiSorot >= 0) return MISI[misiSorot].pilih;
+    return 'MASUK LUBANG CACING! 🌀';
+  }
+  const m = MISI[misiAktif];
+  switch (m.sasaran) {
+    case 'planet': return 'KENA PLANET ▸ ' + misiP + '/6';
+    case 'lorong': return 'BINTANG ▸ ' + bintangTeks(misiP, 3);
+    case 'sos':    return 'JATUHKAN S-O-S ▸ ' + bintangTeks(misiP, 3);
+    case 'ramp':   return 'NAIK RAMP ▸ ' + misiP + '/3';
+    case 'bulan':  return 'DARAT BULAN ▸ ' + bintangTeks(misiP, 2);
+    case 'bos':    return 'RAJA METEOR ' + '♥'.repeat(Math.max(0, bos.hp));
+  }
+  return '';
+}
+function bintangTeks(n, jum) {
+  let s = '';
+  for (let i = 0; i < jum; i++) s += (i < n ? '★' : '☆');
+  return s;
+}
+
+// upacara
+const upacara = { aktif: false, jenis: '', t: 0, jum: 0, teks: '', bonus: 0, warna: '#ffd24d', pangkatBaru: 0, skorMula: 0, skorAkhir: 0, tikT: 0 };
+
+// papan tamat
+let tamatT = 0, tamatSkorPapar = 0, rekodBaharu = false, rekodLama = null;
+
+// ==========================================================================
+// 8. LATAR / HIASAN
+// ==========================================================================
+const lapisanBintang = [];
+(function buatBintang() {
+  const kira = [60, 45, 30], laju = [2, 4, 7], saizB = [0.8, 1.3, 2.0];
+  for (let L = 0; L < 3; L++) {
+    const arr = [];
+    for (let i = 0; i < kira[L]; i++) {
+      arr.push({ x: Math.random() * LW, y: Math.random() * LH, s: saizB[L], f: Math.random() * 6.28 });
+    }
+    lapisanBintang.push({ arr: arr, laju: laju[L] });
+  }
+})();
+let nebulaT = 0, satelitA = 0;
+
+// ==========================================================================
+// 9. INPUT
+// ==========================================================================
+const ditekan = new Map();
+
+function kiraSemula() {
+  const v = [];
+  ditekan.forEach(function (val) { v.push(val); });
+  FLIP.L.tekan = v.indexOf('L') >= 0;
+  FLIP.R.tekan = v.indexOf('R') >= 0;
+  zoneL.classList.toggle('on', FLIP.L.tekan);
+  zoneR.classList.toggle('on', FLIP.R.tekan);
+}
+function sisiDari(x) { return x < window.innerWidth / 2 ? 'L' : 'R'; }
+
+function kanvasKoord(e) {
+  const r = cv.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (LW / r.width),
+    y: (e.clientY - r.top) * (LH / r.height)
+  };
+}
+
+// butang HUD dalam kanvas (senyap & jeda) — dalam jalur bezel
+const HUD_SENYAP = { x: 30, y: 28 }, HUD_JEDA = { x: 78, y: 28 };
+function kenaHud(k, b) { return Math.abs(k.x - b.x) <= 22 && Math.abs(k.y - b.y) <= 22; }
+
+function tapKanvas(e) {
+  const k = kanvasKoord(e);
+  // butang HUD sentiasa aktif
+  if (kenaHud(k, HUD_SENYAP)) {
+    senyap = !senyap; simpanSenyap();
+    if (!senyap) SFX.rollover();
+    return true;
+  }
+  if (kenaHud(k, HUD_JEDA) && (keadaan === 'main' || keadaan === 'jeda')) {
+    keadaan = (keadaan === 'main') ? 'jeda' : 'main';
+    kemasButang();
+    return true;
+  }
+  if (keadaan === 'mula') {
+    if (k.x >= 50 && k.x <= 350 && k.y >= 340 && k.y <= 412) { mulaMain('edris'); return true; }
+    if (k.x >= 50 && k.x <= 350 && k.y >= 430 && k.y <= 502) { mulaMain('enisa'); return true; }
+    return true;
+  }
+  if (keadaan === 'jeda') { keadaan = 'main'; kemasButang(); return true; }
+  if (keadaan === 'tamat') {
+    if (tamatT < 0.7) return true;
+    if (k.x >= 60 && k.x <= 340 && k.y >= 600 && k.y <= 672) { keadaan = 'mula'; kemasButang(); return true; }
+    return true;
+  }
+  return false;
+}
+
+zonesEl.addEventListener('pointerdown', function (e) {
+  e.preventDefault();
+  ensureAudio();
+  if (upacara.aktif) { langkauUpacara(); return; }
+  if (keadaan !== 'main') { tapKanvas(e); return; }
+  if (tapKanvas(e)) return;
+  if (bola.mode === 'sedia') { lancarTekan = true; }
+  ditekan.set(e.pointerId, sisiDari(e.clientX));
+  kiraSemula();
+}, { passive: false });
+
+zonesEl.addEventListener('pointermove', function (e) {
+  if (!ditekan.has(e.pointerId)) return;
+  const s = sisiDari(e.clientX);
+  if (ditekan.get(e.pointerId) !== s) { ditekan.set(e.pointerId, s); kiraSemula(); }
+}, { passive: false });
+
+['pointerup', 'pointercancel', 'pointerleave', 'lostpointercapture'].forEach(function (ev) {
+  zonesEl.addEventListener(ev, function (e) {
+    if (ditekan.has(e.pointerId)) { ditekan.delete(e.pointerId); kiraSemula(); }
+    if (lancarTekan && keadaan === 'main' && bola.mode === 'sedia') lancarBola();
+  });
+});
+window.addEventListener('blur', function () { ditekan.clear(); kiraSemula(); lancarTekan = false; });
+
+// kanvas (kawasan atas 96px yang tak ditutup zon)
+cv.addEventListener('pointerdown', function (e) {
+  e.preventDefault();
+  ensureAudio();
+  if (upacara.aktif) { langkauUpacara(); return; }
+  tapKanvas(e);
+}, { passive: false });
+
+btnLancar.addEventListener('pointerdown', function (e) {
+  e.preventDefault(); ensureAudio();
+  if (keadaan === 'main' && bola.mode === 'sedia') lancarTekan = true;
+}, { passive: false });
+btnLancar.addEventListener('pointerup', function (e) {
+  e.preventDefault();
+  if (keadaan === 'main' && bola.mode === 'sedia') lancarBola();
+}, { passive: false });
+btnGoncang.addEventListener('pointerdown', function (e) {
+  e.preventDefault(); ensureAudio(); goncang();
+}, { passive: false });
+
+const KIRI_KEY  = ['KeyZ', 'KeyA', 'ArrowLeft'];
+const KANAN_KEY = ['Slash', 'KeyM', 'KeyL', 'ArrowRight'];
+window.addEventListener('keydown', function (e) {
+  ensureAudio();
+  if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.code) >= 0) e.preventDefault();
+  if (e.repeat) return;
+  if (upacara.aktif) { langkauUpacara(); return; }
+  if (keadaan === 'mula') {
+    if (e.code === 'Enter' || e.code === 'KeyR' || e.code === 'Space') mulaMain(profil);
+    if (e.code === 'Digit1') mulaMain('edris');
+    if (e.code === 'Digit2') mulaMain('enisa');
+    return;
+  }
+  if (keadaan === 'tamat') {
+    if ((e.code === 'Enter' || e.code === 'KeyR' || e.code === 'Space') && tamatT > 0.7) { keadaan = 'mula'; kemasButang(); }
+    return;
+  }
+  if (e.code === 'KeyP') { keadaan = (keadaan === 'jeda') ? 'main' : 'jeda'; kemasButang(); return; }
+  if (keadaan !== 'main') return;
+  if (e.code === 'KeyN') { goncang(); return; }
+  if (KIRI_KEY.indexOf(e.code) >= 0)  { ditekan.set('k-L', 'L'); kiraSemula(); }
+  if (KANAN_KEY.indexOf(e.code) >= 0) { ditekan.set('k-R', 'R'); kiraSemula(); }
+  if (e.code === 'Space' && bola.mode === 'sedia') lancarTekan = true;
+});
+window.addEventListener('keyup', function (e) {
+  if (KIRI_KEY.indexOf(e.code) >= 0)  { ditekan.delete('k-L'); kiraSemula(); }
+  if (KANAN_KEY.indexOf(e.code) >= 0) { ditekan.delete('k-R'); kiraSemula(); }
+  if (e.code === 'Space' && keadaan === 'main' && bola.mode === 'sedia') lancarBola();
+});
+
+function kemasButang() {
+  const tunjuk = (keadaan === 'main' && bola.mode === 'sedia' && !upacara.aktif);
+  btnLancar.style.display  = tunjuk ? 'block' : 'none';
+  btnGoncang.style.display = (keadaan === 'main') ? 'block' : 'none';
+}
+
+// ==========================================================================
+// 10. LOGIK PERMAINAN
+// ==========================================================================
+function mulaMain(p) {
+  tetapkanMod(p);
+  simpanProfil(p);
+  ensureAudio();
+  skor = 0; skorPapar = 0;
+  bolaMaks = 3; bolaTinggal = 3; bonusBolaDiberi = false;
+  pendarabT = 0; misiSiapJumlah = 0; pusingan = 1;
+  misiSiapRound = [false, false, false, false, false, false];
+  misiAktif = -1; misiP = 0; misiSorot = 0; sorotT = 0; autoMulaT = 0;
+  masaMain = 0; pilMalapT = 0; pilTerangT = 4;
+  goncangCd = 0; gegar = 0; kilatSkrin = 0;
+  zarah.length = 0; teksApung.length = 0; giliran.length = 0;
+  mesejSemasa = null; mesejT = 0;
+  bos.hp = 0; bos.retak = 0; ZUHAL.r = 25;
+  sudahMain = false;
+  SOS.forEach(function (s) { s.tumbang = false; s.anim = 0; });
+  sosBangkitT = 0;
+  LORONG.forEach(function (l) { l.nyala = false; l.cd = 0; });
+  RAMP_KIRI.kincir = 0; RAMP_KANAN.kincir = 0;
+  isiPerisai(); isiJaring();
+  keadaan = 'main';
+  sediaBola(true);
+  const r = bacaRekod(profil);
+  r.jumlahMain++; tulisRekod(profil, r);
+  mesej('TAHAN & LEPAS UNTUK LANCAR');
+  kemasButang();
+}
+
+function sediaBola(pertama) {
+  bola.x = 373; bola.y = 776; bola.vx = 0; bola.vy = 0;
+  bola.mode = 'sedia'; bola.lambatT = 0; bola.jejak.length = 0;
+  bola.pv.x = bola.x; bola.pv.y = bola.y;
+  lancarTekan = false; lancarKuasa = 0; lancarAutoT = 0;
+  simpanT = T.bolaSelamat;
+  masaBolaIni = 0; planetBolaIni = 0;
+  isiPerisai();
+  if (misiSiapJumlah >= 5) isiJaring();
+  pilTerangT = 4;
+  if (!pertama) {
+    if (bolaTinggal === 1) mesej('BOLA TERAKHIR! SEMANGAT!');
+    else mesej('BOLA ' + (bolaMaks - bolaTinggal + 1) + ' DARI ' + bolaMaks);
+  }
+  kemasButang();
+}
+
+function isiPerisai() {
+  perisaiGuna = T.perisaiKekal ? 99 : (misiSiapJumlah >= 2 ? 2 : 1);
+  PERISAI_KIRI.hidup = true; PERISAI_KANAN.hidup = true;
+}
+function isiJaring() { JARING.caj = T.cajJaring; }
+
+function lancarBola() {
+  if (bola.mode !== 'sedia') { lancarTekan = false; return; }
+  lancarTekan = false;
+  bola.mode = 'lorong';
+  bola.kuasa = lancarKuasa;
+  kemasButang();
+  SFX.lancar();
+  if (!sudahMain) {
+    sudahMain = true;
+    if (misiAktif < 0) mulaMisi(0, true);
+  }
+}
+
+function goncang() {
+  if (keadaan !== 'main' || goncangCd > 0) return;
+  if (bola.mode !== 'bebas') return;
+  goncangCd = 1.5;
+  const a = rnd(-Math.PI * 0.85, -Math.PI * 0.15);
+  bola.vx += Math.cos(a) * 130;
+  bola.vy += Math.sin(a) * 130;
+  SFX.goncang(); mesej('GONCANG!');
+  gegar = Math.max(gegar, 3);
+}
+
+function tambahSkor(n) {
+  let m = 1;
+  if (pendarabT > 0) m *= 2;
+  if (misiSiapJumlah >= 4) m *= 1.5;
+  skor += Math.round(n * m);
+}
+function poin(n, x, y, warna) {
+  tambahSkor(n);
+  teksApung.push({ x: x, y: y, t: 0, teks: '+' + n, warna: warna || '#ffd24d' });
+}
+
+function letupan(x, y, n, warna, laju) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * 6.283, s = rnd(laju * 0.3, laju);
+    zarah.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, hidup: rnd(0.4, 1.1), warna: warna, r: rnd(1.2, 3) });
+  }
+}
+
+// ---- misi ---------------------------------------------------------------
+function senaraiBelumSiap() {
+  const a = [];
+  for (let i = 0; i < 6; i++) if (!misiSiapRound[i]) a.push(i);
+  return a;
+}
+function sorotSeterusnya() {
+  const a = senaraiBelumSiap();
+  if (!a.length) return;
+  let idx = a.indexOf(misiSorot);
+  misiSorot = a[(idx + 1) % a.length];
+  sorotT = 4;
+}
+function mulaMisi(i, senyapMula) {
+  if (i < 0 || i > 5 || misiSiapRound[i]) {
+    const a = senaraiBelumSiap();
+    if (!a.length) return;
+    i = a[0];
+  }
+  misiAktif = i; misiP = 0; autoMulaT = 0;
+  if (MISI[i].sasaran === 'bos') { bos.hp = 8; bos.retak = 0; ZUHAL.r = 34; }
+  if (MISI[i].sasaran === 'sos') { SOS.forEach(function (s) { s.tumbang = false; s.anim = 0; }); misiP = 0; }
+  if (MISI[i].sasaran === 'lorong') { LORONG.forEach(function (l) { l.nyala = false; }); misiP = 0; }
+  mesej(senyapMula ? 'MISI BERMULA!' : 'MISI BERMULA!');
+  SFX.bintang();
+}
+function majuMisi(jenis, n) {
+  if (misiAktif < 0) return;
+  const m = MISI[misiAktif];
+  if (m.sasaran !== jenis) return;
+  misiP = Math.min(m.perlu, misiP + (n || 1));
+  const baki = m.perlu - misiP;
+  if (baki === 2) mesej('BAGUS! 2 LAGI!');
+  else if (baki === 1) mesej('HEBAT! 1 LAGI!');
+  if (misiP >= m.perlu) siapkanMisi();
+}
+function siapkanMisi() {
+  const m = MISI[misiAktif];
+  const bonus = m.bonus * pusingan;
+  upacara.aktif = true; upacara.jenis = 'misi'; upacara.t = 0; upacara.jum = 2.6;
+  upacara.teks = 'MISI SELESAI! 🎉'; upacara.warna = m.warna; upacara.bonus = bonus;
+  upacara.skorMula = skor; upacara.skorAkhir = skor + bonus; upacara.tikT = 0;
+  simpanV.x = bola.vx; simpanV.y = bola.vy;
+  if (bola.mode === 'bebas') { bola.vx = 0; bola.vy = 0; bola.mode = 'beku'; }
+  kilatSkrin = 0.15; kilatWarna = '#ffffff';
+  SFX.misiSiap(); getar(40);
+  kemasButang();
+}
+function selesaikanMisiSiap() {
+  const idx = misiAktif;
+  const m = MISI[idx];
+  skor = upacara.skorAkhir;
+  misiSiapRound[idx] = true;
+  misiSiapJumlah++;
+  const pangkatLama = Math.min(6, misiSiapJumlah - 1);
+  const pangkatBaru = Math.min(6, misiSiapJumlah);
+
+  // ganjaran tambahan
+  if (m.sasaran === 'lorong') { isiPerisai(); isiJaring(); }
+  if (m.sasaran === 'sos')    { simpanT = T.bolaSelamat; }
+  if (m.sasaran === 'ramp')   { pendarabT = 20; mesej('SKOR DUA KALI GANDA!'); }
+  if (m.sasaran === 'bulan')  { bolaTinggal++; bolaMaks++; mesej('DAPAT BOLA TAMBAHAN! 🎁'); }
+  if (m.sasaran === 'bos')    { ZUHAL.r = 25; bos.hp = 0; mesej('RAJA METEOR KALAH! 👾'); letupan(ZUHAL.x, ZUHAL.y, 60, '#ff4d4d', 300); kilatSkrin = 0.2; }
+
+  // isi semula caj jaring ikut kadar
+  if (mudah) isiJaring();
+  else if (misiSiapJumlah % T.cajIsiSetiap === 0) isiJaring();
+  isiPerisai();
+
+  // pangkat naik?
+  if (pangkatBaru > pangkatLama || misiSiapJumlah <= 6) {
+    tambahSkor(2000);
+    if (misiSiapJumlah === 3 && !bonusBolaDiberi) { bonusBolaDiberi = true; bolaTinggal++; bolaMaks++; }
+    upacara.aktif = true; upacara.jenis = 'pangkat'; upacara.t = 0; upacara.jum = 1.5;
+    upacara.pangkatBaru = pangkatBaru;
+    SFX.pangkat(); getar([30, 60, 30]);
+  } else {
+    tamatkanUpacara();
+  }
+  misiAktif = -1; misiP = 0;
+
+  // pusingan baharu?
+  let semuaSiap = true;
+  for (let i = 0; i < 6; i++) if (!misiSiapRound[i]) semuaSiap = false;
+  if (semuaSiap) {
+    pusingan++;
+    misiSiapRound = [false, false, false, false, false, false];
+    mesej('PUSINGAN ' + pusingan + ' BERMULA!');
+    if (pusingan >= 2) mesej('KAMU WIRA ANGKASA! ✨');
+  }
+  misiSorot = senaraiBelumSiap()[0] || 0;
+  sorotT = 0; autoMulaT = 0;
+}
+function tamatkanUpacara() {
+  upacara.aktif = false; upacara.jenis = ''; upacara.t = 0;
+  if (bola.mode === 'beku') { bola.mode = 'bebas'; bola.vx = simpanV.x; bola.vy = simpanV.y; }
+  kemasButang();
+}
+function langkauUpacara() {
+  if (!upacara.aktif) return;
+  if (upacara.jenis === 'misi') { upacara.t = upacara.jum; kemasKiniUpacara(0); }
+  else { upacara.t = upacara.jum; kemasKiniUpacara(0); }
+}
+function kemasKiniUpacara(dt) {
+  upacara.t += dt;
+  if (upacara.jenis === 'misi') {
+    const p = klip((upacara.t - 0.6) / 1.0, 0, 1);
+    skorPapar = upacara.skorMula + (upacara.skorAkhir - upacara.skorMula) * p;
+    upacara.tikT -= dt;
+    if (p > 0 && p < 1 && upacara.tikT <= 0) { upacara.tikT = 0.05; SFX.tik(); }
+    if (upacara.t >= upacara.jum) selesaikanMisiSiap();
+  } else if (upacara.jenis === 'pangkat') {
+    if (upacara.t >= upacara.jum) tamatkanUpacara();
+  }
+}
+
+// ---- kehilangan bola ----------------------------------------------------
+function bolaHilang() {
+  if (simpanT > 0) {
+    mesej('BOLA SIMPANAN! CUBA LAGI');
+    SFX.perisai();
+    bola.x = 373; bola.y = 776; bola.vx = 0; bola.vy = 0; bola.mode = 'sedia';
+    lancarKuasa = 0; lancarAutoT = 0; lancarTekan = false;
+    kemasButang();
+    return;
+  }
+  SFX.bolaJatuh();
+  // bonus hujung bola
+  if (planetBolaIni > 0) tambahSkor(planetBolaIni * 50);
+  bolaTinggal--;
+  if (bolaTinggal <= 0) {
+    bola.mode = 'beku'; bola.vx = 0; bola.vy = 0;
+    tamatPermainan();
+  } else {
+    if (misiAktif >= 0) mesej('SAMBUNG MISI!');
+    sediaBola(false);
+  }
+}
+function tamatPermainan() {
+  keadaan = 'tamat';
+  tamatT = 0; tamatSkorPapar = 0;
+  const r = bacaRekod(profil);
+  rekodLama = { pangkat: r.pangkatTertinggi, skor: r.skorTerbaik };
+  rekodBaharu = (skor > r.skorTerbaik) || (Math.min(6, misiSiapJumlah) > r.pangkatTertinggi);
+  r.skorTerbaik = Math.max(r.skorTerbaik, skor);
+  r.pangkatTertinggi = Math.max(r.pangkatTertinggi, Math.min(6, misiSiapJumlah));
+  r.pusinganTerbaik = Math.max(r.pusinganTerbaik || 1, pusingan);
+  for (let i = 0; i < 6; i++) if (misiSiapRound[i]) r.misiSiap[i] = true;
+  tulisRekod(profil, r);
+  kemasButang();
+}
+
+// ==========================================================================
+// 11. FIZIK
+// ==========================================================================
+function nearest(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy;
+  let t = L2 > 0 ? ((px - x1) * dx + (py - y1) * dy) / L2 : 0;
+  t = klip(t, 0, 1);
+  return { x: x1 + t * dx, y: y1 + t * dy, t: t };
+}
+
+function pantulSegmen(s) {
+  const n = nearest(bola.x, bola.y, s.x1, s.y1, s.x2, s.y2);
+  let dx = bola.x - n.x, dy = bola.y - n.y;
+  let d = Math.hypot(dx, dy);
+  const R = BOLA_R + (s.r || 3);
+  if (d >= R) return null;
+  if (d < 0.0001) { dx = 0; dy = -1; d = 1; }
+  const nx = dx / d, ny = dy / d;
+  bola.x += nx * (R - d + 0.05); bola.y += ny * (R - d + 0.05);
+  const vn = bola.vx * nx + bola.vy * ny;
+  if (vn < 0) {
+    const tx = -ny, ty = nx;
+    let vt = bola.vx * tx + bola.vy * ty;
+    const nvn = -vn * (s.e === undefined ? 0.55 : s.e);
+    vt *= 0.98;
+    bola.vx = nx * nvn + tx * vt;
+    bola.vy = ny * nvn + ty * vt;
+  }
+  return { nx: nx, ny: ny };
+}
+function pantulBulatan(b) {
+  let dx = bola.x - b.x, dy = bola.y - b.y;
+  let d = Math.hypot(dx, dy);
+  const R = BOLA_R + b.r;
+  if (d >= R) return null;
+  if (d < 0.0001) { dx = 0; dy = -1; d = 1; }
+  const nx = dx / d, ny = dy / d;
+  bola.x += nx * (R - d + 0.05); bola.y += ny * (R - d + 0.05);
+  const vn = bola.vx * nx + bola.vy * ny;
+  if (vn < 0) {
+    const tx = -ny, ty = nx;
+    let vt = bola.vx * tx + bola.vy * ty;
+    const nvn = -vn * (b.e === undefined ? 0.6 : b.e);
+    vt *= 0.98;
+    bola.vx = nx * nvn + tx * vt;
+    bola.vy = ny * nvn + ty * vt;
+  }
+  return { nx: nx, ny: ny };
+}
+
+function kemasFlipper(dt) {
+  ['L', 'R'].forEach(function (k) {
+    const f = FLIP[k];
+    const sasar = f.tekan ? SUDUT_AKTIF : SUDUT_REHAT;
+    const masa = f.tekan ? 0.055 : 0.095;
+    const lama = f.sudut;
+    const jarak = SUDUT_REHAT - SUDUT_AKTIF;
+    const langkahMaks = (jarak / masa) * dt;
+    if (Math.abs(sasar - f.sudut) <= langkahMaks) f.sudut = sasar;
+    else f.sudut += Math.sign(sasar - f.sudut) * langkahMaks;
+    f.w = (f.sudut - lama) / dt;
+    if (f.sudut !== lama && Math.abs(f.w) > 5 && f.tekan && !f.bunyi) { f.bunyi = true; SFX.flipper(); getar(10); }
+    if (!f.tekan) f.bunyi = false;
+  });
+}
+function hujungFlipper(f) {
+  const L = T.flipPanjang;
+  return { x: f.px + f.dir * L * Math.cos(f.sudut), y: f.py + L * Math.sin(f.sudut) };
+}
+function kolisiFlipper(f) {
+  const h = hujungFlipper(f);
+  const n = nearest(bola.x, bola.y, f.px, f.py, h.x, h.y);
+  let dx = bola.x - n.x, dy = bola.y - n.y;
+  let d = Math.hypot(dx, dy);
+  const R = BOLA_R + FLIP_R;
+  if (d >= R) return;
+  if (d < 0.0001) { dx = 0; dy = -1; d = 1; }
+  let nx = dx / d, ny = dy / d;
+  // a. tolak keluar DAHULU
+  bola.x += nx * (R - d + 0.1); bola.y += ny * (R - d + 0.1);
+  // b. halaju titik sentuh
+  const rx = n.x - f.px, ry = n.y - f.py;
+  const w = f.w * f.dir;
+  const vfx = -w * ry, vfy = w * rx;
+  const vn = bola.vx * nx + bola.vy * ny;
+  const vfn = vfx * nx + vfy * ny;
+  const tx = -ny, ty = nx;
+  let vt = bola.vx * tx + bola.vy * ty;
+  const nvn = -vn * 0.45 + vfn * 1.15;
+  vt *= 0.95;
+  bola.vx = nx * nvn + tx * vt;
+  bola.vy = ny * nvn + ty * vt;
+  // d. kepit
+  const sp = Math.hypot(bola.vx, bola.vy);
+  if (sp > 470) { bola.vx = bola.vx / sp * 470; bola.vy = bola.vy / sp * 470; }
+  // 4. masih bertindih?
+  const n2 = nearest(bola.x, bola.y, f.px, f.py, h.x, h.y);
+  let dx2 = bola.x - n2.x, dy2 = bola.y - n2.y;
+  let d2 = Math.hypot(dx2, dy2);
+  if (d2 < R) {
+    if (d2 < 0.0001) { dx2 = 0; dy2 = -1; d2 = 1; }
+    const ux = dx2 / d2, uy = dy2 / d2;
+    bola.x = n2.x + ux * (R + 0.5);
+    bola.y = n2.y + uy * (R + 0.5);
+    const vv = bola.vx * ux + bola.vy * uy;
+    if (vv < 120) { bola.vx += ux * (120 - vv); bola.vy += uy * (120 - vv); }
+  }
+}
+
+function kick(nx, ny, laju) {
+  const L = Math.hypot(nx, ny) || 1;
+  bola.vx = nx / L * laju;
+  bola.vy = ny / L * laju;
+}
+
+// ---- pencetus zon -------------------------------------------------------
+function semakLorongAtas() {
+  const y0 = bola.pv.y, y1 = bola.y;
+  if ((y0 - LORONG_Y) * (y1 - LORONG_Y) > 0) return;
+  for (let i = 0; i < 3; i++) {
+    const l = LORONG[i];
+    if (l.cd > 0) continue;
+    if (bola.x >= l.x1 && bola.x <= l.x2) {
+      l.cd = 0.3;
+      poin(100, bola.x, LORONG_Y, '#ffd24d');
+      SFX.rollover();
+      if (!l.nyala) {
+        l.nyala = true;
+        mesej('BINTANG MENYALA! ⭐');
+        if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'lorong') {
+          let n = 0; LORONG.forEach(function (q) { if (q.nyala) n++; });
+          misiP = n;
+        }
+      }
+      if (misiAktif < 0) { sorotSeterusnya(); }
+      let semua = true;
+      LORONG.forEach(function (q) { if (!q.nyala) semua = false; });
+      if (semua) {
+        poin(1000, 180, 240, '#ffd24d');
+        mesej('TIGA BINTANG! +1000');
+        SFX.bintang();
+        if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'lorong') { misiP = 3; siapkanMisi(); }
+        LORONG.forEach(function (q) { q.nyala = false; });
+        letupan(180, 245, 20, '#ffd24d', 140);
+      }
+      break;
+    }
+  }
+}
+
+function masukRamp(s) {
+  bola.mode = 'ramp';
+  bola.rampSisi = s.sisi;
+  bola.rampT = 0;
+  s.kincir = 1.2;
+  SFX.ramp(); SFX.kincir();
+  poin(150, bola.x, bola.y, '#38ef7d');
+  mesej('RAMP! WHOOSH! +800');
+  getar(10);
+}
+function habisRamp() {
+  poin(800, 180, 620, '#38ef7d');
+  majuMisi('ramp', 1);
+  if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'bos') kenaBos(2);
+  isiPerisai();
+}
+
+function semakLubang() {
+  const laju = Math.hypot(bola.vx, bola.vy);
+  const dc = Math.hypot(bola.x - CACING.x, bola.y - CACING.y);
+  if (dc < CACING.rc && laju < 430) {
+    bola.mode = 'lubang';
+    bola.lubang = 'cacing'; bola.lubangT = 0;
+    bola.lx = bola.x; bola.ly = bola.y;
+    SFX.cacing();
+    poin(500, CACING.x, CACING.y, '#a44dff');
+    mesej('LUBANG CACING! +500');
+    if (misiAktif < 0) { mulaMisi(misiSorot); }
+    return;
+  }
+  const db = Math.hypot(bola.x - BULAN.x, bola.y - BULAN.y);
+  if (db < BULAN.rc && laju < 460) {
+    bola.mode = 'lubang';
+    bola.lubang = 'bulan'; bola.lubangT = 0;
+    bola.lx = bola.x; bola.ly = bola.y;
+    SFX.bulan();
+    poin(750, BULAN.x, BULAN.y, '#c0d0e0');
+    mesej('MENDARAT DI BULAN! +750');
+    majuMisi('bulan', 1);
+  }
+}
+
+function kenaBos(n) {
+  if (bos.hp <= 0) return;
+  bos.hp -= n;
+  bos.retak = Math.min(5, bos.retak + 1);
+  bos.goyang = 0.3;
+  gegar = Math.max(gegar, 4);
+  SFX.bos();
+  poin(500 * n, ZUHAL.x, ZUHAL.y, '#ff4d4d');
+  if (bos.hp > 0) mesej('KENA BOS! ♥ TINGGAL ' + bos.hp);
+  misiP = Math.min(8, 8 - bos.hp);
+  if (bos.hp <= 0) { misiP = 8; siapkanMisi(); }
+}
+
+// ---- langkah fizik ------------------------------------------------------
+function skripLangkah(dt) {
+  if (bola.mode === 'sedia') {
+    if (lancarTekan) lancarKuasa = Math.min(1, lancarKuasa + dt / 1.1);
+    lancarAutoT += dt;
+    if (lancarAutoT > 6) { lancarKuasa = Math.max(lancarKuasa, 0.6); lancarBola(); }
+    return;
+  }
+  if (bola.mode === 'lorong') {
+    bola.y -= 520 * dt;
+    if (bola.y < 300) {
+      const p = klip((300 - bola.y) / 45, 0, 1);
+      bola.x = 373 - 33 * p;
+    }
+    if (bola.y <= 255) {
+      bola.x = 340; bola.y = 255;
+      bola.mode = 'bebas';
+      const laju = Math.min(480, 320 + 200 * (bola.kuasa || 0));
+      kick(-0.55, -0.83, laju);
+      lancarKuasa = 0;
+      kemasButang();
+    }
+    return;
+  }
+  if (bola.mode === 'ramp') {
+    bola.rampT += dt;
+    if (bola.rampT >= 0.9) {
+      const L = LALUAN_RAMP[bola.rampSisi];
+      bola.x = L.keluar[0]; bola.y = L.keluar[1];
+      bola.vx = 0; bola.vy = 130;
+      bola.mode = 'bebas';
+      habisRamp();
+    }
+    return;
+  }
+  if (bola.mode === 'lubang') {
+    bola.lubangT += dt;
+    const had = (bola.lubang === 'cacing') ? 1.0 : 1.0;
+    if (bola.lubangT >= had || bola.lubangT >= 1.4) {
+      if (bola.lubang === 'cacing') {
+        bola.x = CACING.x; bola.y = CACING.y + 6;
+        const kiri = Math.random() < 0.5;
+        kick(kiri ? -0.55 : 0.55, 0.84, 260);
+      } else {
+        bola.x = BULAN.x - 6; bola.y = BULAN.y + 8;
+        kick(-0.55, 0.84, 280);
+      }
+      bola.mode = 'bebas';
+      letupan(bola.x, bola.y, 12, bola.lubang === 'cacing' ? '#a44dff' : '#c0d0e0', 120);
+    }
+    return;
+  }
+  // 'beku' — tiada apa-apa
+}
+
+function langkahFizik(dt) {
+  kemasFlipper(dt);
+
+  if (bola.mode !== 'bebas') { skripLangkah(dt); return; }
+
+  bola.pv.x = bola.x; bola.pv.y = bola.y;
+
+  bola.vy += T.grav * dt;
+  bola.vx *= 0.999; bola.vy *= 0.999;
+
+  let sp = Math.hypot(bola.vx, bola.vy);
+  if (sp > T.hadLaju) { bola.vx = bola.vx / sp * T.hadLaju; bola.vy = bola.vy / sp * T.hadLaju; sp = T.hadLaju; }
+  if (sp < 40 && sp > 0.001 && bola.y < 700) { bola.vx = bola.vx / sp * 40; bola.vy = bola.vy / sp * 40; }
+
+  bola.x += bola.vx * dt;
+  bola.y += bola.vy * dt;
+
+  // --- segmen ---
+  for (let i = 0; i < segmen.length; i++) {
+    const s = segmen[i];
+    if (s.jenis === 'sasaran' && s.tumbang) continue;
+    if (s.jenis === 'perisai' && !s.hidup) continue;
+    if (s.jenis === 'jaring' && JARING.caj <= 0) continue;
+
+    if (s.jenis === 'ramp') {
+      const n = nearest(bola.x, bola.y, s.x1, s.y1, s.x2, s.y2);
+      const d = Math.hypot(bola.x - n.x, bola.y - n.y);
+      if (d < BOLA_R + s.r) {
+        if (bola.vy < -40) { masukRamp(s); return; }
+        pantulSegmen(s);
+      }
+      continue;
+    }
+
+    const hit = pantulSegmen(s);
+    if (!hit) continue;
+
+    if (s.jenis === 'sling') {
+      kick(s.nx, s.ny, 340);
+      s.kilat = 0.15;
+      poin(50, (s.x1 + s.x2) / 2, (s.y1 + s.y2) / 2, '#ff44cc');
+      SFX.sling(); getar(10);
+      mesej('SLINGSHOT! +50');
+    } else if (s.jenis === 'perisai') {
+      kick(s.nx, s.ny, 380);
+      s.kilat = 0.4;
+      if (!T.perisaiKekal) {
+        perisaiGuna--;
+        if (perisaiGuna <= 0) { PERISAI_KIRI.hidup = false; PERISAI_KANAN.hidup = false; }
+      }
+      SFX.perisai(); getar(10);
+      mesej('PERISAI SELAMATKAN KAMU!');
+      letupan(bola.x, bola.y, 12, '#00e5ff', 130);
+    } else if (s.jenis === 'jaring') {
+      bola.vx = rnd(-60, 60);
+      bola.vy = -400;
+      JARING.caj--; JARING.kilat = 0.4;
+      SFX.perisai(); getar(10);
+      mesej('JARING TANGKAP BOLA! 💚');
+      letupan(bola.x, bola.y, 14, '#38ef7d', 150);
+    } else if (s.jenis === 'sasaran') {
+      s.tumbang = true; s.anim = 0;
+      poin(200, s.cx, s.cy, '#38ef7d');
+      SFX.sasaran(); mesej('S-O-S JATUH! +200');
+      let n = 0; SOS.forEach(function (q) { if (q.tumbang) n++; });
+      if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'sos') misiP = n;
+      if (n === 3) {
+        poin(2000, 80, 490, '#38ef7d');
+        mesej('SEMUA S-O-S! +2000');
+        sosBangkitT = 6;
+        letupan(80, 490, 24, '#38ef7d', 160);
+        if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'sos') { misiP = 3; siapkanMisi(); return; }
+        if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'bos') kenaBos(2);
+      }
+    }
+  }
+
+  if (bola.mode !== 'bebas') return;
+
+  // --- bulatan ---
+  for (let i = 0; i < bulatan.length; i++) {
+    const b = bulatan[i];
+    if (b.jenis === 'bumper') {
+      if (b.cd > 0) { pantulBulatan(b); continue; }
+      const hit = pantulBulatan(b);
+      if (hit) {
+        b.cd = 0.09; b.kilat = 0.35;
+        kick(hit.nx, hit.ny, 300);
+        SFX.bumper(); getar(10);
+        planetBolaIni++;
+        poin(100, b.x, b.y, '#ff44cc');
+        mesej('PLANET KENA! +100');
+        if (b === ZUHAL && bos.hp > 0) kenaBos(1);
+        else majuMisi('planet', 1);
+      }
+    } else {
+      pantulBulatan(b);
+    }
+  }
+
+  if (bola.mode !== 'bebas') return;
+
+  // --- flipper ---
+  kolisiFlipper(FLIP.L);
+  kolisiFlipper(FLIP.R);
+
+  // --- zon ---
+  semakLorongAtas();
+  semakLubang();
+
+  if (bola.mode !== 'bebas') return;
+
+  // --- anti sangkut ---
+  const sp2 = Math.hypot(bola.vx, bola.vy);
+  if (sp2 < 25) {
+    bola.lambatT += dt;
+    if (bola.lambatT > 2.0) {
+      bola.lambatT = 0;
+      const a = rnd(-Math.PI * 0.85, -Math.PI * 0.15);
+      bola.vx += Math.cos(a) * 130; bola.vy += Math.sin(a) * 130;
+      mesej('TOLAK SIKIT!'); SFX.goncang();
+    }
+  } else bola.lambatT = 0;
+
+  // --- luar sempadan (senyap) ---
+  if (bola.x < 8 || bola.x > 398 || bola.y < PF_ATAS - 30) {
+    bola.x = 373; bola.y = 776; bola.vx = 0; bola.vy = 0;
+    bola.mode = 'sedia'; lancarKuasa = 0; lancarAutoT = 0;
+    kemasButang();
+    return;
+  }
+
+  // --- longkang ---
+  if (bola.y > GARIS_LONGKANG) {
+    bolaHilang();
+  }
+}
+
+// ==========================================================================
+// 12. KEMAS KINI UMUM
+// ==========================================================================
+function kemasKini(dt) {
+  nebulaT += dt; satelitA += dt * 0.35;
+  CACING.putar += dt;
+  for (let L = 0; L < 3; L++) {
+    const lap = lapisanBintang[L];
+    for (let i = 0; i < lap.arr.length; i++) {
+      const b = lap.arr[i];
+      b.y += lap.laju * dt;
+      b.f += dt * 2;
+      if (b.y > LH) { b.y = 0; b.x = Math.random() * LW; }
+    }
+  }
+  if (gegar > 0) gegar = Math.max(0, gegar - dt * 20);
+  if (kilatSkrin > 0) kilatSkrin = Math.max(0, kilatSkrin - dt);
+
+  // zarah
+  for (let i = zarah.length - 1; i >= 0; i--) {
+    const p = zarah[i];
+    p.t += dt; p.vy += 200 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.t >= p.hidup) zarah.splice(i, 1);
+  }
+  for (let i = teksApung.length - 1; i >= 0; i--) {
+    teksApung[i].t += dt;
+    teksApung[i].y -= 24 * dt;
+    if (teksApung[i].t > 0.9) teksApung.splice(i, 1);
+  }
+
+  // kilat objek
+  [MARIKH, NEPTUN, ZUHAL].forEach(function (b) {
+    if (b.cd > 0) b.cd = Math.max(0, b.cd - dt);
+    if (b.kilat > 0) b.kilat = Math.max(0, b.kilat - dt);
+  });
+  [SL_KIRI, SL_KANAN, PERISAI_KIRI, PERISAI_KANAN, JARING].forEach(function (s) {
+    if (s.kilat > 0) s.kilat = Math.max(0, s.kilat - dt);
+  });
+  [RAMP_KIRI, RAMP_KANAN].forEach(function (s) { if (s.kincir > 0) s.kincir = Math.max(0, s.kincir - dt); });
+  LORONG.forEach(function (l) { if (l.cd > 0) l.cd = Math.max(0, l.cd - dt); });
+  SOS.forEach(function (s) { if (s.tumbang && s.anim < 1) s.anim = Math.min(1, s.anim + dt * 5); if (!s.tumbang && s.anim > 0) s.anim = Math.max(0, s.anim - dt * 5); });
+  if (bos.goyang > 0) bos.goyang = Math.max(0, bos.goyang - dt);
+
+  if (keadaan !== 'main') return;
+
+  masaMain += dt;
+  if (masaMain > 12) pilMalapT = 1;
+  if (pilTerangT > 0) pilTerangT -= dt;
+  zonesEl.classList.toggle('malap', pilMalapT > 0 && pilTerangT <= 0);
+
+  if (goncangCd > 0) goncangCd = Math.max(0, goncangCd - dt);
+  if (pendarabT > 0) pendarabT = Math.max(0, pendarabT - dt);
+  if (sorotT > 0) sorotT = Math.max(0, sorotT - dt);
+
+  if (sosBangkitT > 0) {
+    sosBangkitT -= dt;
+    if (sosBangkitT <= 0) { SOS.forEach(function (s) { s.tumbang = false; }); }
+  }
+
+  if (upacara.aktif) { kemasKiniUpacara(dt); }
+  else {
+    if (bola.mode === 'bebas') masaBolaIni += dt;
+    if (simpanT > 0 && bola.mode === 'bebas') simpanT = Math.max(0, simpanT - dt);
+
+    // pemilih misi
+    if (misiAktif < 0 && sudahMain) {
+      autoMulaT += dt;
+      if (sorotT <= 0) { sorotSeterusnya(); }
+      if (autoMulaT > 20) { mesej('MISI AUTO BERMULA!'); mulaMisi(misiSorot); }
+    }
+    // graviti pandu turun kalau bola terlalu lama
+    const gAsal = mudah ? 360 : 420;
+    T.grav = (masaBolaIni > 240) ? gAsal * 0.75 : gAsal;
+  }
+
+  // mesej
+  if (mesejSemasa) {
+    mesejT -= dt;
+    if (mesejT <= 0) mesejSemasa = null;
+  }
+  if (!mesejSemasa && giliran.length) { mesejSemasa = giliran.shift(); mesejT = 1.6; }
+
+  // skor papar
+  if (!upacara.aktif) {
+    const bz = skor - skorPapar;
+    if (Math.abs(bz) < 1) skorPapar = skor;
+    else skorPapar += bz * Math.min(1, dt * 7);
+  }
+}
+
+// ==========================================================================
+// 13. LUKISAN
+// ==========================================================================
+function lukisLatar() {
+  const g = ctx.createLinearGradient(0, 0, 0, LH);
+  g.addColorStop(0, '#05030f'); g.addColorStop(1, '#180a33');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, LW, LH);
+
+  // nebula
+  const n1x = 110 + Math.sin(nebulaT * 0.09) * 30, n1y = 420 + Math.cos(nebulaT * 0.07) * 40;
+  let ng = ctx.createRadialGradient(n1x, n1y, 5, n1x, n1y, 190);
+  ng.addColorStop(0, 'rgba(164,77,255,0.10)'); ng.addColorStop(1, 'rgba(164,77,255,0)');
+  ctx.fillStyle = ng; ctx.fillRect(0, 0, LW, LH);
+  const n2x = 290 + Math.cos(nebulaT * 0.06) * 30, n2y = 250 + Math.sin(nebulaT * 0.08) * 35;
+  ng = ctx.createRadialGradient(n2x, n2y, 5, n2x, n2y, 170);
+  ng.addColorStop(0, 'rgba(255,68,204,0.08)'); ng.addColorStop(1, 'rgba(255,68,204,0)');
+  ctx.fillStyle = ng; ctx.fillRect(0, 0, LW, LH);
+
+  // bintang
+  for (let L = 0; L < 3; L++) {
+    const lap = lapisanBintang[L];
+    for (let i = 0; i < lap.arr.length; i++) {
+      const b = lap.arr[i];
+      const a = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(b.f));
+      ctx.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')';
+      ctx.fillRect(b.x, b.y, b.s, b.s);
+    }
+  }
+}
+
+function lukisBezel() {
+  const g = ctx.createLinearGradient(0, 0, 0, 56);
+  g.addColorStop(0, '#1a1a26'); g.addColorStop(0.5, '#2a2a3c'); g.addColorStop(1, '#12121c');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, LW, 56);
+  ctx.strokeStyle = 'rgba(255,68,204,0.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, 55.5); ctx.lineTo(LW, 55.5); ctx.stroke();
+  // rivet
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  for (let x = 12; x < LW; x += 46) { ctx.beginPath(); ctx.arc(x, 50, 2, 0, 6.283); ctx.fill(); }
+  // wordmark samar
+  ctx.fillStyle = 'rgba(255,68,204,0.16)';
+  fon(13, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PINBALL ANGKASA', 200, 15);
+
+  // butang senyap
+  lukisHudButang(HUD_SENYAP.x, HUD_SENYAP.y, senyap ? '🔇' : '🔊');
+  lukisHudButang(HUD_JEDA.x, HUD_JEDA.y, keadaan === 'jeda' ? '▶' : '⏸');
+}
+function lukisHudButang(x, y, ikon) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.strokeStyle = 'rgba(0,229,255,0.45)'; ctx.lineWidth = 1.5;
+  rr(x - 15, y - 14, 30, 28, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#00e5ff'; fon(14, false);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(ikon, x, y + 1);
+  ctx.restore();
+}
+
+function lukisLencana(x, y, s, idx, alpha) {
+  const P = PANGKAT[Math.min(6, Math.max(0, idx))];
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(s, s);
+  ctx.globalAlpha = (alpha === undefined ? 1 : alpha);
+
+  if (P.aura) {
+    const ag = ctx.createRadialGradient(0, 0, 2, 0, 0, 22);
+    ag.addColorStop(0, 'rgba(255,210,77,0.55)'); ag.addColorStop(1, 'rgba(255,210,77,0)');
+    ctx.fillStyle = ag; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.283); ctx.fill();
+  }
+  if (P.adiwira) {
+    ctx.save();
+    ctx.rotate(satelitA * 2);
+    ctx.strokeStyle = 'rgba(255,210,77,0.7)'; ctx.lineWidth = 1.4;
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 11, Math.sin(a) * 11);
+      ctx.lineTo(Math.cos(a) * 16, Math.sin(a) * 16);
+      ctx.stroke();
+    }
+    ctx.restore();
+    const gg = ctx.createRadialGradient(0, -2, 1, 0, 0, 11);
+    gg.addColorStop(0, '#fff3c4'); gg.addColorStop(1, '#c9971a');
+    ctx.fillStyle = gg;
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#5a3d00';
+    lukisBintangKecil(0, 0, 6);
+    ctx.restore();
+    return;
+  }
+
+  // perisai
+  ctx.beginPath();
+  ctx.moveTo(0, -13);
+  ctx.lineTo(11, -8);
+  ctx.lineTo(11, 4);
+  ctx.quadraticCurveTo(11, 11, 0, 14);
+  ctx.quadraticCurveTo(-11, 11, -11, 4);
+  ctx.lineTo(-11, -8);
+  ctx.closePath();
+  const sg = ctx.createLinearGradient(0, -13, 0, 14);
+  sg.addColorStop(0, '#ffffff'); sg.addColorStop(0.35, P.logam); sg.addColorStop(1, '#2b2b3a');
+  ctx.fillStyle = sg; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+
+  if (P.sayap) {
+    ctx.fillStyle = P.logam;
+    for (let d = -1; d <= 1; d += 2) {
+      ctx.beginPath();
+      ctx.moveTo(d * 10, -4);
+      ctx.lineTo(d * 19, -7);
+      ctx.lineTo(d * 19, -3);
+      ctx.lineTo(d * 10, 0);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  // chevron
+  ctx.strokeStyle = '#14141f'; ctx.lineWidth = 1.8;
+  for (let i = 0; i < P.chev; i++) {
+    const yy = 2 + i * 4;
+    ctx.beginPath(); ctx.moveTo(-6, yy); ctx.lineTo(0, yy - 3.2); ctx.lineTo(6, yy); ctx.stroke();
+  }
+  // bintang
+  ctx.fillStyle = '#14141f';
+  if (P.bintang === 1) lukisBintangKecil(0, -5, 3.6);
+  else if (P.bintang === 2) { lukisBintangKecil(-4, -5, 3.2); lukisBintangKecil(4, -5, 3.2); }
+  else if (P.bintang >= 3) { lukisBintangKecil(-5, -5, 3); lukisBintangKecil(0, -7, 3); lukisBintangKecil(5, -5, 3); }
+  ctx.restore();
+}
+function lukisBintangKecil(cx, cy, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const rr2 = (i % 2 === 0) ? r : r * 0.45;
+    const px = cx + Math.cos(a) * rr2, py = cy + Math.sin(a) * rr2;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fill();
+}
+
+function lukisPapanSkor() {
+  const emasPenuh = misiSiapJumlah >= 6;
+  ctx.save();
+  rr(10, 56, 380, 114, 10);
+  ctx.fillStyle = emasPenuh ? '#1a1405' : '#0a0620'; ctx.fill();
+  ctx.strokeStyle = emasPenuh ? '#ffd24d' : '#ff44cc'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.save(); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let y = 58; y < 170; y += 4) ctx.fillRect(10, y, 380, 1);
+  ctx.restore();
+
+  const pIdx = Math.min(6, misiSiapJumlah);
+  // BARIS 1
+  lukisLencana(31, 76, 0.78, pIdx);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#00e5ff'; fon(12, true);
+  let nm = 'PANGKAT: ' + PANGKAT[pIdx].nama;
+  if (pusingan >= 2) nm += ' ⭐×' + pusingan;
+  teksMuat(nm, 210, 12, 9, true);
+  ctx.fillText(nm, 50, 76);
+  // bintang jasa
+  const jasa = Math.min(5, Math.floor(skor / 20000));
+  ctx.fillStyle = '#ffd24d';
+  for (let i = 0; i < jasa; i++) lukisBintangKecil(52 + i * 9, 90, 3.4);
+  // bola tinggal
+  const nMax = Math.min(5, bolaMaks);
+  for (let i = 0; i < nMax; i++) {
+    const bx = 382 - 5 - i * 16;
+    ctx.beginPath(); ctx.arc(bx, 76, 5, 0, 6.283);
+    ctx.fillStyle = (i < bolaTinggal) ? '#ff44cc' : '#3a3a55'; ctx.fill();
+    if (i < bolaTinggal) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+
+  // BARIS 2 — skor
+  ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24d'; fon(30, true);
+  ctx.fillText(String(Math.round(skorPapar)).padStart(6, '0'), 382, 110);
+  // kiri
+  ctx.textAlign = 'left';
+  if (pendarabT > 0) {
+    ctx.fillStyle = '#ff4d4d'; fon(15, true);
+    rr(18, 98, 36, 20, 4); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText('×2', 24, 108);
+    ctx.fillStyle = '#3a3a55'; ctx.fillRect(18, 121, 36, 3);
+    ctx.fillStyle = '#ff4d4d'; ctx.fillRect(18, 121, 36 * (pendarabT / 20), 3);
+  } else {
+    ctx.fillStyle = '#00e5ff'; fon(11, true);
+    ctx.fillText('PERISAI', 18, 104);
+    const aktifP = (PERISAI_KIRI.hidup ? 1 : 0) + (PERISAI_KANAN.hidup ? 1 : 0);
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.arc(22 + i * 11, 118, 4, 0, 6.283);
+      let on = (i < 2) ? (i < aktifP) : (JARING.caj > 0);
+      ctx.fillStyle = on ? '#00e5ff' : '#2a2a40'; ctx.fill();
+    }
+  }
+
+  // BARIS 3 — panel mesej
+  rr(16, 130, 368, 32, 6);
+  ctx.fillStyle = '#05030f'; ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1; ctx.stroke();
+  const t = mesejSemasa || barisMisi();
+  const warnaT = mesejSemasa ? '#ffffff' : (misiAktif >= 0 ? MISI[misiAktif].warna : '#00e5ff');
+  ctx.fillStyle = warnaT;
+  teksMuat(t, 352, 17, 11, true);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(t, 200, 147);
+  // bar kemajuan
+  if (misiAktif >= 0) {
+    const pr = klip(misiP / MISI[misiAktif].perlu, 0, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(18, 165, 364, 3);
+    ctx.fillStyle = MISI[misiAktif].warna; ctx.fillRect(18, 165, 364 * pr, 3);
+  }
+  ctx.restore();
+}
+
+// ---- lukisan objek papan ------------------------------------------------
+function lukisDinding() {
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (let i = 0; i < segmen.length; i++) {
+    const s = segmen[i];
+    if (s.jenis !== 'dinding' && s.jenis !== 'busur') continue;
+    ctx.strokeStyle = 'rgba(255,68,204,0.30)'; ctx.lineWidth = (s.r || 3) * 2 + 2;
+    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+    ctx.strokeStyle = '#ff8fe0'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function lukisPlanet(b, warnaA, warnaB) {
+  const g = ctx.createRadialGradient(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.1, b.x, b.y, b.r);
+  g.addColorStop(0, warnaA); g.addColorStop(1, warnaB);
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function lukisBumper() {
+  // MARIKH
+  lukisPlanet(MARIKH, '#ff6b4d', '#a02010');
+  ctx.fillStyle = 'rgba(0,0,0,0.30)';
+  [[-8, -6, 5], [6, 3, 6], [-3, 10, 4]].forEach(function (k) {
+    ctx.beginPath(); ctx.arc(MARIKH.x + k[0], MARIKH.y + k[1], k[2], 0, 6.283); ctx.fill();
+  });
+  // NEPTUN
+  lukisPlanet(NEPTUN, '#4d9bff', '#10306a');
+  ctx.save();
+  ctx.beginPath(); ctx.arc(NEPTUN.x, NEPTUN.y, NEPTUN.r - 1, 0, 6.283); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.fillRect(NEPTUN.x - 30, NEPTUN.y - 12, 60, 5);
+  ctx.fillRect(NEPTUN.x - 30, NEPTUN.y + 2, 60, 4);
+  ctx.fillRect(NEPTUN.x - 30, NEPTUN.y + 12, 60, 3);
+  ctx.restore();
+  // ZUHAL / BOS
+  if (bos.hp > 0) {
+    const gx = Math.sin(performance.now() / 90) * 4 * (bos.goyang > 0 ? 2 : 1);
+    ctx.save(); ctx.translate(gx, 0);
+    const g = ctx.createRadialGradient(ZUHAL.x - 10, ZUHAL.y - 10, 3, ZUHAL.x, ZUHAL.y, ZUHAL.r);
+    g.addColorStop(0, '#8a5a4a'); g.addColorStop(1, '#33161a');
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const a = i * Math.PI / 8;
+      const rr2 = ZUHAL.r * ((i % 2 === 0) ? 1 : 0.82);
+      const px = ZUHAL.x + Math.cos(a) * rr2, py = ZUHAL.y + Math.sin(a) * rr2;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = '#ff4d4d'; ctx.lineWidth = 2; ctx.stroke();
+    // retak
+    ctx.strokeStyle = 'rgba(255,120,60,0.8)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < bos.retak; i++) {
+      const a = i * 1.3;
+      ctx.beginPath();
+      ctx.moveTo(ZUHAL.x + Math.cos(a) * 6, ZUHAL.y + Math.sin(a) * 6);
+      ctx.lineTo(ZUHAL.x + Math.cos(a + 0.5) * (ZUHAL.r - 4), ZUHAL.y + Math.sin(a + 0.5) * (ZUHAL.r - 4));
+      ctx.stroke();
+    }
+    // mata
+    const kelip = (Math.sin(performance.now() / 200) > -0.5) ? 1 : 0.25;
+    ctx.fillStyle = 'rgba(255,60,60,' + kelip + ')';
+    ctx.beginPath(); ctx.arc(ZUHAL.x - 9, ZUHAL.y - 4, 4.5, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(ZUHAL.x + 9, ZUHAL.y - 4, 4.5, 0, 6.283); ctx.fill();
+    ctx.restore();
+    // HP
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ff4d4d'; fon(11, true);
+    ctx.fillText('♥'.repeat(Math.max(0, bos.hp)), ZUHAL.x, ZUHAL.y - ZUHAL.r - 10);
+  } else {
+    lukisPlanet(ZUHAL, '#ffd24d', '#a07010');
+    ctx.save();
+    ctx.translate(ZUHAL.x, ZUHAL.y); ctx.rotate(-18 * Math.PI / 180);
+    ctx.strokeStyle = 'rgba(255,230,160,0.85)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, 0, ZUHAL.r + 12, 6, 0, 0, 6.283); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,230,160,0.35)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, ZUHAL.r + 17, 8, 0, 0, 6.283); ctx.stroke();
+    ctx.restore();
+  }
+  // kilat kena
+  [MARIKH, NEPTUN, ZUHAL].forEach(function (b) {
+    if (b.kilat > 0) {
+      const p = 1 - b.kilat / 0.35;
+      ctx.strokeStyle = 'rgba(255,255,255,' + (1 - p).toFixed(2) + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r + p * 22, 0, 6.283); ctx.stroke();
     }
   });
+}
+
+function lukisLorongAtas() {
+  for (let i = 0; i < 3; i++) {
+    const l = LORONG[i];
+    const cx = (l.x1 + l.x2) / 2;
+    ctx.save();
+    ctx.strokeStyle = l.nyala ? 'rgba(255,210,77,0.55)' : 'rgba(106,106,138,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(l.x1, LORONG_Y + 8); ctx.lineTo(l.x1, LORONG_Y - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(l.x2, LORONG_Y + 8); ctx.lineTo(l.x2, LORONG_Y - 12); ctx.stroke();
+    if (l.nyala) {
+      const g = ctx.createRadialGradient(cx, 232, 2, cx, 232, 18);
+      g.addColorStop(0, 'rgba(255,210,77,0.5)'); g.addColorStop(1, 'rgba(255,210,77,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, 232, 18, 0, 6.283); ctx.fill();
+    }
+    ctx.fillStyle = l.nyala ? '#ffd24d' : '#3a3a55';
+    lukisBintangKecil(cx, 232, 8);
+    ctx.restore();
+  }
+  // tiang
+  bulatan.forEach(function (b) {
+    if (b.jenis !== 'tiang') return;
+    const g = ctx.createRadialGradient(b.x - 2, b.y - 2, 1, b.x, b.y, b.r);
+    g.addColorStop(0, '#e8e8ff'); g.addColorStop(1, '#5a5a80');
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.283); ctx.fillStyle = g; ctx.fill();
+  });
+}
+
+function lukisCacing() {
+  ctx.save();
+  ctx.translate(CACING.x, CACING.y);
+  const warna = ['#a44dff', '#ff44cc', '#00e5ff'];
+  for (let k = 0; k < 3; k++) {
+    ctx.save();
+    ctx.rotate(CACING.putar * (k % 2 === 0 ? 1 : -1) * (0.8 + k * 0.3));
+    ctx.strokeStyle = warna[k]; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40;
+      const a = t * Math.PI * 2.2;
+      const r = 10 + t * (CACING.rv - 10);
+      const px = Math.cos(a + k * 2.09) * r, py = Math.sin(a + k * 2.09) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.arc(0, 0, 10, 0, 6.283);
+  ctx.fillStyle = '#000'; ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
+  // zarah berpusar
+  for (let i = 0; i < 12; i++) {
+    const a = CACING.putar * 2 + i * 0.523;
+    const r = 12 + ((i * 2.3 + CACING.putar * 14) % 18);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillRect(Math.cos(a) * r, Math.sin(a) * r, 1.6, 1.6);
+  }
+  ctx.restore();
+  if (misiAktif < 0) {
+    const p = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+    ctx.strokeStyle = 'rgba(255,210,77,' + (0.35 + 0.5 * p).toFixed(2) + ')';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(CACING.x, CACING.y, CACING.rv + 6, 0, 6.283); ctx.stroke();
+    const ay = CACING.y - CACING.rv - 16 + Math.sin(performance.now() / 200) * 5;
+    ctx.fillStyle = '#ffd24d';
+    ctx.beginPath();
+    ctx.moveTo(CACING.x - 8, ay - 7); ctx.lineTo(CACING.x + 8, ay - 7); ctx.lineTo(CACING.x, ay + 5);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function lukisBulan() {
+  const g = ctx.createRadialGradient(BULAN.x - 9, BULAN.y - 9, 3, BULAN.x, BULAN.y, BULAN.rv);
+  g.addColorStop(0, '#f2f2f8'); g.addColorStop(1, '#7f8496');
+  const hal = ctx.createRadialGradient(BULAN.x, BULAN.y, BULAN.rv * 0.6, BULAN.x, BULAN.y, BULAN.rv + 14);
+  hal.addColorStop(0, 'rgba(200,215,235,0.22)'); hal.addColorStop(1, 'rgba(200,215,235,0)');
+  ctx.fillStyle = hal; ctx.beginPath(); ctx.arc(BULAN.x, BULAN.y, BULAN.rv + 14, 0, 6.283); ctx.fill();
+  ctx.beginPath(); ctx.arc(BULAN.x, BULAN.y, BULAN.rv, 0, 6.283); ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = 'rgba(90,95,110,0.55)';
+  [[-9, -4, 6], [7, -10, 4], [10, 6, 5], [-4, 11, 3.5]].forEach(function (k) {
+    ctx.beginPath(); ctx.arc(BULAN.x + k[0], BULAN.y + k[1], k[2], 0, 6.283); ctx.fill();
+  });
+  ctx.beginPath(); ctx.arc(BULAN.x, BULAN.y, BULAN.rc, 0, 6.283);
+  ctx.fillStyle = 'rgba(10,8,25,0.85)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,229,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+function lukisSOS() {
+  SOS.forEach(function (s) {
+    ctx.save();
+    ctx.translate(s.cx, s.cy); ctx.rotate(s.sudut);
+    const jatuh = s.anim;
+    ctx.globalAlpha = 1 - jatuh * 0.75;
+    ctx.scale(1, Math.max(0.15, 1 - jatuh * 0.85));
+    rr(-14, -5, 28, 10, 3);
+    ctx.fillStyle = s.tumbang ? '#2c4a34' : '#38ef7d'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.fillStyle = s.tumbang ? '#5f7f68' : '#05301a';
+    fon(9, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(s.huruf, 0, 0);
+    ctx.restore();
+  });
+}
+
+function lukisRamp() {
+  [RAMP_KIRI, RAMP_KANAN].forEach(function (s) {
+    const L = LALUAN_RAMP[s.sisi];
+    // laluan hantu
+    ctx.save();
+    ctx.strokeStyle = 'rgba(56,239,125,0.16)'; ctx.lineWidth = 14; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(L.p[0][0], L.p[0][1]);
+    ctx.bezierCurveTo(L.p[1][0], L.p[1][1], L.p[2][0], L.p[2][1], L.p[3][0], L.p[3][1]);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(56,239,125,0.45)'; ctx.lineWidth = 2;
+    ctx.stroke();
+    // mulut
+    ctx.strokeStyle = '#38ef7d'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+    // kincir bintang (hiasan)
+    const mx = (s.x1 + s.x2) / 2, my = (s.y1 + s.y2) / 2;
+    ctx.save(); ctx.translate(mx, my);
+    ctx.rotate(s.kincir > 0 ? performance.now() / 60 : performance.now() / 900);
+    ctx.strokeStyle = s.kincir > 0 ? '#ffd24d' : 'rgba(255,210,77,0.45)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 9, Math.sin(a) * 9); ctx.stroke();
+    }
+    ctx.restore();
+    // ikon
+    ctx.fillStyle = 'rgba(56,239,125,0.9)'; fon(13, false);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(s.sisi === 'K' ? '☄' : '🚀', mx, my - 18);
+    ctx.restore();
+  });
+}
+
+function lukisSling() {
+  [[SL_KIRI, 90, 586, 90, 652, 134, 636], [SL_KANAN, 270, 586, 270, 652, 226, 636]].forEach(function (d) {
+    const s = d[0];
+    ctx.beginPath();
+    ctx.moveTo(d[1], d[2]); ctx.lineTo(d[3], d[4]); ctx.lineTo(d[5], d[6]); ctx.closePath();
+    const g = ctx.createLinearGradient(d[1], d[2], d[5], d[6]);
+    g.addColorStop(0, '#3a1a52'); g.addColorStop(1, '#61247f');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = s.kilat > 0 ? '#ffffff' : '#ff44cc';
+    ctx.lineWidth = s.kilat > 0 ? 4 : 2.5; ctx.stroke();
+    if (s.kilat > 0) {
+      ctx.save(); ctx.globalAlpha = s.kilat / 0.15 * 0.6;
+      ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
+    }
+  });
+}
+
+function lukisPerisaiJaring() {
+  [PERISAI_KIRI, PERISAI_KANAN].forEach(function (s) {
+    if (s.hidup) {
+      const p = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+      ctx.strokeStyle = 'rgba(0,229,255,' + (0.55 + 0.4 * p).toFixed(2) + ')';
+      ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+      for (let i = 0; i < 4; i++) {
+        const t = ((performance.now() / 400 + i * 0.25) % 1);
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillRect(s.x1 + (s.x2 - s.x1) * t - 1, s.y1 - 4, 2, 2);
+      }
+    } else {
+      ctx.save();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = 'rgba(106,106,138,0.55)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+      ctx.restore();
+    }
+  });
+  // jaring graviti
+  const hidup = JARING.caj > 0;
+  ctx.save();
+  if (hidup) {
+    ctx.strokeStyle = 'rgba(56,239,125,0.85)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(JARING.x1, JARING.y1); ctx.lineTo(JARING.x2, JARING.y2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(160,255,200,0.9)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(JARING.x1, JARING.y1); ctx.lineTo(JARING.x2, JARING.y2); ctx.stroke();
+    const t = (performance.now() / 700) % 1;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(JARING.x1 + (JARING.x2 - JARING.x1) * t - 4, JARING.y1 - 3, 8, 6);
+    // pip caj
+    for (let i = 0; i < Math.max(1, T.cajJaring); i++) {
+      ctx.beginPath(); ctx.arc(JARING.x2 + 10, JARING.y1 - 10 + i * 9, 3, 0, 6.283);
+      ctx.fillStyle = (i < JARING.caj) ? '#38ef7d' : '#26302a'; ctx.fill();
+    }
+  } else {
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(60,80,66,0.7)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(JARING.x1, JARING.y1); ctx.lineTo(JARING.x2, JARING.y2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function lukisFlipper(f) {
+  const h = hujungFlipper(f);
+  ctx.save();
+  ctx.lineCap = 'round';
+  const g = ctx.createLinearGradient(f.px, f.py - 8, h.x, h.y + 8);
+  g.addColorStop(0, '#00e5ff'); g.addColorStop(1, '#0077aa');
+  ctx.strokeStyle = g; ctx.lineWidth = FLIP_R * 2;
+  ctx.beginPath(); ctx.moveTo(f.px, f.py); ctx.lineTo(h.x, h.y); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(f.px + f.dir * 3, f.py - 4); ctx.lineTo(h.x - f.dir * 3, h.y - 5); ctx.stroke();
+  ctx.beginPath(); ctx.arc(f.px, f.py, 5, 0, 6.283);
+  ctx.fillStyle = '#141426'; ctx.fill();
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+
+function lukisLorongLancar() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,229,255,0.05)';
+  ctx.fillRect(354, 262, 38, 538);
+  if (bola.mode === 'sedia' || bola.mode === 'lorong') {
+    const k = (bola.mode === 'lorong') ? (bola.kuasa || 0) : lancarKuasa;
+    const t = 200 * k;
+    ctx.fillStyle = 'rgba(255,210,77,0.20)';
+    ctx.fillRect(356, 786 - 200, 34, 200);
+    const g = ctx.createLinearGradient(0, 786, 0, 786 - 200);
+    g.addColorStop(0, '#ffd24d'); g.addColorStop(1, '#ff4d4d');
+    ctx.fillStyle = g;
+    ctx.fillRect(356, 786 - t, 34, t);
+  }
+  // plunger
+  ctx.fillStyle = '#6a6a8a'; ctx.fillRect(362, 786, 22, 14);
+  ctx.fillStyle = '#ff44cc'; ctx.fillRect(362, 786, 22, 3);
+  ctx.restore();
+}
+
+function lukisHiasanPadang() {
+  ctx.save();
+  // grid neon
+  ctx.strokeStyle = 'rgba(0,229,255,0.05)'; ctx.lineWidth = 1;
+  for (let x = 20; x < 400; x += 40) { ctx.beginPath(); ctx.moveTo(x, PF_ATAS); ctx.lineTo(x, 800); ctx.stroke(); }
+  for (let y = PF_ATAS + 20; y < 800; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(400, y); ctx.stroke(); }
+  // planet bercincin samar
+  ctx.globalAlpha = 0.12;
+  const g = ctx.createRadialGradient(70, 690, 5, 70, 690, 60);
+  g.addColorStop(0, '#a44dff'); g.addColorStop(1, 'rgba(164,77,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(70, 690, 60, 0, 6.283); ctx.fill();
+  ctx.strokeStyle = '#ff44cc'; ctx.lineWidth = 3;
+  ctx.save(); ctx.translate(70, 690); ctx.rotate(-0.35);
+  ctx.beginPath(); ctx.ellipse(0, 0, 62, 16, 0, 0, 6.283); ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  // satelit
+  ctx.save();
+  ctx.translate(322, 240);
+  ctx.rotate(satelitA);
+  ctx.fillStyle = 'rgba(200,215,235,0.5)';
+  ctx.fillRect(-3, -3, 6, 6);
+  ctx.fillStyle = 'rgba(0,229,255,0.45)';
+  ctx.fillRect(-11, -2, 6, 4); ctx.fillRect(5, -2, 6, 4);
+  ctx.restore();
+  ctx.restore();
+}
+
+function lukisPenandaSasaran() {
+  if (misiAktif < 0) return;
+  const m = MISI[misiAktif];
+  const titik = [];
+  switch (m.sasaran) {
+    case 'planet': titik.push([MARIKH.x, MARIKH.y, MARIKH.r], [NEPTUN.x, NEPTUN.y, NEPTUN.r], [ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
+    case 'lorong': LORONG.forEach(function (l) { if (!l.nyala) titik.push([(l.x1 + l.x2) / 2, 240, 20]); }); break;
+    case 'sos':    titik.push([80, 490, 40]); break;
+    case 'ramp':   titik.push([58, 520, 26], [302, 520, 26]); break;
+    case 'bulan':  titik.push([BULAN.x, BULAN.y, BULAN.rv]); break;
+    case 'bos':    titik.push([ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
+  }
+  const p = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+  ctx.save();
+  titik.forEach(function (t) {
+    ctx.strokeStyle = m.warna;
+    ctx.globalAlpha = 0.35 + 0.55 * p;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(t[0], t[1], t[2] + 10, 0, 6.283); ctx.stroke();
+    ctx.globalAlpha = 1;
+    const ay = t[1] - t[2] - 20 + Math.sin(performance.now() / 114) * 6;
+    ctx.fillStyle = '#ffd24d';
+    ctx.beginPath();
+    ctx.moveTo(t[0] - 7, ay - 7); ctx.lineTo(t[0] + 7, ay - 7); ctx.lineTo(t[0], ay + 4);
+    ctx.closePath(); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function bez(p, t) {
+  const u = 1 - t;
+  const x = u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0];
+  const y = u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1];
+  return { x: x, y: y };
+}
+
+function lukisBola() {
+  if (bola.mode === 'ramp') {
+    const L = LALUAN_RAMP[bola.rampSisi];
+    if (bola.rampT <= 0.55) {
+      const t = bola.rampT / 0.55;
+      const q = bez(L.p, t);
+      const sc = 1 - 0.45 * t;
+      ctx.save();
+      ctx.globalAlpha = 1 - 0.65 * t;
+      for (let i = 1; i <= 6; i++) {
+        const q2 = bez(L.p, Math.max(0, t - i * 0.035));
+        ctx.globalAlpha = (1 - 0.65 * t) * (1 - i / 7) * 0.7;
+        ctx.fillStyle = i % 2 ? '#ffd24d' : '#ff8c00';
+        ctx.beginPath(); ctx.arc(q2.x, q2.y, BOLA_R * sc * (1 - i / 9), 0, 6.283); ctx.fill();
+      }
+      ctx.globalAlpha = 1 - 0.65 * t;
+      bolaBulat(q.x, q.y, BOLA_R * sc);
+      ctx.restore();
+    } else {
+      const t = (bola.rampT - 0.55) / 0.35;
+      const q = bez(L.p, 1 - t * 0.85);
+      ctx.save();
+      ctx.globalAlpha = 0.8 * (1 - t);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(q.x, q.y, 7, 0, 6.283); ctx.fill();
+      ctx.restore();
+    }
+    return;
+  }
+  if (bola.mode === 'lubang') {
+    const t = klip(bola.lubangT / 1.0, 0, 1);
+    const pusat = (bola.lubang === 'cacing') ? CACING : BULAN;
+    const a = t * 10;
+    const r = (1 - t) * (bola.lubang === 'cacing' ? 14 : 10);
+    const x = pusat.x + Math.cos(a) * r, y = pusat.y + Math.sin(a) * r;
+    bolaBulat(x, y, BOLA_R * (1 - t * 0.7));
+    if (bola.lubang === 'bulan') {
+      ctx.fillStyle = 'rgba(200,215,235,0.9)'; fon(9, true);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('MENDARAT…', BULAN.x, BULAN.y - BULAN.rv - 10);
+    }
+    return;
+  }
+  // jejak
+  bola.jejak.push({ x: bola.x, y: bola.y });
+  if (bola.jejak.length > 7) bola.jejak.shift();
+  for (let i = 0; i < bola.jejak.length - 1; i++) {
+    const j = bola.jejak[i];
+    ctx.globalAlpha = (i / bola.jejak.length) * 0.28;
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath(); ctx.arc(j.x, j.y, BOLA_R * (0.4 + i / bola.jejak.length * 0.5), 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  bolaBulat(bola.x, bola.y, BOLA_R);
+}
+function bolaBulat(x, y, r) {
+  const g = ctx.createRadialGradient(x - r * 0.4, y - r * 0.4, r * 0.1, x, y, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#c8d4e8'); g.addColorStop(1, '#556080');
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function lukisZarah() {
+  zarah.forEach(function (p) {
+    const a = 1 - p.t / p.hidup;
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = p.warna;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  teksApung.forEach(function (t) {
+    ctx.globalAlpha = Math.max(0, 1 - t.t / 0.9);
+    ctx.fillStyle = t.warna; fon(13, true);
+    ctx.fillText(t.teks, t.x, t.y);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function lukisPadang() {
+  ctx.save();
+  if (gegar > 0) ctx.translate(rnd(-gegar, gegar), rnd(-gegar, gegar));
+  lukisHiasanPadang();
+  const redup = (misiAktif >= 0);
+  ctx.save();
+  if (redup) ctx.globalAlpha = 0.65;
+  lukisDinding();
+  lukisLorongLancar();
+  lukisRamp();
+  lukisLorongAtas();
+  lukisCacing();
+  lukisBulan();
+  lukisSOS();
+  lukisBumper();
+  lukisSling();
+  lukisPerisaiJaring();
+  ctx.restore();
+  lukisPenandaSasaran();
+  lukisFlipper(FLIP.L);
+  lukisFlipper(FLIP.R);
+  lukisZarah();
+  if (keadaan === 'main') lukisBola();
+  ctx.restore();
+}
+
+// ---- overlay ------------------------------------------------------------
+function lukisSkrinMula() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,3,15,0.82)';
+  ctx.fillRect(0, 0, LW, LH);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  ctx.shadowColor = '#ff44cc'; ctx.shadowBlur = 22;
+  ctx.fillStyle = '#ff44cc'; fon(34, true);
+  ctx.fillText('PINBALL ANGKASA', 200, 250);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#00e5ff'; fon(15, true);
+  ctx.fillText('MISI KADET BINTANG', 200, 286);
+  ctx.fillStyle = '#ffd24d'; fon(14, true);
+  ctx.fillText('SIAPA NAK MAIN?', 200, 315);
+
+  const rE = bacaRekod('edris'), rN = bacaRekod('enisa');
+  butangMula(50, 340, 300, 72, '👦 EDRIS  (MUDAH)', '#38ef7d');
+  ctx.fillStyle = '#6a6a8a'; fon(11, false);
+  ctx.fillText('REKOD: ' + PANGKAT[Math.min(6, rE.pangkatTertinggi)].nama + ' · ' + rE.skorTerbaik, 200, 421);
+  butangMula(50, 430, 300, 72, '👧 ENISA  (BIASA)', '#00e5ff');
+  ctx.fillStyle = '#6a6a8a'; fon(11, false);
+  ctx.fillText('REKOD: ' + PANGKAT[Math.min(6, rN.pangkatTertinggi)].nama + ' · ' + rN.skorTerbaik, 200, 511);
+
+  const baris = [
+    '📱 Sentuh KIRI = flipper kiri',
+    '📱 Sentuh KANAN = flipper kanan',
+    '🚀 Tekan LANCAR hantar bola',
+    '💻 Z = kiri · / = kanan · SPACE'
+  ];
+  ctx.fillStyle = '#c8c8e0';
+  for (let i = 0; i < baris.length; i++) {
+    teksMuat(baris[i], 340, 14, 10, false);
+    ctx.fillText(baris[i], 200, 552 + i * 26);
+  }
+  ctx.fillStyle = '#6a6a8a'; fon(11, false);
+  ctx.fillText('Siapkan misi ▸ naik pangkat ▸ jadi Adiwira', 200, 672);
+  ctx.restore();
+}
+function butangMula(x, y, w, h, teks, warna) {
+  rr(x, y, w, h, 12);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
+  ctx.strokeStyle = warna; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = warna;
+  teksMuat(teks, w - 26, 20, 12, true);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(teks, x + w / 2, y + h / 2);
+}
+
+function lukisSkrinTamat() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,3,15,0.88)';
+  ctx.fillRect(0, 0, LW, LH);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ff44cc'; fon(38, true);
+  ctx.fillText('TAMAT!', 200, 230);
+  ctx.fillStyle = '#00e5ff'; fon(14, true);
+  ctx.fillText('SKOR AKHIR', 200, 272);
+  ctx.fillStyle = '#ffd24d'; fon(44, true);
+  ctx.fillText(String(Math.round(tamatSkorPapar)).padStart(6, '0'), 200, 312);
+
+  const pIdx = Math.min(6, misiSiapJumlah);
+  lukisLencana(200, 380, 2.2, pIdx);
+  ctx.fillStyle = '#00e5ff'; fon(17, true);
+  ctx.fillText('PANGKAT: ' + PANGKAT[pIdx].nama, 200, 432);
+  ctx.fillStyle = '#38ef7d'; fon(14, true);
+  ctx.fillText('MISI SIAP: ' + Math.min(6, misiSiapJumlah) + ' DARI 6', 200, 462);
+  if (pusingan >= 2) { ctx.fillStyle = '#ffd24d'; ctx.fillText('PUSINGAN ' + pusingan, 200, 486); }
+
+  if (rekodBaharu) {
+    const k = 0.5 + 0.5 * Math.sin(performance.now() / 200);
+    ctx.fillStyle = 'rgba(255,210,77,' + (0.5 + 0.5 * k).toFixed(2) + ')';
+    fon(20, true);
+    ctx.fillText('🏆 REKOD BAHARU!', 200, 522);
+    if (rekodLama) {
+      ctx.fillStyle = '#6a6a8a'; fon(12, false);
+      ctx.fillText(PANGKAT[Math.min(6, rekodLama.pangkat)].nama + ' → ' + PANGKAT[pIdx].nama, 200, 548);
+    }
+  } else {
+    const r = bacaRekod(profil);
+    ctx.fillStyle = '#6a6a8a'; fon(12, false);
+    ctx.fillText('REKOD ' + (profil === 'edris' ? 'EDRIS' : 'ENISA') + ': ' + PANGKAT[Math.min(6, r.pangkatTertinggi)].nama + ' · ' + r.skorTerbaik, 200, 528);
+  }
+
+  const boleh = tamatT > 0.7;
+  ctx.globalAlpha = boleh ? 1 : 0.35;
+  butangMula(60, 600, 280, 72, '▶ MAIN LAGI', '#38ef7d');
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#6a6a8a'; fon(12, false);
+  ctx.fillText('◀ HUB di penjuru atas kiri', 200, 700);
+  ctx.restore();
+}
+
+function lukisUpacara() {
+  if (!upacara.aktif) return;
+  ctx.save();
+  if (upacara.jenis === 'misi') {
+    const t = upacara.t;
+    ctx.fillStyle = 'rgba(5,3,15,0.45)'; ctx.fillRect(0, PF_ATAS, LW, LH - PF_ATAS);
+    const masuk = klip(t / 0.35, 0, 1);
+    const x = -300 + 500 * (1 - Math.pow(1 - masuk, 3));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.shadowColor = upacara.warna; ctx.shadowBlur = 20;
+    ctx.fillStyle = upacara.warna; fon(30, true);
+    ctx.fillText('MISI SELESAI! 🎉', x, 400);
+    ctx.restore();
+    ctx.fillStyle = '#ffd24d'; fon(24, true);
+    ctx.fillText('+' + upacara.bonus, 200, 452);
+    if (t > 1.9) {
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'; fon(12, false);
+      ctx.fillText('ketuk untuk teruskan', 200, 500);
+    }
+    // zarah bintang
+    if (t < 0.1) letupan(200, 400, 60, upacara.warna, 240);
+  } else if (upacara.jenis === 'pangkat') {
+    const t = klip(upacara.t / 0.7, 0, 1);
+    const e = 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
+    const s = klip(e, 0, 1.15);
+    ctx.fillStyle = 'rgba(30,22,0,0.55)'; ctx.fillRect(0, PF_ATAS, LW, LH - PF_ATAS);
+    const denyut = 1 + 0.06 * Math.sin(performance.now() / 140);
+    lukisLencana(200, 400, 3.4 * s * denyut, upacara.pangkatBaru);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd24d'; fon(22, true);
+    const t2 = 'PANGKAT BARU: ' + PANGKAT[upacara.pangkatBaru].nama + '!';
+    teksMuat(t2, 360, 22, 13, true);
+    ctx.fillText(t2, 200, 500);
+  }
+  ctx.restore();
+}
+
+function lukisJeda() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(5,3,15,0.8)'; ctx.fillRect(0, 0, LW, LH);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#00e5ff'; fon(30, true);
+  ctx.fillText('JEDA', 200, 380);
+  ctx.fillStyle = '#c8c8e0'; fon(14, false);
+  ctx.fillText('Ketuk skrin untuk sambung', 200, 420);
+  ctx.restore();
+}
+
+function lukis() {
+  lukisLatar();
+  if (keadaan === 'main' || keadaan === 'jeda' || keadaan === 'tamat') {
+    lukisPadang();
+  }
+  lukisBezel();
+  if (keadaan === 'main' || keadaan === 'jeda') lukisPapanSkor();
+  lukisUpacara();
+  if (keadaan === 'mula') lukisSkrinMula();
+  if (keadaan === 'jeda') lukisJeda();
+  if (keadaan === 'tamat') lukisSkrinTamat();
+  if (kilatSkrin > 0) {
+    ctx.save();
+    ctx.globalAlpha = klip(kilatSkrin / 0.2, 0, 1) * 0.75;
+    ctx.fillStyle = kilatWarna; ctx.fillRect(0, 0, LW, LH);
+    ctx.restore();
+  }
+}
+
+// ==========================================================================
+// 14. GELUNG
+// ==========================================================================
+const DT = 1 / 120;
+let akum = 0, lalu = performance.now();
+
+function gelung(kini) {
+  requestAnimationFrame(gelung);
+  let dt = (kini - lalu) / 1000;
+  lalu = kini;
+  if (!isFinite(dt) || dt < 0) dt = 0;
+  if (dt > 0.25) dt = 0.25;
+
+  kemasKini(dt);
+
+  if (keadaan === 'main' && !upacara.aktif) {
+    akum += dt;
+    let n = 0;
+    while (akum >= DT && n < 5 && keadaan === 'main') { langkahFizik(DT); akum -= DT; n++; }
+    if (akum > DT * 5) akum = 0;
+  } else {
+    akum = 0;
+    if (keadaan === 'main' && upacara.aktif) kemasFlipper(DT);
+  }
+
+  if (keadaan === 'tamat') {
+    tamatT += dt;
+    const bz = skor - tamatSkorPapar;
+    if (Math.abs(bz) < 1) tamatSkorPapar = skor;
+    else tamatSkorPapar += bz * Math.min(1, dt * 3.5);
+  }
+
+  lukis();
+}
+requestAnimationFrame(gelung);
+kemasButang();
+
 })();
 </script>
 <script src="reward-timer.js"></script>
