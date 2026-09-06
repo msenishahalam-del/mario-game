@@ -1462,7 +1462,7 @@ function kemasKini(dt) {
     // mengunci papan skor sampai bola habis kerana misiAktif tak pernah dilepas.
     if (misiAktif >= 0 && bola.mode !== 'sedia') {
       misiMasa += dt;
-      if (misiMasa > 120) batalMisi('MISI DIBATALKAN — CUBA YANG LAIN');
+      if (misiMasa > 240) batalMisi('MISI DIBATALKAN — CUBA YANG LAIN');
     }
     // graviti pandu turun kalau bola terlalu lama
     const gAsal = mudah ? 230 : 260;
