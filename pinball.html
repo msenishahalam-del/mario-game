@@ -370,12 +370,17 @@ const PERISAI_KANAN = seg(316, 700, 346, 700, { jenis: 'perisai', id: 'pKanan', 
 const JARING = seg(96, 768, 264, 768, { jenis: 'jaring', id: 'jaring', r: 4, caj: 1, kilat: 0 });
 
 // --- mulut ramp ----------------------------------------------------------
-const RAMP_KIRI  = seg(40, 536, 76, 504,  { jenis: 'ramp', id: 'rampKiri',  r: 4, sisi: 'K', kincir: 0 });
-const RAMP_KANAN = seg(324, 536, 288, 504, { jenis: 'ramp', id: 'rampKanan', r: 4, sisi: 'N', kincir: 0 });
+const RAMP_KIRI  = seg(12, 500, 72, 540,  { jenis: 'ramp', id: 'rampKiri',  r: 4, sisi: 'K', kincir: 0 });
+const RAMP_KANAN = seg(348, 500, 288, 540, { jenis: 'ramp', id: 'rampKanan', r: 4, sisi: 'N', kincir: 0 });
+
+// Sisi bola relatif kepada garis mulut ramp: negatif = di BAWAH mulut.
+function sisiGaris(s, x, y) {
+  return (s.x2 - s.x1) * (y - s.y1) - (s.y2 - s.y1) * (x - s.x1);
+}
 
 const LALUAN_RAMP = {
-  K: { p: [[58, 520], [14, 430], [34, 272], [126, 206]], keluar: [78, 650] },
-  N: { p: [[302, 520], [346, 430], [326, 272], [274, 206]], keluar: [282, 650] }
+  K: { p: [[42, 520], [14, 430], [34, 272], [126, 206]], keluar: [78, 650] },
+  N: { p: [[318, 520], [346, 430], [326, 272], [274, 206]], keluar: [282, 650] }
 };
 
 // --- lubang --------------------------------------------------------------
@@ -1143,12 +1148,12 @@ function skripLangkah(dt) {
         const dx = kiri ? -0.55 : 0.55, dy = 0.84;
         const jarak = CACING.rc + BOLA_R + 3;
         bola.x = CACING.x + dx * jarak; bola.y = CACING.y + dy * jarak;
-        kick(dx, dy, 260);
+        kick(dx, dy, 205);
       } else {
         const dx = -0.55, dy = 0.84;
         const jarak = BULAN.rc + BOLA_R + 3;
         bola.x = BULAN.x + dx * jarak; bola.y = BULAN.y + dy * jarak;
-        kick(dx, dy, 280);
+        kick(dx, dy, 220);
       }
       bola.lubangCd = 0.8;
       bola.mode = 'bebas';
@@ -1173,7 +1178,7 @@ function langkahFizik(dt) {
 
   let sp = Math.hypot(bola.vx, bola.vy);
   if (sp > T.hadLaju) { bola.vx = bola.vx / sp * T.hadLaju; bola.vy = bola.vy / sp * T.hadLaju; sp = T.hadLaju; }
-  if (sp < 40 && sp > 0.001 && bola.y < 700) { bola.vx = bola.vx / sp * 40; bola.vy = bola.vy / sp * 40; }
+  if (sp < 40 && sp > 0.001 && bola.y < 700 && bola.vy > 0) { bola.vx = bola.vx / sp * 40; bola.vy = bola.vy / sp * 40; }
 
   bola.x += bola.vx * dt;
   bola.y += bola.vy * dt;
@@ -1189,7 +1194,7 @@ function langkahFizik(dt) {
       const n = nearest(bola.x, bola.y, s.x1, s.y1, s.x2, s.y2);
       const d = Math.hypot(bola.x - n.x, bola.y - n.y);
       if (d < BOLA_R + s.r) {
-        if (bola.vy < -40) { masukRamp(s); return; }
+        if (bola.vy < -120 && sisiGaris(s, bola.pv.x, bola.pv.y) < 0) { masukRamp(s); return; }
         pantulSegmen(s);
       }
       continue;
@@ -1199,13 +1204,13 @@ function langkahFizik(dt) {
     if (!hit) continue;
 
     if (s.jenis === 'sling') {
-      kick(s.nx, s.ny, 340);
+      kick(s.nx, s.ny, 265);
       s.kilat = 0.15;
       poin(50, (s.x1 + s.x2) / 2, (s.y1 + s.y2) / 2, '#ff44cc');
       SFX.sling(); getar(10);
       mesej('SLINGSHOT! +50');
     } else if (s.jenis === 'perisai') {
-      kick(s.nx, s.ny, 380);
+      kick(s.nx, s.ny, 300);
       s.kilat = 0.4;
       if (!T.perisaiKekal) {
         perisaiGuna--;
@@ -1216,7 +1221,7 @@ function langkahFizik(dt) {
       letupan(bola.x, bola.y, 12, '#00e5ff', 130);
     } else if (s.jenis === 'jaring') {
       bola.vx = rnd(-60, 60);
-      bola.vy = -400;
+      bola.vy = -320;
       JARING.caj--; JARING.kilat = 0.4;
       SFX.perisai(); getar(10);
       mesej('JARING TANGKAP BOLA! 💚');
@@ -1248,7 +1253,7 @@ function langkahFizik(dt) {
       const hit = pantulBulatan(b);
       if (hit) {
         b.cd = 0.09; b.kilat = 0.35;
-        kick(hit.nx, hit.ny, 300);
+        kick(hit.nx, hit.ny, 235);
         SFX.bumper(); getar(10);
         planetBolaIni++;
         poin(100, b.x, b.y, '#ff44cc');
