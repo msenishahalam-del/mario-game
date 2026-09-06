@@ -66,9 +66,12 @@
     0%,100% { box-shadow:0 0 0 rgba(255,210,77,0); }
     50%     { box-shadow:0 0 22px rgba(255,210,77,0.75); }
   }
+  /* GONCANG diletak di TENGAH bawah, DI ATAS butang LANCAR. Kedudukan lama
+     (penjuru kanan bawah) duduk tepat di atas zon ibu jari flipper kanan, jadi
+     setiap kali anak menekan untuk flipper kanan dia dapat goncang sahaja. */
   #btnGoncang {
-    position:fixed; bottom:20px; right:14px; z-index:40;
-    width:56px; height:56px; border-radius:50%; font-size:13px;
+    position:fixed; bottom:88px; left:50%; transform:translateX(-50%); z-index:40;
+    width:132px; height:50px; border-radius:25px; font-size:14px; letter-spacing:2px;
     background:rgba(0,229,255,0.15); border:2px solid #00e5ff; color:#00e5ff;
     font-family:inherit; display:none; cursor:pointer;
   }
@@ -262,7 +265,7 @@ const MISI = [
   { nama: 'MISI 1: LATIHAN KADET',  pilih: 'PILIH: LATIHAN KADET 🚀',  warna: '#00e5ff', perlu: 6, bonus: 2000,  sasaran: 'planet' },
   { nama: 'MISI 2: KUTIP BINTANG',  pilih: 'PILIH: KUTIP BINTANG ⭐',  warna: '#ffd24d', perlu: 3, bonus: 3000,  sasaran: 'lorong' },
   { nama: 'MISI 3: SELAMAT KAWAN',  pilih: 'PILIH: SELAMAT KAWAN 🧑‍🚀', warna: '#38ef7d', perlu: 3, bonus: 4000,  sasaran: 'sos' },
-  { nama: 'MISI 4: PECUT ROKET',    pilih: 'PILIH: PECUT ROKET ☄',     warna: '#ff8c00', perlu: 3, bonus: 5000,  sasaran: 'ramp' },
+  { nama: 'MISI 4: PECUT ROKET',    pilih: 'PILIH: PECUT ROKET ☄',     warna: '#ff8c00', perlu: 2, bonus: 5000,  sasaran: 'ramp' },
   { nama: 'MISI 5: DARAT DI BULAN', pilih: 'PILIH: DARAT DI BULAN 🌙', warna: '#c0d0e0', perlu: 2, bonus: 6000,  sasaran: 'bulan' },
   { nama: 'MISI 6: RAJA METEOR',    pilih: 'PILIH: RAJA METEOR 👾',    warna: '#ff4d4d', perlu: 8, bonus: 12000, sasaran: 'bos' }
 ];
@@ -382,10 +385,15 @@ const PERISAI_KANAN = seg(308, 700, 346, 700, { jenis: 'perisai', id: 'pKanan', 
 const JARING = seg(96, 768, 264, 768, { jenis: 'jaring', id: 'jaring', r: 4, caj: 1, kilat: 0 });
 
 // --- mulut ramp ----------------------------------------------------------
-const RAMP_KIRI  = seg(12, 500, 72, 540,  { jenis: 'ramp', id: 'rampKiri',  r: 4, sisi: 'K', kincir: 0 });
-const RAMP_KANAN = seg(348, 500, 288, 540, { jenis: 'ramp', id: 'rampKanan', r: 4, sisi: 'N', kincir: 0 });
+// PENTING: kedua-dua segmen ini ditakrif dengan arah lilitan BERTENTANGAN
+// (kiri: +x/+y, kanan: -x/+y), jadi tanda sisiGaris() bagi "di BAWAH mulut"
+// juga bertentangan (+ untuk kiri, - untuk kanan). Medan `tanda` menormalkan
+// semula supaya SATU ujian sah untuk kedua-duanya. Tanpa ini ramp kiri tidak
+// pernah boleh dimasuki — bola hanya melantun.
+const RAMP_KIRI  = seg(12, 500, 72, 540,  { jenis: 'ramp', id: 'rampKiri',  r: 7, sisi: 'K', kincir: 0, tanda:  1 });
+const RAMP_KANAN = seg(348, 500, 288, 540, { jenis: 'ramp', id: 'rampKanan', r: 7, sisi: 'N', kincir: 0, tanda: -1 });
 
-// Sisi bola relatif kepada garis mulut ramp: negatif = di BAWAH mulut.
+// sisiGaris(s,pv) * s.tanda > 0  =>  bola berada di BAWAH mulut ramp.
 function sisiGaris(s, x, y) {
   return (s.x2 - s.x1) * (y - s.y1) - (s.y2 - s.y1) * (x - s.x1);
 }
@@ -405,7 +413,13 @@ const LORONG = [
   { x1: 158, x2: 202, nyala: false, cd: 0 },
   { x1: 228, x2: 272, nyala: false, cd: 0 }
 ];
-const LORONG_TEBAL = 56;   // ketebalan jalur lorong di bawah siling busur
+const LORONG_TEBAL = 56;   // ketebalan jalur lorong YANG DILUKIS
+// Ketebalan zon PENCETUS. Dengan 56 sahaja, lorong KIRI mustahil dicetuskan:
+// bumper MARIKH (104,392,r26) melindungi x 69-139 dari bawah, jadi bola cuma
+// boleh masuk kawasan itu dari atas dan paras tertinggi yang dicapai ~y294,
+// sedangkan ambang lama ialah y254. Zon 126 menjadikan ambang ~y324 di lorong
+// kiri — masih di ATAS bumper, tetapi kini benar-benar boleh dicapai.
+const LORONG_ZON = 126;
 
 // --- flipper -------------------------------------------------------------
 const FLIP = {
@@ -452,7 +466,7 @@ let pendarabT = 0;
 let misiSiapJumlah = 0;
 let pusingan = 1;
 let misiSiapRound = [false, false, false, false, false, false];
-let misiAktif = -1, misiP = 0, misiSorot = 0;
+let misiAktif = -1, misiP = 0, misiSorot = 0, misiMasa = 0;
 let sorotT = 0, autoMulaT = 0;
 let perisaiGuna = 1;
 let planetBolaIni = 0;
@@ -492,7 +506,7 @@ function barisMisi() {
     case 'planet': return 'KENA PLANET ▸ ' + misiP + '/6';
     case 'lorong': return 'BINTANG ▸ ' + bintangTeks(misiP, 3);
     case 'sos':    return 'JATUHKAN S-O-S ▸ ' + bintangTeks(misiP, 3);
-    case 'ramp':   return 'NAIK RAMP ▸ ' + misiP + '/3';
+    case 'ramp':   return 'NAIK RAMP ▸ ' + misiP + '/' + m.perlu;
     case 'bulan':  return 'DARAT BULAN ▸ ' + bintangTeks(misiP, 2);
     case 'bos':    return 'RAJA METEOR ' + '♥'.repeat(Math.max(0, bos.hp));
   }
@@ -549,9 +563,14 @@ function kanvasKoord(e) {
   };
 }
 
-// butang HUD dalam kanvas (senyap & jeda) — dalam jalur bezel
-const HUD_SENYAP = { x: 30, y: 28 }, HUD_JEDA = { x: 78, y: 28 };
-function kenaHud(k, b) { return Math.abs(k.x - b.x) <= 22 && Math.abs(k.y - b.y) <= 22; }
+// Butang HUD dalam kanvas (senyap & jeda) — dalam jalur bezel.
+// Kedudukan lama (30,28) dan (78,28) terkubur SEPENUHNYA di bawah pautan HTML
+// #backBtn (fixed; top:12; left:12; z-index:60) pada telefon: ketukan pergi ke
+// pautan HUB dan permainan hilang. Jalur selamat yang dikira ialah logik
+// x 131..234 — di kiri ada #backBtn, di kanan ada kotak ⏰ reward-timer.
+const HUD_SENYAP = { x: 158, y: 28 }, HUD_JEDA = { x: 210, y: 28 };
+// kotak ketuk ±24 unit logik (≈40-48px CSS selepas skala telefon)
+function kenaHud(k, b) { return Math.abs(k.x - b.x) <= 24 && Math.abs(k.y - b.y) <= 24; }
 
 function tapKanvas(e) {
   const k = kanvasKoord(e);
@@ -583,7 +602,11 @@ function tapKanvas(e) {
 zonesEl.addEventListener('pointerdown', function (e) {
   e.preventDefault();
   ensureAudio();
-  if (upacara.aktif) { langkauUpacara(); return; }
+  if (upacara.aktif) {
+    // dalam tempoh perlindungan: flipper tetap bergerak, upacara tak dilangkau
+    if (!cubaLangkauUpacara()) { ditekan.set(e.pointerId, sisiDari(e.clientX)); kiraSemula(); }
+    return;
+  }
   if (keadaan !== 'main') { tapKanvas(e); return; }
   if (tapKanvas(e)) return;
   if (bola.mode === 'sedia') { lancarTekan = true; }
@@ -609,7 +632,7 @@ window.addEventListener('blur', function () { ditekan.clear(); kiraSemula(); lan
 cv.addEventListener('pointerdown', function (e) {
   e.preventDefault();
   ensureAudio();
-  if (upacara.aktif) { langkauUpacara(); return; }
+  if (upacara.aktif) { cubaLangkauUpacara(); return; }
   tapKanvas(e);
 }, { passive: false });
 
@@ -622,8 +645,19 @@ btnLancar.addEventListener('pointerup', function (e) {
   if (keadaan === 'main' && bola.mode === 'sedia') lancarBola();
 }, { passive: false });
 btnGoncang.addEventListener('pointerdown', function (e) {
-  e.preventDefault(); ensureAudio(); goncang();
+  e.preventDefault(); ensureAudio();
+  if (upacara.aktif) { cubaLangkauUpacara(); return; }
+  goncang();
+  // Butang ini duduk DI ATAS #zones, jadi ia mesti mendaftarkan flipper sendiri
+  // — kalau tidak, sentuhan di situ langsung tak menggerakkan flipper.
+  ditekan.set(e.pointerId, sisiDari(e.clientX));
+  kiraSemula();
 }, { passive: false });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+  btnGoncang.addEventListener(ev, function (e) {
+    if (ditekan.has(e.pointerId)) { ditekan.delete(e.pointerId); kiraSemula(); }
+  });
+});
 
 const KIRI_KEY  = ['KeyZ', 'KeyA', 'ArrowLeft'];
 const KANAN_KEY = ['Slash', 'KeyM', 'KeyL', 'ArrowRight'];
@@ -631,7 +665,7 @@ window.addEventListener('keydown', function (e) {
   ensureAudio();
   if (['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.code) >= 0) e.preventDefault();
   if (e.repeat) return;
-  if (upacara.aktif) { langkauUpacara(); return; }
+  if (upacara.aktif) { cubaLangkauUpacara(); return; }
   if (keadaan === 'mula') {
     if (e.code === 'Enter' || e.code === 'KeyR' || e.code === 'Space') mulaMain(profil);
     if (e.code === 'Digit1') mulaMain('edris');
@@ -658,7 +692,7 @@ window.addEventListener('keyup', function (e) {
 function kemasButang() {
   const tunjuk = (keadaan === 'main' && bola.mode === 'sedia' && !upacara.aktif);
   btnLancar.style.display  = tunjuk ? 'block' : 'none';
-  btnGoncang.style.display = (keadaan === 'main') ? 'block' : 'none';
+  btnGoncang.style.display = (keadaan === 'main' && !upacara.aktif) ? 'block' : 'none';
 }
 
 // ==========================================================================
@@ -672,7 +706,7 @@ function mulaMain(p) {
   bolaMaks = 3; bolaTinggal = 3; bonusBolaDiberi = false;
   pendarabT = 0; misiSiapJumlah = 0; pusingan = 1;
   misiSiapRound = [false, false, false, false, false, false];
-  misiAktif = -1; misiP = 0; misiSorot = 0; sorotT = 0; autoMulaT = 0;
+  misiAktif = -1; misiP = 0; misiSorot = 0; sorotT = 0; autoMulaT = 0; misiMasa = 0;
   masaMain = 0; pilMalapT = 0; pilTerangT = 4;
   goncangCd = 0; gegar = 0; kilatSkrin = 0;
   zarah.length = 0; teksApung.length = 0; giliran.length = 0;
@@ -776,12 +810,22 @@ function mulaMisi(i, senyapMula) {
     if (!a.length) return;
     i = a[0];
   }
-  misiAktif = i; misiP = 0; autoMulaT = 0;
+  misiAktif = i; misiP = 0; autoMulaT = 0; misiMasa = 0;
   if (MISI[i].sasaran === 'bos') { bos.hp = 8; bos.retak = 0; ZUHAL.r = 34; }
+  else { bos.hp = 0; bos.retak = 0; ZUHAL.r = 25; }   // elak bos "hantu" tertinggal
   if (MISI[i].sasaran === 'sos') { SOS.forEach(function (s) { s.tumbang = false; s.anim = 0; }); misiP = 0; }
   if (MISI[i].sasaran === 'lorong') { LORONG.forEach(function (l) { l.nyala = false; }); misiP = 0; }
   mesej(senyapMula ? 'MISI BERMULA!' : 'MISI BERMULA!');
   SFX.bintang();
+}
+// Batalkan misi semasa dengan selamat (masa tamat / tukar misi).
+function batalMisi(pesan) {
+  if (misiAktif < 0) return;
+  if (pesan) mesej(pesan);
+  if (MISI[misiAktif].sasaran === 'bos') { bos.hp = 0; bos.retak = 0; ZUHAL.r = 25; }
+  misiSorot = misiAktif;
+  misiAktif = -1; misiP = 0; misiMasa = 0; autoMulaT = 0;
+  sorotSeterusnya();
 }
 function majuMisi(jenis, n) {
   if (misiAktif < 0) return;
@@ -794,6 +838,7 @@ function majuMisi(jenis, n) {
   if (misiP >= m.perlu) siapkanMisi();
 }
 function siapkanMisi() {
+  if (misiAktif < 0) return;          // pengaman: misi mungkin dibatalkan dahulu
   const m = MISI[misiAktif];
   const bonus = m.bonus * pusingan;
   upacara.aktif = true; upacara.jenis = 'misi'; upacara.t = 0; upacara.jum = 2.6;
@@ -829,13 +874,13 @@ function selesaikanMisiSiap() {
   if (pangkatBaru > pangkatLama || misiSiapJumlah <= 6) {
     tambahSkor(2000);
     if (misiSiapJumlah === 3 && !bonusBolaDiberi) { bonusBolaDiberi = true; bolaTinggal++; bolaMaks++; }
-    upacara.aktif = true; upacara.jenis = 'pangkat'; upacara.t = 0; upacara.jum = 1.5;
+    upacara.aktif = true; upacara.jenis = 'pangkat'; upacara.t = 0; upacara.jum = 2.0;
     upacara.pangkatBaru = pangkatBaru;
     SFX.pangkat(); getar([30, 60, 30]);
   } else {
     tamatkanUpacara();
   }
-  misiAktif = -1; misiP = 0;
+  misiAktif = -1; misiP = 0; misiMasa = 0;
 
   // pusingan baharu?
   let semuaSiap = true;
@@ -853,6 +898,16 @@ function tamatkanUpacara() {
   upacara.aktif = false; upacara.jenis = ''; upacara.t = 0;
   if (bola.mode === 'beku') { bola.mode = 'bebas'; bola.vx = simpanV.x; bola.vy = simpanV.y; }
   kemasButang();
+}
+// Upacara tidak boleh dilangkau dalam LINDUNG_UPACARA saat pertama. Tanpa ini,
+// ketukan flipper biasa (anak selalu ketuk bila bola beku) terus memadam
+// animasi misi DAN lencana pangkat — ganjaran utama permainan tak pernah dilihat.
+const LINDUNG_UPACARA = 1.0;
+function cubaLangkauUpacara() {
+  if (!upacara.aktif) return false;
+  if (upacara.t <= LINDUNG_UPACARA) return false;
+  langkauUpacara();
+  return true;
 }
 function langkauUpacara() {
   if (!upacara.aktif) return;
@@ -1026,7 +1081,7 @@ function kick(nx, ny, laju) {
 // ---- pencetus zon -------------------------------------------------------
 function semakLorongAtas() {
   const siling = busurY(bola.x);
-  if (bola.y > siling + LORONG_TEBAL) return;
+  if (bola.y > siling + LORONG_ZON) return;
   for (let i = 0; i < 3; i++) {
     const l = LORONG[i];
     if (l.cd > 0) continue;
@@ -1087,6 +1142,9 @@ function semakLubang() {
     poin(500, CACING.x, CACING.y, '#a44dff');
     mesej('LUBANG CACING! +500');
     if (misiAktif < 0) { mulaMisi(misiSorot); }
+    else if (senaraiBelumSiap().length > 1) {
+      batalMisi('TUKAR MISI!'); mulaMisi(misiSorot);
+    }
     return;
   }
   const db = Math.hypot(bola.x - BULAN.x, bola.y - BULAN.y);
@@ -1103,6 +1161,8 @@ function semakLubang() {
 
 function kenaBos(n) {
   if (bos.hp <= 0) return;
+  // misi bos mungkin sudah dibatalkan (masa tamat / tukar misi) — jangan teruskan
+  if (misiAktif < 0 || MISI[misiAktif].sasaran !== 'bos') { bos.hp = 0; bos.retak = 0; ZUHAL.r = 25; return; }
   bos.hp -= n;
   bos.retak = Math.min(5, bos.retak + 1);
   bos.goyang = 0.3;
@@ -1204,7 +1264,9 @@ function langkahFizik(dt) {
       const n = nearest(bola.x, bola.y, s.x1, s.y1, s.x2, s.y2);
       const d = Math.hypot(bola.x - n.x, bola.y - n.y);
       if (d < BOLA_R + s.r) {
-        if (bola.vy < -120 && sisiGaris(s, bola.pv.x, bola.pv.y) < 0) { masukRamp(s); return; }
+        // Ambang diturunkan dari -120 ke -70: tembakan flipper sederhana pun
+        // kini layak masuk ramp (tingkap sudut jauh lebih lebar untuk budak).
+        if (bola.vy < -70 && sisiGaris(s, bola.pv.x, bola.pv.y) * s.tanda > 0) { masukRamp(s); return; }
         pantulSegmen(s);
       }
       continue;
@@ -1391,6 +1453,12 @@ function kemasKini(dt) {
       if (sorotT <= 0) { sorotSeterusnya(); }
       if (autoMulaT > 20) { mesej('MISI AUTO BERMULA!'); mulaMisi(misiSorot); }
     }
+    // Masa tamat misi — jaring keselamatan. Tanpa ini misi yang tersekat akan
+    // mengunci papan skor sampai bola habis kerana misiAktif tak pernah dilepas.
+    if (misiAktif >= 0 && bola.mode !== 'sedia') {
+      misiMasa += dt;
+      if (misiMasa > 75) batalMisi('MISI DIBATALKAN — CUBA YANG LAIN');
+    }
     // graviti pandu turun kalau bola terlalu lama
     const gAsal = mudah ? 230 : 260;
     T.grav = (masaBolaIni > 240) ? gAsal * 1.4 : gAsal;
@@ -1452,8 +1520,8 @@ function lukisBezel() {
   for (let x = 12; x < LW; x += 46) { ctx.beginPath(); ctx.arc(x, 50, 2, 0, 6.283); ctx.fill(); }
   // wordmark samar
   ctx.fillStyle = 'rgba(255,68,204,0.16)';
-  fon(13, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('PINBALL ANGKASA', 200, 15);
+  fon(9, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PINBALL ANGKASA', 200, 48);
 
   // butang senyap
   lukisHudButang(HUD_SENYAP.x, HUD_SENYAP.y, senyap ? '🔇' : '🔊');
@@ -1463,7 +1531,7 @@ function lukisHudButang(x, y, ikon) {
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.strokeStyle = 'rgba(0,229,255,0.45)'; ctx.lineWidth = 1.5;
-  rr(x - 15, y - 14, 30, 28, 6); ctx.fill(); ctx.stroke();
+  rr(x - 18, y - 15, 36, 30, 7); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#00e5ff'; fon(14, false);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(ikon, x, y + 1);
@@ -1576,14 +1644,6 @@ function lukisPapanSkor() {
   const jasa = Math.min(5, Math.floor(skor / 20000));
   ctx.fillStyle = '#ffd24d';
   for (let i = 0; i < jasa; i++) lukisBintangKecil(52 + i * 9, 90, 3.4);
-  // bola tinggal
-  const nMax = Math.min(5, bolaMaks);
-  for (let i = 0; i < nMax; i++) {
-    const bx = 382 - 5 - i * 16;
-    ctx.beginPath(); ctx.arc(bx, 76, 5, 0, 6.283);
-    ctx.fillStyle = (i < bolaTinggal) ? '#ff44cc' : '#3a3a55'; ctx.fill();
-    if (i < bolaTinggal) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.stroke(); }
-  }
 
   // BARIS 2 — skor
   ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24d'; fon(30, true);
@@ -1605,6 +1665,20 @@ function lukisPapanSkor() {
       let on = (i < 2) ? (i < aktifP) : (JARING.caj > 0);
       ctx.fillStyle = on ? '#00e5ff' : '#2a2a40'; ctx.fill();
     }
+  }
+
+  // bola tinggal — DIPINDAHKAN ke BARIS 2 (tengah kiri). Di penjuru kanan atas
+  // (kedudukan lama x≈345-377, y=76) ia tersembunyi di bawah kotak ⏰
+  // reward-timer pada telefon pendek, jadi anak tak nampak baki bola.
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ff8fe0'; fon(11, true);
+  ctx.fillText('BOLA', 66, 112);
+  const nMax = Math.min(5, bolaMaks);
+  for (let i = 0; i < nMax; i++) {
+    const bx = 106 + i * 16;
+    ctx.beginPath(); ctx.arc(bx, 112, 5, 0, 6.283);
+    ctx.fillStyle = (i < bolaTinggal) ? '#ff44cc' : '#3a3a55'; ctx.fill();
+    if (i < bolaTinggal) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.stroke(); }
   }
 
   // BARIS 3 — panel mesej
@@ -2247,7 +2321,7 @@ function lukisUpacara() {
     ctx.restore();
     ctx.fillStyle = '#ffd24d'; fon(24, true);
     ctx.fillText('+' + upacara.bonus, 200, 452);
-    if (t > 1.9) {
+    if (t > LINDUNG_UPACARA) {
       ctx.fillStyle = 'rgba(255,255,255,0.55)'; fon(12, false);
       ctx.fillText('ketuk untuk teruskan', 200, 500);
     }
