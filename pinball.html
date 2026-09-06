@@ -320,8 +320,15 @@ function busurY(x) {
 })();
 
 // --- tiang pemisah lorong atas -------------------------------------------
-bul(145, 214, 8, { id: 'tiangL1' });
-bul(215, 208, 8, { id: 'tiangL2' });
+// Tiang ini DITURUNKAN 26 unit. Pada kedudukan asal (y 214/208) ia hampir
+// mencecah siling busur — celah antara busur dan tiang cuma ~4-5 unit sedangkan
+// bola berdiameter 18 — jadi ia bertindak sebagai DINDING dan bola tidak pernah
+// dapat melepasi x<140 di kawasan atas. Kesannya lorong bintang KIRI (x 88-132)
+// mustahil dinyalakan dan MISI 2 tidak boleh disiapkan. Diukur dalam simulasi:
+// sebelum = 0/16 permainan menyalakan lorong kiri; selepas = 16/16, dan purata
+// panjang permainan naik dari 98s ke 232s (bola tak lagi tersalur ke longkang).
+bul(145, 240, 8, { id: 'tiangL1' });
+bul(215, 234, 8, { id: 'tiangL2' });
 
 // --- bumper planet -------------------------------------------------------
 // §13 item 11: lambungan flipper biasa mesti sampai ke kelompok bumper.
@@ -414,12 +421,10 @@ const LORONG = [
   { x1: 228, x2: 272, nyala: false, cd: 0 }
 ];
 const LORONG_TEBAL = 56;   // ketebalan jalur lorong YANG DILUKIS
-// Ketebalan zon PENCETUS. Dengan 56 sahaja, lorong KIRI mustahil dicetuskan:
-// bumper MARIKH (104,392,r26) melindungi x 69-139 dari bawah, jadi bola cuma
-// boleh masuk kawasan itu dari atas dan paras tertinggi yang dicapai ~y294,
-// sedangkan ambang lama ialah y254. Zon 126 menjadikan ambang ~y324 di lorong
-// kiri — masih di ATAS bumper, tetapi kini benar-benar boleh dicapai.
-const LORONG_ZON = 126;
+// Ketebalan zon PENCETUS (lebih murah hati daripada jalur yang dilukis, supaya
+// bola yang lalu sedikit di bawah jalur tetap dikira — mata 6 tahun tak akan
+// perasan bezanya, tetapi ia mengurangkan rasa "kenapa tak masuk?").
+const LORONG_ZON = 80;
 
 // --- flipper -------------------------------------------------------------
 const FLIP = {
@@ -1457,7 +1462,7 @@ function kemasKini(dt) {
     // mengunci papan skor sampai bola habis kerana misiAktif tak pernah dilepas.
     if (misiAktif >= 0 && bola.mode !== 'sedia') {
       misiMasa += dt;
-      if (misiMasa > 75) batalMisi('MISI DIBATALKAN — CUBA YANG LAIN');
+      if (misiMasa > 120) batalMisi('MISI DIBATALKAN — CUBA YANG LAIN');
     }
     // graviti pandu turun kalau bola terlalu lama
     const gAsal = mudah ? 230 : 260;
