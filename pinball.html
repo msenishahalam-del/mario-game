@@ -339,6 +339,10 @@ seg(270, 652, 226, 636, { r: 4, id: 'slKananB' });
 // --- pembahagi inlane/outlane -------------------------------------------
 seg(44, 600, 52, 700, { r: 3, id: 'divKiri' });
 seg(316, 600, 308, 700, { r: 3, id: 'divKanan' });
+// Lantai inlane: menyuap bola dari inlane (dan dari keluar ramp) TERUS ke atas
+// flipper. Tanpa ini bola jatuh di sebelah pangsi flipper dan terus mati.
+seg(50, 676, 86, 700, { r: 3, e: 0.35, id: 'lantaiKiri' });
+seg(310, 676, 274, 700, { r: 3, e: 0.35, id: 'lantaiKanan' });
 
 // --- sasaran jatuh S-O-S -------------------------------------------------
 const SOS = [];
