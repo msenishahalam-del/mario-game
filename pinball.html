@@ -396,18 +396,23 @@ let keadaan = 'mula';      // 'mula' | 'main' | 'jeda' | 'tamat'
 let profil  = 'enisa';
 let mudah   = false;
 
+// Nota penalaan: graviti diturunkan daripada nilai draf (360/420) kepada 230/260.
+// Dengan kepitan keluar flipper 470 u/s, graviti 420 hanya membenarkan bola naik
+// 263 unit — bumper (y=330) dan lubang cacing (y=430) jadi MUSTAHIL dicapai dari
+// flipper. Menurunkan graviti (bukan menaikkan laju bola) mengekalkan bola perlahan
+// untuk mata 6 tahun DAN memanjangkan tempoh permainan. Rujuk §13 item 10 & 11.
 const T = {
-  grav: 420, hadLaju: 520, flipPanjang: 66,
+  grav: 260, hadLaju: 520, flipPanjang: 66,
   cajJaring: 1, cajIsiSetiap: 2, perisaiKekal: false, bolaSelamat: 15
 };
 function tetapkanMod(p) {
   profil = p;
   mudah = (p === 'edris');
   if (mudah) {
-    T.grav = 360; T.hadLaju = 470; T.flipPanjang = 70;
+    T.grav = 230; T.hadLaju = 470; T.flipPanjang = 70;
     T.cajJaring = 4; T.cajIsiSetiap = 1; T.perisaiKekal = true; T.bolaSelamat = 25;
   } else {
-    T.grav = 420; T.hadLaju = 520; T.flipPanjang = 66;
+    T.grav = 260; T.hadLaju = 520; T.flipPanjang = 66;
     T.cajJaring = 1; T.cajIsiSetiap = 2; T.perisaiKekal = false; T.bolaSelamat = 15;
   }
 }
@@ -1355,8 +1360,8 @@ function kemasKini(dt) {
       if (autoMulaT > 20) { mesej('MISI AUTO BERMULA!'); mulaMisi(misiSorot); }
     }
     // graviti pandu turun kalau bola terlalu lama
-    const gAsal = mudah ? 360 : 420;
-    T.grav = (masaBolaIni > 240) ? gAsal * 0.75 : gAsal;
+    const gAsal = mudah ? 230 : 260;
+    T.grav = (masaBolaIni > 240) ? gAsal * 1.4 : gAsal;
   }
 
   // mesej
