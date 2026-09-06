@@ -340,8 +340,12 @@ seg(270, 586, 270, 652, { r: 4, id: 'slKananA' });
 seg(270, 652, 226, 636, { r: 4, id: 'slKananB' });
 
 // --- pembahagi inlane/outlane -------------------------------------------
-seg(44, 600, 52, 700, { r: 3, id: 'divKiri' });
-seg(316, 600, 308, 700, { r: 3, id: 'divKanan' });
+// Puncak pembahagi dinaikkan ke y=552. Pada y=600 bola yang meluncur mendatar
+// di paras ~570 melepasi bahagian atas slingshot dan terus jatuh ke outlane
+// SETIAP KALI — outlane jadi laluan lalai, bukan laluan malang. Dengan puncak
+// yang tinggi, bola dilencongkan ke inlane dan outlane perlu dimasuki dari atas.
+seg(44, 552, 52, 700, { r: 3, id: 'divKiri' });
+seg(316, 552, 308, 700, { r: 3, id: 'divKanan' });
 // Lantai inlane: menyuap bola dari inlane (dan dari keluar ramp) TERUS ke atas
 // flipper. Tanpa ini bola jatuh di sebelah pangsi flipper dan terus mati.
 seg(50, 676, 86, 700, { r: 3, e: 0.35, id: 'lantaiKiri' });
@@ -399,7 +403,6 @@ const LORONG = [
   { x1: 158, x2: 202, nyala: false, cd: 0 },
   { x1: 228, x2: 272, nyala: false, cd: 0 }
 ];
-const LORONG_Y = 250;
 const LORONG_TEBAL = 56;   // ketebalan jalur lorong di bawah siling busur
 
 // --- flipper -------------------------------------------------------------
@@ -1999,7 +2002,7 @@ function lukisPenandaSasaran() {
     case 'planet': titik.push([MARIKH.x, MARIKH.y, MARIKH.r], [NEPTUN.x, NEPTUN.y, NEPTUN.r], [ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
     case 'lorong': LORONG.forEach(function (l) { const c = (l.x1 + l.x2) / 2; if (!l.nyala) titik.push([c, busurY(c) + LORONG_TEBAL - 12, 20]); }); break;
     case 'sos':    titik.push([80, 490, 40]); break;
-    case 'ramp':   titik.push([58, 520, 26], [302, 520, 26]); break;
+    case 'ramp':   titik.push([42, 520, 30], [318, 520, 30]); break;
     case 'bulan':  titik.push([BULAN.x, BULAN.y, BULAN.rv]); break;
     case 'bos':    titik.push([ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
   }
