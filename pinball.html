@@ -297,6 +297,12 @@ bul(348, 272, 5, { id: 'topDivider' });
 
 // --- busur gerbang atas A1 ----------------------------------------------
 const ARC_CX = 200, ARC_CY = 370, ARC_R = 194;
+// ketinggian siling busur pada sesuatu x (bahagian atas bulatan)
+function busurY(x) {
+  const dx = x - ARC_CX;
+  const d2 = ARC_R * ARC_R - dx * dx;
+  return d2 <= 0 ? ARC_CY : ARC_CY - Math.sqrt(d2);
+}
 (function buatBusur() {
   const a1 = Math.atan2(322 - ARC_CY, 12 - ARC_CX);   // ~ -2.891 rad
   const a2 = 0;                                        // (394,370)
@@ -306,13 +312,13 @@ const ARC_CX = 200, ARC_CY = 370, ARC_R = 194;
     const t2 = a1 + (a2 - a1) * ((i + 1) / N);
     seg(ARC_CX + ARC_R * Math.cos(t1), ARC_CY + ARC_R * Math.sin(t1),
         ARC_CX + ARC_R * Math.cos(t2), ARC_CY + ARC_R * Math.sin(t2),
-        { r: 4, jenis: 'busur', id: 'A1' });
+        { r: 4, e: 0.45, jenis: 'busur', id: 'A1' });
   }
 })();
 
 // --- tiang pemisah lorong atas -------------------------------------------
-bul(145, 250, 7, { id: 'tiangL1' });
-bul(215, 250, 7, { id: 'tiangL2' });
+bul(145, 214, 8, { id: 'tiangL1' });
+bul(215, 208, 8, { id: 'tiangL2' });
 
 // --- bumper planet -------------------------------------------------------
 const MARIKH = bul(108, 330, 26, { jenis: 'bumper', id: 'marikh' });
@@ -379,6 +385,7 @@ const LORONG = [
   { x1: 228, x2: 272, nyala: false, cd: 0 }
 ];
 const LORONG_Y = 250;
+const LORONG_TEBAL = 56;   // ketebalan jalur lorong di bawah siling busur
 
 // --- flipper -------------------------------------------------------------
 const FLIP = {
@@ -999,14 +1006,14 @@ function kick(nx, ny, laju) {
 
 // ---- pencetus zon -------------------------------------------------------
 function semakLorongAtas() {
-  const y0 = bola.pv.y, y1 = bola.y;
-  if ((y0 - LORONG_Y) * (y1 - LORONG_Y) > 0) return;
+  const siling = busurY(bola.x);
+  if (bola.y > siling + LORONG_TEBAL) return;
   for (let i = 0; i < 3; i++) {
     const l = LORONG[i];
     if (l.cd > 0) continue;
     if (bola.x >= l.x1 && bola.x <= l.x2) {
-      l.cd = 0.3;
-      poin(100, bola.x, LORONG_Y, '#ffd24d');
+      l.cd = 0.6;
+      poin(100, bola.x, bola.y, '#ffd24d');
       SFX.rollover();
       if (!l.nyala) {
         l.nyala = true;
@@ -1020,12 +1027,12 @@ function semakLorongAtas() {
       let semua = true;
       LORONG.forEach(function (q) { if (!q.nyala) semua = false; });
       if (semua) {
-        poin(1000, 180, 240, '#ffd24d');
+        poin(1000, 180, 210, '#ffd24d');
         mesej('TIGA BINTANG! +1000');
         SFX.bintang();
         if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'lorong') { misiP = 3; siapkanMisi(); }
         LORONG.forEach(function (q) { q.nyala = false; });
-        letupan(180, 245, 20, '#ffd24d', 140);
+        letupan(180, 215, 20, '#ffd24d', 140);
       }
       break;
     }
@@ -1692,18 +1699,28 @@ function lukisLorongAtas() {
   for (let i = 0; i < 3; i++) {
     const l = LORONG[i];
     const cx = (l.x1 + l.x2) / 2;
+    const sy = busurY(cx);
     ctx.save();
-    ctx.strokeStyle = l.nyala ? 'rgba(255,210,77,0.55)' : 'rgba(106,106,138,0.35)';
+    // kawasan lorong (jalur di bawah siling)
+    ctx.fillStyle = l.nyala ? 'rgba(255,210,77,0.13)' : 'rgba(106,106,138,0.08)';
+    ctx.beginPath();
+    ctx.moveTo(l.x1, busurY(l.x1));
+    for (let x = l.x1; x <= l.x2; x += 4) ctx.lineTo(x, busurY(x));
+    ctx.lineTo(l.x2, busurY(l.x2) + LORONG_TEBAL);
+    for (let x = l.x2; x >= l.x1; x -= 4) ctx.lineTo(x, busurY(x) + LORONG_TEBAL);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = l.nyala ? 'rgba(255,210,77,0.65)' : 'rgba(106,106,138,0.40)';
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(l.x1, LORONG_Y + 8); ctx.lineTo(l.x1, LORONG_Y - 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(l.x2, LORONG_Y + 8); ctx.lineTo(l.x2, LORONG_Y - 12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(l.x1, busurY(l.x1) + 4); ctx.lineTo(l.x1, busurY(l.x1) + LORONG_TEBAL); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(l.x2, busurY(l.x2) + 4); ctx.lineTo(l.x2, busurY(l.x2) + LORONG_TEBAL); ctx.stroke();
+    const by = sy + LORONG_TEBAL - 12;
     if (l.nyala) {
-      const g = ctx.createRadialGradient(cx, 232, 2, cx, 232, 18);
+      const g = ctx.createRadialGradient(cx, by, 2, cx, by, 18);
       g.addColorStop(0, 'rgba(255,210,77,0.5)'); g.addColorStop(1, 'rgba(255,210,77,0)');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, 232, 18, 0, 6.283); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, by, 18, 0, 6.283); ctx.fill();
     }
     ctx.fillStyle = l.nyala ? '#ffd24d' : '#3a3a55';
-    lukisBintangKecil(cx, 232, 8);
+    lukisBintangKecil(cx, by, 8);
     ctx.restore();
   }
   // tiang
@@ -1960,7 +1977,7 @@ function lukisPenandaSasaran() {
   const titik = [];
   switch (m.sasaran) {
     case 'planet': titik.push([MARIKH.x, MARIKH.y, MARIKH.r], [NEPTUN.x, NEPTUN.y, NEPTUN.r], [ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
-    case 'lorong': LORONG.forEach(function (l) { if (!l.nyala) titik.push([(l.x1 + l.x2) / 2, 240, 20]); }); break;
+    case 'lorong': LORONG.forEach(function (l) { const c = (l.x1 + l.x2) / 2; if (!l.nyala) titik.push([c, busurY(c) + LORONG_TEBAL - 12, 20]); }); break;
     case 'sos':    titik.push([80, 490, 40]); break;
     case 'ramp':   titik.push([58, 520, 26], [302, 520, 26]); break;
     case 'bulan':  titik.push([BULAN.x, BULAN.y, BULAN.rv]); break;
