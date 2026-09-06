@@ -354,7 +354,9 @@ seg(310, 676, 274, 700, { r: 3, e: 0.35, id: 'lantaiKanan' });
 // --- sasaran jatuh S-O-S -------------------------------------------------
 const SOS = [];
 (function buatSOS() {
-  const pusat = [[54, 500], [80, 490], [106, 480]];
+  // dinaikkan 14 unit: pada kedudukan asal celah antara bank S-O-S dan mulut
+  // ramp kiri hanya ~3 unit lebih lebar daripada bola (risiko bola tersepit).
+  const pusat = [[54, 486], [80, 476], [106, 466]];
   const huruf = ['S', 'O', 'S'];
   const a = -21 * Math.PI / 180, hl = 14;
   for (let i = 0; i < 3; i++) {
@@ -1247,10 +1249,10 @@ function langkahFizik(dt) {
       let n = 0; SOS.forEach(function (q) { if (q.tumbang) n++; });
       if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'sos') misiP = n;
       if (n === 3) {
-        poin(2000, 80, 490, '#38ef7d');
+        poin(2000, 80, 476, '#38ef7d');
         mesej('SEMUA S-O-S! +2000');
         sosBangkitT = 6;
-        letupan(80, 490, 24, '#38ef7d', 160);
+        letupan(80, 476, 24, '#38ef7d', 160);
         if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'sos') { misiP = 3; siapkanMisi(); return; }
         if (misiAktif >= 0 && MISI[misiAktif].sasaran === 'bos') kenaBos(2);
       }
@@ -2001,7 +2003,7 @@ function lukisPenandaSasaran() {
   switch (m.sasaran) {
     case 'planet': titik.push([MARIKH.x, MARIKH.y, MARIKH.r], [NEPTUN.x, NEPTUN.y, NEPTUN.r], [ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
     case 'lorong': LORONG.forEach(function (l) { const c = (l.x1 + l.x2) / 2; if (!l.nyala) titik.push([c, busurY(c) + LORONG_TEBAL - 12, 20]); }); break;
-    case 'sos':    titik.push([80, 490, 40]); break;
+    case 'sos':    titik.push([80, 476, 42]); break;
     case 'ramp':   titik.push([42, 520, 30], [318, 520, 30]); break;
     case 'bulan':  titik.push([BULAN.x, BULAN.y, BULAN.rv]); break;
     case 'bos':    titik.push([ZUHAL.x, ZUHAL.y, ZUHAL.r]); break;
