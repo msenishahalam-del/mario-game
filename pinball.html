@@ -434,7 +434,7 @@ let sudahMain = false;
 
 const bola = {
   x: 373, y: 776, vx: 0, vy: 0, mode: 'sedia', r: BOLA_R,
-  pv: { x: 373, y: 776 }, lambatT: 0, jejak: []
+  pv: { x: 373, y: 776 }, lambatT: 0, lubangCd: 0, jejak: []
 };
 let simpanV = { x: 0, y: 0 };
 
@@ -662,7 +662,7 @@ function mulaMain(p) {
 
 function sediaBola(pertama) {
   bola.x = 373; bola.y = 776; bola.vx = 0; bola.vy = 0;
-  bola.mode = 'sedia'; bola.lambatT = 0; bola.jejak.length = 0;
+  bola.mode = 'sedia'; bola.lambatT = 0; bola.lubangCd = 0; bola.jejak.length = 0;
   bola.pv.x = bola.x; bola.pv.y = bola.y;
   lancarTekan = false; lancarKuasa = 0; lancarAutoT = 0;
   simpanT = T.bolaSelamat;
@@ -1045,6 +1045,7 @@ function habisRamp() {
 }
 
 function semakLubang() {
+  if (bola.lubangCd > 0) return;
   const laju = Math.hypot(bola.vx, bola.vy);
   const dc = Math.hypot(bola.x - CACING.x, bola.y - CACING.y);
   if (dc < CACING.rc && laju < 430) {
@@ -1122,13 +1123,18 @@ function skripLangkah(dt) {
     const had = (bola.lubang === 'cacing') ? 1.0 : 1.0;
     if (bola.lubangT >= had || bola.lubangT >= 1.4) {
       if (bola.lubang === 'cacing') {
-        bola.x = CACING.x; bola.y = CACING.y + 6;
         const kiri = Math.random() < 0.5;
-        kick(kiri ? -0.55 : 0.55, 0.84, 260);
+        const dx = kiri ? -0.55 : 0.55, dy = 0.84;
+        const jarak = CACING.rc + BOLA_R + 3;
+        bola.x = CACING.x + dx * jarak; bola.y = CACING.y + dy * jarak;
+        kick(dx, dy, 260);
       } else {
-        bola.x = BULAN.x - 6; bola.y = BULAN.y + 8;
-        kick(-0.55, 0.84, 280);
+        const dx = -0.55, dy = 0.84;
+        const jarak = BULAN.rc + BOLA_R + 3;
+        bola.x = BULAN.x + dx * jarak; bola.y = BULAN.y + dy * jarak;
+        kick(dx, dy, 280);
       }
+      bola.lubangCd = 0.8;
       bola.mode = 'bebas';
       letupan(bola.x, bola.y, 12, bola.lubang === 'cacing' ? '#a44dff' : '#c0d0e0', 120);
     }
@@ -1143,6 +1149,8 @@ function langkahFizik(dt) {
   if (bola.mode !== 'bebas') { skripLangkah(dt); return; }
 
   bola.pv.x = bola.x; bola.pv.y = bola.y;
+
+  if (bola.lubangCd > 0) bola.lubangCd = Math.max(0, bola.lubangCd - dt);
 
   bola.vy += T.grav * dt;
   bola.vx *= 0.999; bola.vy *= 0.999;
