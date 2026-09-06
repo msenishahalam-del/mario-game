@@ -631,7 +631,9 @@
   </div>
   <button class="big" id="goArcadeBtn" onclick="goToArcade()">MAIN ARCADE! 🕹️</button>
   <br>
-  <button onclick="goBackToSubMenu()" style="background: linear-gradient(135deg, #4facfe, #00c4cc); margin-top: 10px;">📚 Pilih Topik Lain</button>
+  <button class="big hidden" id="comboBtn" onclick="gunaCombo()" style="background: linear-gradient(135deg, #f7971e, #ffd200); color: #5a3a00; margin-top: 10px; font-size: 1.35em;">🔗 COMBO!<span class="set-sub">Simpan masa &amp; buat 1 set lagi</span></button>
+  <br>
+  <button id="topikLainBtn" onclick="goBackToSubMenu()" style="background: linear-gradient(135deg, #4facfe, #00c4cc); margin-top: 10px;">📚 Pilih Topik Lain</button>
   <br>
   <button id="retryBtn" onclick="retryCurrentQuiz()" style="background: linear-gradient(135deg, #667eea, #764ba2); margin-top: 10px;">🔄 Cuba Lagi</button>
 </div>
@@ -650,6 +652,11 @@
   let currentQ = 0;
   let score = 0;
   let rewardSeconds = 0;
+  // ===== COMBO: simpan masa, buat 1 set lagi, masa dicampur =====
+  const COMBO_MAX = 1;      // 1 kali combo sahaja — jadi maksimum 2 set
+  let comboBank = 0;        // saat yang sudah dikumpul daripada set sebelum ini
+  let comboUsed = 0;        // berapa kali combo sudah digunakan
+  let comboSeterusnya = false;   // set yang akan dimula ialah set combo
   let qTimerId = null;
   let qDeadline = 0;
   let qAnswered = false;
@@ -2653,6 +2660,9 @@
 
   function startQuiz(setKey) {
     if (completedSets.has(setKey)) return;  // safety: don't allow locked
+    // Set biasa memulakan kiraan baharu; hanya set combo membawa masa terkumpul
+    if (!comboSeterusnya) { comboBank = 0; comboUsed = 0; }
+    comboSeterusnya = false;
     currentSetKey = setKey;
     const set = SETS[setKey];
     TIME_PER_QUESTION = set.time;
@@ -2963,7 +2973,10 @@
     document.getElementById('quizScreen').classList.add('hidden');
     document.getElementById('resultScreen').classList.remove('hidden');
     document.getElementById('finalScore').textContent = score;
-    rewardSeconds = (score >= MIN_REWARD_SCORE) ? score * 60 : 0;   // 3 betul ke bawah = tiada masa main
+    // Perolehan set ini; 3 betul ke bawah tidak menyumbang apa-apa
+    const perolehan = (score >= MIN_REWARD_SCORE) ? score * 60 : 0;
+    // Masa yang sudah dikumpul TIDAK hangus walaupun set ini gagal
+    rewardSeconds = comboBank + perolehan;
     const bonusEl = document.getElementById('perfectBonus');
     if (bonusEl) bonusEl.style.display = 'none';
 
@@ -3009,6 +3022,9 @@
     // Perlu sekurang-kurangnya MIN_REWARD_SCORE betul baru dapat masa main game
     const btn = document.getElementById('goArcadeBtn');
     const info = document.getElementById('rewardInfo');
+    const pecahan = comboBank > 0
+      ? `<small style="font-size:0.8em;">${Math.round(comboBank / 60)} minit disimpan + ${Math.round(perolehan / 60)} minit set ini</small><br>`
+      : '';
     if (rewardSeconds <= 0) {
       btn.disabled = true;
       btn.style.opacity = '0.5';
@@ -3022,15 +3038,40 @@
       btn.style.opacity = '';
       btn.style.cursor = '';
       btn.textContent = 'MAIN ARCADE! 🕹️';
-      info.innerHTML = `Kamu dapat <b><span id="rewardMinutes">${Math.round(rewardSeconds / 60)}</span> minit</b> untuk main game! 🎮<br>` +
+      info.innerHTML = pecahan +
+        `Kamu dapat <b><span id="rewardMinutes">${Math.round(rewardSeconds / 60)}</span> minit</b> untuk main game! 🎮<br>` +
         `<small style="font-size: 0.8em;">(Mario, Tetris, Flappy, Sonic, Aladdin, Pac-Man, Felix, Snake, Invaders, Micro Machines)</small>`;
     }
+
+    // Butang COMBO — gantikan "Pilih Topik Lain" supaya anak tidak tersilap
+    // tekan dan hilang masa yang sudah dikumpul.
+    const comboBtn = document.getElementById('comboBtn');
+    const topikLainBtn = document.getElementById('topikLainBtn');
+    const bolehCombo = comboUsed < COMBO_MAX;
+    comboBtn.classList.toggle('hidden', !bolehCombo);
+    topikLainBtn.classList.toggle('hidden', bolehCombo);
+    if (bolehCombo) {
+      const simpan = Math.round(rewardSeconds / 60);
+      comboBtn.innerHTML = '🔗 COMBO!<span class="set-sub">' +
+        (simpan > 0 ? 'Simpan ' + simpan + ' minit &amp; buat 1 set lagi' : 'Buat 1 set lagi, masa dicampur') +
+        '</span>';
+    }
+  }
+
+  // Simpan masa setakat ini, kemudian pilih topik lain untuk set combo
+  function gunaCombo() {
+    if (comboUsed >= COMBO_MAX) return;
+    comboBank = rewardSeconds;      // termasuk perolehan set ini
+    comboUsed++;
+    comboSeterusnya = true;         // startQuiz seterusnya tidak akan reset bank
+    goBackToSubMenu();
   }
 
   function goToArcade() {
     if (rewardSeconds <= 0) return;
     const deadline = Date.now() + rewardSeconds * 1000;
     localStorage.setItem('rewardDeadline', String(deadline));
+    comboBank = 0; comboUsed = 0; comboSeterusnya = false;   // masa sudah digunakan
     location.href = 'arcade.html';
   }
 
@@ -3051,7 +3092,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-08-20 09:10';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-09-06 10:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
