@@ -1187,7 +1187,7 @@ function langkahFizik(dt) {
     const s = segmen[i];
     if (s.jenis === 'sasaran' && s.tumbang) continue;
     if (s.jenis === 'perisai' && !s.hidup) continue;
-    if (s.jenis === 'jaring' && JARING.caj <= 0) continue;
+    if (s.jenis === 'jaring' && (JARING.caj <= 0 || masaBolaIni > 240)) continue;
 
     if (s.jenis === 'ramp') {
       const n = nearest(bola.x, bola.y, s.x1, s.y1, s.x2, s.y2);
@@ -1211,7 +1211,13 @@ function langkahFizik(dt) {
     } else if (s.jenis === 'perisai') {
       kick(s.nx, s.ny, 300);
       s.kilat = 0.4;
-      if (!T.perisaiKekal || masaBolaIni > 150) {
+      // Injap anti-maraton: selepas 150s pada SATU bola, perisai terus padam
+      // (budak 6 tahun jarang bertahan selama itu — ini cuma pastikan permainan
+      // boleh tamat, bukan menghukum permainan biasa).
+      if (masaBolaIni > 150) {
+        perisaiGuna = 0;
+        PERISAI_KIRI.hidup = false; PERISAI_KANAN.hidup = false;
+      } else if (!T.perisaiKekal) {
         perisaiGuna--;
         if (perisaiGuna <= 0) { PERISAI_KIRI.hidup = false; PERISAI_KANAN.hidup = false; }
       }
@@ -1892,7 +1898,7 @@ function lukisPerisaiJaring() {
     }
   });
   // jaring graviti
-  const hidup = JARING.caj > 0;
+  const hidup = JARING.caj > 0 && masaBolaIni <= 240;
   ctx.save();
   if (hidup) {
     ctx.strokeStyle = 'rgba(56,239,125,0.85)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
