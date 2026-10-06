@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cari Kata — English Word Search</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(180deg, #4facfe 0%, #1e6fd9 45%, #0f3d8a 100%);
+    color: #1b2430;
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  /* ===== pautan hub (konvensyen repo) ===== */
+  #backBtn {
+    position: fixed; top: 12px; left: 12px; z-index: 60;
+    background: rgba(0,0,0,0.6); color: #fff; text-decoration: none;
+    font-weight: bold; font-size: 14px; padding: 8px 14px; border-radius: 10px;
+    border: 2px solid #ffd24d;
+  }
+  #backBtn:hover { background: #ffd24d; color: #000; }
+
+  .skrin { display: none; min-height: 100vh; padding: 66px 12px 28px; }
+  .skrin.aktif { display: block; }
+
+  /* ===== skrin mula ===== */
+  .kad {
+    max-width: 440px; margin: 0 auto; background: rgba(255,255,255,0.96);
+    border-radius: 22px; padding: 22px 18px; text-align: center;
+    box-shadow: 0 16px 50px rgba(0,0,0,0.35);
+  }
+  h1 { margin: 0 0 4px; font-size: 2rem; color: #1e6fd9; letter-spacing: 0.02em; }
+  .sub { margin: 0 0 18px; color: #5b6b7a; font-size: 0.95rem; }
+  .profil {
+    display: block; width: 100%; margin: 10px 0; padding: 16px 14px;
+    border: none; border-radius: 16px; color: #fff; font-size: 1.25rem; font-weight: bold;
+    cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,0.2); text-align: left;
+    font-family: inherit;
+  }
+  .profil small { display: block; font-size: 0.78rem; font-weight: normal; opacity: 0.92; margin-top: 4px; }
+  .profil.edris { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .profil.enisa { background: linear-gradient(135deg, #4facfe, #00c4cc); }
+  .profil:active { transform: scale(0.98); }
+  .kemajuan { font-size: 0.82rem; color: #5b6b7a; margin-top: 14px; line-height: 1.5; }
+
+  /* ===== skrin main ===== */
+  .atas {
+    max-width: 480px; margin: 0 auto 10px; text-align: center; color: #fff;
+  }
+  .atas .tahap { font-size: 1.15rem; font-weight: bold; text-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+  .atas .nama { font-size: 0.8rem; opacity: 0.9; }
+
+  .papan {
+    max-width: 480px; margin: 0 auto; background: rgba(255,255,255,0.97);
+    border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .tema {
+    background: linear-gradient(90deg, #2a9d3f, #43c05b); color: #fff;
+    font-weight: bold; letter-spacing: 0.08em; text-align: center;
+    padding: 9px 12px; font-size: 1.05rem; position: relative;
+  }
+  .tema .petunjuk-kira {
+    position: absolute; left: 10px; top: 6px; background: rgba(0,0,0,0.35);
+    border-radius: 999px; padding: 3px 10px; font-size: 0.78rem;
+  }
+  .senarai {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px;
+    padding: 10px 12px; border-bottom: 1px solid #e3e8ee;
+  }
+  .kata {
+    font-weight: bold; font-size: 0.98rem; color: #1b2430; letter-spacing: 0.04em;
+    padding: 2px 6px; border-radius: 8px; transition: all .25s;
+  }
+  .kata.jumpa { color: #a9b3bd; text-decoration: line-through; font-weight: normal; }
+  .kata.hint { background: #4facfe; color: #fff; animation: denyut 1s infinite; }
+  @keyframes denyut { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+  .grid-bungkus { padding: 10px; }
+  .grid {
+    position: relative; margin: 0 auto; touch-action: none;
+    display: grid; background: #fff;
+  }
+  .cell {
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: #1b2430; position: relative; z-index: 2;
+    cursor: pointer;
+  }
+  .cell.hint-huruf { animation: hintPulse 0.7s 4; }
+  @keyframes hintPulse { 0%,100% { color: #1b2430; transform: scale(1); } 50% { color: #e63946; transform: scale(1.35); } }
+  .jalur { position: absolute; z-index: 1; border-radius: 999px; pointer-events: none;
+           transform-origin: 0 50%; }
+  .jalur.pilih { background: rgba(30,111,217,0.28); border: 2px solid rgba(30,111,217,0.6); z-index: 1; }
+
+  .bawah {
+    display: flex; justify-content: center; gap: 10px; padding: 10px 12px 14px;
+    border-top: 1px solid #e3e8ee; flex-wrap: wrap;
+  }
+  .btn {
+    border: none; border-radius: 999px; padding: 11px 18px; font-size: 0.95rem;
+    font-weight: bold; color: #fff; cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn.hijau { background: linear-gradient(135deg, #2a9d3f, #43c05b); }
+  .btn.kelabu { background: linear-gradient(135deg, #7b8794, #5b6b7a); }
+  .btn.ungu { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* toast perkataan dijumpai */
+  #toast {
+    position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%) translateY(20px);
+    background: #1b2430; color: #fff; padding: 12px 20px; border-radius: 16px;
+    font-size: 1.15rem; font-weight: bold; opacity: 0; transition: all .25s;
+    z-index: 80; pointer-events: none; white-space: nowrap; max-width: 92vw;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #toast.tunjuk { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast small { display: block; font-weight: normal; font-size: 0.85rem; opacity: 0.85; margin-top: 2px; }
+
+  /* ===== skrin siap ===== */
+  #skrinSiap { position: fixed; inset: 0; background: rgba(10,30,70,0.82); z-index: 70;
+               display: none; align-items: center; justify-content: center; padding: 16px; }
+  #skrinSiap.aktif { display: flex; }
+  .siap-kad {
+    background: #fff; border-radius: 22px; padding: 22px 18px; max-width: 420px; width: 100%;
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: pop .35s ease;
+    max-height: 92vh; overflow-y: auto;
+  }
+  @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .siap-kad h2 { margin: 0 0 6px; color: #2a9d3f; font-size: 1.7rem; }
+  .bintang { font-size: 2.2rem; letter-spacing: 0.1em; margin: 6px 0 10px; }
+  .ulang-kaji { text-align: left; margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .ulang-kaji div { font-size: 0.9rem; background: #f3f6fa; border-radius: 10px; padding: 6px 10px; }
+  .ulang-kaji b { color: #1e6fd9; }
+  .ulang-kaji span { color: #5b6b7a; }
+
+  @media (max-width: 430px) {
+    .kata { font-size: 0.88rem; }
+    .btn { padding: 10px 14px; font-size: 0.88rem; }
+    .ulang-kaji { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<a id="backBtn" href="arcade.html">◀ HUB</a>
+
+<!-- ===== SKRIN MULA ===== -->
+<div id="skrinMula" class="skrin aktif">
+  <div class="kad">
+    <h1>🔎 Cari Kata</h1>
+    <p class="sub">English Word Search · cari perkataan tersembunyi dalam grid</p>
+    <button class="profil edris" onclick="mula('edris')">🧒 Edris (6 tahun)
+      <small>Grid 8×8 · 6 perkataan · mendatar &amp; menegak sahaja</small></button>
+    <button class="profil enisa" onclick="mula('enisa')">📚 Enisa (Darjah 3)
+      <small>Grid 10×10 · 8 perkataan · termasuk serong &amp; terbalik</small></button>
+    <div class="kemajuan" id="kemajuan"></div>
+  </div>
+</div>
+
+<!-- ===== SKRIN MAIN ===== -->
+<div id="skrinMain" class="skrin">
+  <div class="atas">
+    <div class="tahap" id="lblTahap">Tahap 1</div>
+    <div class="nama" id="lblNama"></div>
+  </div>
+  <div class="papan">
+    <div class="tema"><span class="petunjuk-kira" id="lblHint">💡 3</span><span id="lblTema">ANIMALS</span></div>
+    <div class="senarai" id="senarai"></div>
+    <div class="grid-bungkus"><div class="grid" id="grid"></div></div>
+    <div class="bawah">
+      <button class="btn ungu" id="btnHint" onclick="guna_hint()">💡 Petunjuk</button>
+      <button class="btn kelabu" id="btnSuara" onclick="togol_suara()">🔊 Suara</button>
+      <button class="btn kelabu" onclick="ke_mula()">🏠 Tukar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ===== SKRIN SIAP ===== -->
+<div id="skrinSiap">
+  <div class="siap-kad">
+    <h2>🎉 Siap!</h2>
+    <div id="lblSiapTema" class="sub"></div>
+    <div class="bintang" id="bintang">⭐⭐⭐</div>
+    <div class="ulang-kaji" id="ulangKaji"></div>
+    <button class="btn hijau" onclick="tahap_seterusnya()" id="btnSeterusnya">▶ Tahap Seterusnya</button>
+    <button class="btn kelabu" onclick="ke_mula()" style="margin-top:8px">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ===================== DATA TEMA =====================
+// Setiap perkataan: [English, makna BM, emoji]. Mod mudah guna 6 pertama, biasa guna 8.
+const TEMA = [
+  ['ANIMALS',    [['CAT','Kucing','🐱'],['DOG','Anjing','🐶'],['COW','Lembu','🐮'],['HEN','Ayam','🐔'],['FISH','Ikan','🐟'],['BIRD','Burung','🐦'],['FROG','Katak','🐸'],['LION','Singa','🦁']]],
+  ['FRUITS',     [['APPLE','Epal','🍎'],['MANGO','Mangga','🥭'],['GRAPE','Anggur','🍇'],['PEAR','Pear','🍐'],['BANANA','Pisang','🍌'],['ORANGE','Oren','🍊'],['MELON','Tembikai','🍉'],['LEMON','Lemon','🍋']]],
+  ['COLOURS',    [['RED','Merah','🔴'],['BLUE','Biru','🔵'],['GREEN','Hijau','🟢'],['PINK','Merah jambu','🩷'],['BLACK','Hitam','⚫'],['WHITE','Putih','⚪'],['BROWN','Perang','🟤'],['YELLOW','Kuning','🟡']]],
+  ['MY BODY',    [['HEAD','Kepala','🙂'],['HAND','Tangan','✋'],['FOOT','Kaki','🦶'],['EYE','Mata','👁️'],['EAR','Telinga','👂'],['NOSE','Hidung','👃'],['MOUTH','Mulut','👄'],['KNEE','Lutut','🦵']]],
+  ['AT SCHOOL',  [['BOOK','Buku','📖'],['PEN','Pen','🖊️'],['DESK','Meja tulis','🪑'],['CHAIR','Kerusi','🪑'],['BAG','Beg','🎒'],['RULER','Pembaris','📏'],['TEACHER','Guru','👩‍🏫'],['CLASS','Kelas','🏫']]],
+  ['MY HOUSE',   [['DOOR','Pintu','🚪'],['WINDOW','Tingkap','🪟'],['BED','Katil','🛏️'],['TABLE','Meja','🍽️'],['KITCHEN','Dapur','🍳'],['ROOF','Bumbung','🏠'],['WALL','Dinding','🧱'],['LAMP','Lampu','💡']]],
+  ['WEATHER',    [['SUN','Matahari','☀️'],['RAIN','Hujan','🌧️'],['WIND','Angin','💨'],['CLOUD','Awan','☁️'],['STORM','Ribut','⛈️'],['SNOW','Salji','❄️'],['HOT','Panas','🥵'],['COLD','Sejuk','🥶']]],
+  ['FOOD',       [['RICE','Nasi','🍚'],['BREAD','Roti','🍞'],['EGG','Telur','🥚'],['MILK','Susu','🥛'],['CAKE','Kek','🎂'],['SOUP','Sup','🍲'],['NOODLE','Mi','🍜'],['WATER','Air','💧']]],
+  ['NUMBERS',    [['ONE','Satu','1️⃣'],['TWO','Dua','2️⃣'],['THREE','Tiga','3️⃣'],['FOUR','Empat','4️⃣'],['FIVE','Lima','5️⃣'],['SIX','Enam','6️⃣'],['SEVEN','Tujuh','7️⃣'],['EIGHT','Lapan','8️⃣']]],
+  ['FAMILY',     [['MOTHER','Ibu','👩'],['FATHER','Ayah','👨'],['SISTER','Kakak','👧'],['BROTHER','Abang','👦'],['BABY','Bayi','👶'],['UNCLE','Pak cik','🧔'],['AUNT','Mak cik','👩‍🦱'],['GRANDMA','Nenek','👵']]],
+  ['THE SEA',    [['SHARK','Jerung','🦈'],['WHALE','Paus','🐳'],['CRAB','Ketam','🦀'],['OCTOPUS','Sotong kurita','🐙'],['SHELL','Cengkerang','🐚'],['WAVE','Ombak','🌊'],['SAND','Pasir','🏖️'],['BOAT','Bot','⛵']]],
+  ['SPACE',      [['MOON','Bulan','🌙'],['STAR','Bintang','⭐'],['PLANET','Planet','🪐'],['ROCKET','Roket','🚀'],['EARTH','Bumi','🌍'],['MARS','Marikh','🔴'],['COMET','Komet','☄️'],['ALIEN','Makhluk asing','👽']]],
+  ['JOBS',       [['DOCTOR','Doktor','🧑‍⚕️'],['NURSE','Jururawat','👩‍⚕️'],['PILOT','Juruterbang','🧑‍✈️'],['FARMER','Petani','🧑‍🌾'],['CHEF','Tukang masak','🧑‍🍳'],['POLICE','Polis','👮'],['DRIVER','Pemandu','🚗'],['ARTIST','Pelukis','🧑‍🎨']]],
+  ['SPORTS',     [['BALL','Bola','⚽'],['GOAL','Gol','🥅'],['SWIM','Berenang','🏊'],['RUN','Lari','🏃'],['JUMP','Lompat','🤸'],['KICK','Tendang','🦵'],['TEAM','Pasukan','👥'],['RACE','Lumba','🏁']]],
+  ['VEHICLES',   [['CAR','Kereta','🚗'],['BUS','Bas','🚌'],['TRAIN','Kereta api','🚆'],['PLANE','Kapal terbang','✈️'],['BIKE','Basikal','🚲'],['SHIP','Kapal','🚢'],['TRUCK','Lori','🚚'],['TAXI','Teksi','🚕']]],
+  ['CLOTHES',    [['SHIRT','Baju','👕'],['SHOE','Kasut','👟'],['HAT','Topi','🎩'],['SOCK','Stokin','🧦'],['DRESS','Gaun','👗'],['SKIRT','Skirt','👚'],['GLOVE','Sarung tangan','🧤'],['BELT','Tali pinggang','🪢']]],
+  ['GARDEN',     [['TREE','Pokok','🌳'],['FLOWER','Bunga','🌸'],['LEAF','Daun','🍃'],['GRASS','Rumput','🌿'],['SEED','Biji benih','🌱'],['ROOT','Akar','🪴'],['BEE','Lebah','🐝'],['ANT','Semut','🐜']]],
+  ['ACTIONS',    [['EAT','Makan','🍽️'],['DRINK','Minum','🥤'],['SLEEP','Tidur','😴'],['READ','Baca','📚'],['WRITE','Tulis','✍️'],['SING','Nyanyi','🎤'],['DANCE','Menari','💃'],['PLAY','Main','🎮']]],
+  ['ABOUT PHONE',[['CALL','Panggil','📞'],['TEXT','Mesej','💬'],['SCREEN','Skrin','📱'],['BATTERY','Bateri','🔋'],['SIGNAL','Isyarat','📶'],['ZOOM','Zum','🔍'],['DIAL','Dail','☎️'],['LOCK','Kunci','🔒']]],
+  ['FEELINGS',   [['HAPPY','Gembira','😊'],['SAD','Sedih','😢'],['ANGRY','Marah','😠'],['SCARED','Takut','😨'],['TIRED','Letih','😩'],['SHY','Malu','😳'],['PROUD','Bangga','😤'],['CALM','Tenang','😌']]]
+];
+
+const PROFIL = {
+  edris: { nama: 'Edris', saiz: 8,  bil: 6, arah: [[0,1],[1,0]], hint: 3 },
+  enisa: { nama: 'Enisa', saiz: 10, bil: 8, arah: [[0,1],[1,0],[1,1],[-1,1],[0,-1],[-1,0],[-1,-1],[1,-1]], hint: 3 }
+};
+const WARNA = ['#f28b9b','#7ec8ff','#b68cff','#5ee3c1','#ffd166','#8ce99a','#ffa07a','#c3a6ff','#74d3ea','#ff9fcf'];
+const KUNCI = 'carikata_v1';
+const HURUF = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+// ===================== KEADAAN =====================
+let profil = null, tahap = 1, perkataan = [], saiz = 8;
+let grid = [], letak = {};          // letak[word] = senarai sel [r,c] tempat ia diletak
+let jumpa = {};                      // jumpa[word] = senarai sel yang pemain pilih
+let hintBaki = 3, hintGuna = 0, suara = true;
+let sel = null;                      // {r1,c1,r2,c2} semasa seret
+let cs = 34;                         // saiz sel (px) semasa
+
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ===================== SIMPANAN =====================
+function bacaSimpanan() {
+  try { return JSON.parse(localStorage.getItem(KUNCI)) || {}; } catch (e) { return {}; }
+}
+function simpan(d) { try { localStorage.setItem(KUNCI, JSON.stringify(d)); } catch (e) {} }
+function rekod(p) { const d = bacaSimpanan(); if (!d[p]) d[p] = { tahap: 1, bintang: {} }; return d; }
+
+function paparKemajuan() {
+  const d = bacaSimpanan();
+  const baris = ['edris', 'enisa'].map(p => {
+    const r = d[p]; if (!r) return PROFIL[p].nama + ': belum mula';
+    const jumlah = Object.values(r.bintang || {}).reduce((a, b) => a + b, 0);
+    return PROFIL[p].nama + ': tahap ' + r.tahap + ' · ' + jumlah + ' ⭐';
+  });
+  $('kemajuan').innerHTML = baris.join('<br>');
+}
+
+// ===================== PENJANA GRID =====================
+// Letak semua perkataan secara rawak; cuba semula seluruh grid jika ada yang tak muat.
+function janaGrid(kata, n, arahDibenar) {
+  for (let cubaan = 0; cubaan < 80; cubaan++) {
+    const g = Array.from({ length: n }, () => Array(n).fill(''));
+    const lt = {};
+    let ok = true;
+    const susun = [...kata].sort((a, b) => b.length - a.length);   // panjang dahulu
+    for (const w of susun) {
+      let diletak = false;
+      for (let t = 0; t < 300 && !diletak; t++) {
+        const [dr, dc] = arahDibenar[rand(0, arahDibenar.length - 1)];
+        const L = w.length;
+        const rMin = dr < 0 ? L - 1 : 0, rMax = dr > 0 ? n - L : n - 1;
+        const cMin = dc < 0 ? L - 1 : 0, cMax = dc > 0 ? n - L : n - 1;
+        if (rMax < rMin || cMax < cMin) continue;
+        const r0 = rand(rMin, rMax), c0 = rand(cMin, cMax);
+        let muat = true;
+        for (let i = 0; i < L; i++) {
+          const ch = g[r0 + dr * i][c0 + dc * i];
+          if (ch && ch !== w[i]) { muat = false; break; }
+        }
+        if (!muat) continue;
+        const sels = [];
+        for (let i = 0; i < L; i++) { g[r0 + dr * i][c0 + dc * i] = w[i]; sels.push([r0 + dr * i, c0 + dc * i]); }
+        lt[w] = sels; diletak = true;
+      }
+      if (!diletak) { ok = false; break; }
+    }
+    if (!ok) continue;
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (!g[r][c]) g[r][c] = HURUF[rand(0, 25)];
+    return { g, lt };
+  }
+  return null;
+}
+
+// ===================== MULA / TAHAP =====================
+function mula(p) {
+  profil = p;
+  const d = rekod(p);
+  tahap = d[p].tahap;
+  simpan(d);
+  $('skrinMula').classList.remove('aktif');
+  $('skrinMain').classList.add('aktif');
+  $('lblNama').textContent = PROFIL[p].nama + ' · ' + (p === 'edris' ? 'mudah' : 'biasa');
+  bukaTahap();
+}
+function ke_mula() {
+  $('skrinSiap').classList.remove('aktif');
+  $('skrinMain').classList.remove('aktif');
+  $('skrinMula').classList.add('aktif');
+  paparKemajuan();
+}
+
+function bukaTahap() {
+  const P = PROFIL[profil];
+  const idx = (tahap - 1) % TEMA.length;
+  const [namaTema, senaraiPenuh] = TEMA[idx];
+  perkataan = senaraiPenuh.slice(0, P.bil);
+  saiz = P.saiz;
+  const hasil = janaGrid(perkataan.map(x => x[0]), saiz, P.arah);
+  if (!hasil) { // amat jarang — kurangkan satu perkataan dan cuba lagi
+    perkataan = perkataan.slice(0, -1);
+    const h2 = janaGrid(perkataan.map(x => x[0]), saiz, P.arah);
+    grid = h2.g; letak = h2.lt;
+  } else { grid = hasil.g; letak = hasil.lt; }
+  jumpa = {}; hintBaki = P.hint; hintGuna = 0; sel = null;
+  $('lblTahap').textContent = 'Tahap ' + tahap + (tahap > TEMA.length ? ' · pusingan ' + (Math.floor((tahap - 1) / TEMA.length) + 1) : '');
+  $('lblTema').textContent = namaTema;
+  $('lblHint').textContent = '💡 ' + hintBaki;
+  $('btnHint').disabled = false;
+  lukisSenarai();
+  lukisGrid();
+}
+
+function lukisSenarai() {
+  $('senarai').innerHTML = perkataan.map(([w]) =>
+    '<span class="kata' + (jumpa[w] ? ' jumpa' : '') + '" data-w="' + w + '">' + w + '</span>').join('');
+}
+
+function kiraSaizSel() {
+  const lebar = Math.min(document.querySelector('.papan').clientWidth - 20, 460);
+  cs = Math.max(26, Math.min(46, Math.floor(lebar / saiz)));
+}
+
+function lukisGrid() {
+  kiraSaizSel();
+  const G = $('grid');
+  G.style.gridTemplateColumns = 'repeat(' + saiz + ', ' + cs + 'px)';
+  G.style.width = (cs * saiz) + 'px';
+  G.style.height = (cs * saiz) + 'px';
+  let html = '';
+  for (let r = 0; r < saiz; r++) for (let c = 0; c < saiz; c++)
+    html += '<div class="cell" data-r="' + r + '" data-c="' + c + '" style="width:' + cs + 'px;height:' + cs +
+            'px;font-size:' + Math.round(cs * 0.52) + 'px">' + grid[r][c] + '</div>';
+  G.innerHTML = html;
+  // jalur perkataan yang sudah dijumpai
+  Object.keys(jumpa).forEach((w, i) => G.appendChild(buatJalur(jumpa[w], WARNA[i % WARNA.length], false)));
+}
+
+// Jalur berwarna dari sel pertama ke sel terakhir, diputar mengikut arah.
+function buatJalur(sels, warna, pilih) {
+  const [r1, c1] = sels[0], [r2, c2] = sels[sels.length - 1];
+  const x1 = c1 * cs + cs / 2, y1 = r1 * cs + cs / 2;
+  const dx = (c2 - c1) * cs, dy = (r2 - r1) * cs;
+  const h = cs * 0.78, panjang = Math.hypot(dx, dy) + h;
+  const sudut = Math.atan2(dy, dx);
+  const d = document.createElement('div');
+  d.className = 'jalur' + (pilih ? ' pilih' : '');
+  d.style.cssText = 'left:' + x1 + 'px;top:' + (y1 - h / 2) + 'px;width:' + panjang + 'px;height:' + h + 'px;' +
+    'transform:rotate(' + sudut + 'rad) translateX(' + (-h / 2) + 'px);' + (pilih ? '' : 'background:' + warna + ';opacity:0.75;');
+  return d;
+}
+
+// ===================== PILIHAN (SERET) =====================
+function selDi(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const cell = el && el.closest ? el.closest('.cell') : null;
+  return cell ? [+cell.dataset.r, +cell.dataset.c] : null;
+}
+// Hujung seretan dipetik ke 8 arah lurus yang paling hampir, dalam grid.
+function petikHujung(r1, c1, r, c) {
+  const dr = r - r1, dc = c - c1;
+  if (dr === 0 && dc === 0) return [r1, c1];
+  const n = Math.max(Math.abs(dr), Math.abs(dc));
+  let terbaik = null, jarak = Infinity;
+  for (const [ar, ac] of [[0,1],[1,0],[1,1],[-1,1],[0,-1],[-1,0],[-1,-1],[1,-1]]) {
+    for (let k = n; k >= 1; k--) {
+      const rr = r1 + ar * k, cc = c1 + ac * k;
+      if (rr < 0 || cc < 0 || rr >= saiz || cc >= saiz) continue;
+      const j = Math.hypot(rr - r, cc - c);
+      if (j < jarak) { jarak = j; terbaik = [rr, cc]; }
+      break;   // hanya hujung terjauh yang sah bagi arah ini
+    }
+  }
+  return terbaik || [r1, c1];
+}
+function selSepanjang(r1, c1, r2, c2) {
+  const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1), n = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1));
+  const out = [];
+  for (let i = 0; i <= n; i++) out.push([r1 + dr * i, c1 + dc * i]);
+  return out;
+}
+function lukisPilihan() {
+  const lama = $('grid').querySelector('.jalur.pilih'); if (lama) lama.remove();
+  if (!sel) return;
+  $('grid').appendChild(buatJalur(selSepanjang(sel.r1, sel.c1, sel.r2, sel.c2), null, true));
+}
+function selesaiPilihan() {
+  if (!sel) return;
+  const sels = selSepanjang(sel.r1, sel.c1, sel.r2, sel.c2);
+  sel = null; lukisPilihan();
+  if (sels.length < 2) return;
+  const s = sels.map(([r, c]) => grid[r][c]).join('');
+  const t = s.split('').reverse().join('');
+  const hit = perkataan.find(([w]) => !jumpa[w] && (w === s || w === t));
+  if (!hit) return;
+  const [w, ms, emoji] = hit;
+  jumpa[w] = (w === s) ? sels : sels.slice().reverse();
+  $('grid').appendChild(buatJalur(jumpa[w], WARNA[(Object.keys(jumpa).length - 1) % WARNA.length], false));
+  lukisSenarai();
+  toast(emoji + ' ' + w, ms);
+  sebut(w);
+  if (Object.keys(jumpa).length === perkataan.length) setTimeout(tahapSiap, 900);
+}
+
+const G = $('grid');
+G.addEventListener('pointerdown', e => {
+  const p = selDi(e); if (!p) return;
+  e.preventDefault();
+  try { G.setPointerCapture(e.pointerId); } catch (err) {}
+  sel = { r1: p[0], c1: p[1], r2: p[0], c2: p[1] };
+  lukisPilihan();
+});
+G.addEventListener('pointermove', e => {
+  if (!sel) return;
+  const p = selDi(e); if (!p) return;
+  const [r2, c2] = petikHujung(sel.r1, sel.c1, p[0], p[1]);
+  if (r2 !== sel.r2 || c2 !== sel.c2) { sel.r2 = r2; sel.c2 = c2; lukisPilihan(); }
+});
+G.addEventListener('pointerup', selesaiPilihan);
+G.addEventListener('pointercancel', () => { sel = null; lukisPilihan(); });
+window.addEventListener('resize', () => { if ($('skrinMain').classList.contains('aktif')) lukisGrid(); });
+
+// ===================== PETUNJUK, SUARA, TOAST =====================
+function guna_hint() {
+  if (hintBaki <= 0) return;
+  const belum = perkataan.filter(([w]) => !jumpa[w]);
+  if (!belum.length) return;
+  const [w] = belum[rand(0, belum.length - 1)];
+  hintBaki--; hintGuna++;
+  $('lblHint').textContent = '💡 ' + hintBaki;
+  if (hintBaki <= 0) $('btnHint').disabled = true;
+  const tag = document.querySelector('.kata[data-w="' + w + '"]');
+  if (tag) { tag.classList.add('hint'); setTimeout(() => tag.classList.remove('hint'), 3000); }
+  const [r, c] = letak[w][0];
+  const cell = G.querySelector('.cell[data-r="' + r + '"][data-c="' + c + '"]');
+  if (cell) { cell.classList.remove('hint-huruf'); void cell.offsetWidth; cell.classList.add('hint-huruf'); }
+}
+function togol_suara() {
+  suara = !suara;
+  $('btnSuara').textContent = suara ? '🔊 Suara' : '🔇 Senyap';
+  if (suara) sebut('hello');
+}
+function sebut(w) {
+  if (!suara || !('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(w.toLowerCase());
+    u.lang = 'en-US'; u.rate = 0.85;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch (e) {}
+}
+let toastT = null;
+function toast(besar, kecil) {
+  const t = $('toast');
+  t.innerHTML = besar + (kecil ? '<small>' + kecil + '</small>' : '');
+  t.classList.add('tunjuk');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('tunjuk'), 1900);
+}
+
+// ===================== TAHAP SIAP =====================
+function tahapSiap() {
+  const b = hintGuna === 0 ? 3 : hintGuna <= 2 ? 2 : 1;
+  const d = rekod(profil);
+  const lama = d[profil].bintang[tahap] || 0;
+  d[profil].bintang[tahap] = Math.max(lama, b);
+  if (tahap >= d[profil].tahap) d[profil].tahap = tahap + 1;
+  simpan(d);
+  $('bintang').textContent = '⭐'.repeat(b) + '☆'.repeat(3 - b);
+  $('lblSiapTema').textContent = TEMA[(tahap - 1) % TEMA.length][0] + ' · ' + perkataan.length + ' perkataan dijumpai' +
+    (hintGuna ? ' · ' + hintGuna + ' petunjuk' : ' · tanpa petunjuk!');
+  $('ulangKaji').innerHTML = perkataan.map(([w, ms, e]) => '<div>' + e + ' <b>' + w + '</b> <span>— ' + ms + '</span></div>').join('');
+  $('skrinSiap').classList.add('aktif');
+}
+function tahap_seterusnya() {
+  $('skrinSiap').classList.remove('aktif');
+  tahap++;
+  bukaTahap();
+}
+
+// dedahkan untuk butang HTML & ujian
+window.mula = mula; window.ke_mula = ke_mula; window.guna_hint = guna_hint;
+window.togol_suara = togol_suara; window.tahap_seterusnya = tahap_seterusnya;
+window.__ck = { get: () => ({ grid, letak, jumpa, perkataan, saiz, tahap, profil, cs }), TEMA, PROFIL, janaGrid };
+
+paparKemajuan();
+})();
+</script>
+<script src="reward-timer.js"></script>
+</body>
+</html>
