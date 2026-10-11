@@ -441,4 +441,77 @@ window.BANK = window.BANK || {};
       {t:'Sarapan pagi penting kerana?',a:'Beri tenaga untuk belajar',c:['Beri tenaga untuk belajar','Supaya cepat besar','Supaya tidak mengantuk sahaja','Supaya gigi putih'],h:'Selepas tidur badan perlukan tenaga semula untuk berfikir dan bermain.',w:W}
     ]
   };
+  // ===================== TAMBAH PULUH (6 tahun) =====================
+  // KSSR: tambah dalam lingkungan 100 TANPA mengumpul semula —
+  // nombor 2 digit + 1 digit. Konsep teras: PULUH KEKAL, hanya SA ditambah.
+  // Syarat tetap: sa + sa tidak melebihi 9, jadi puluh tidak pernah berubah.
+
+  // Gambar nombor: setiap puluh = satu blok "10", setiap sa = satu titik
+  function gambarNombor(n) {
+    const p = Math.floor(n / 10), s = n % 10;
+    return '<span class="tp-nv">' + '<i class="tp-b10">10</i>'.repeat(p) +
+           '<i class="tp-s1"></i>'.repeat(s) + '</span>';
+  }
+
+  // a (2 digit) + b (1 digit), sa a + b <= 9
+  function pasangan(puluhMin, puluhMax, saMin) {
+    const p = randInt(puluhMin, puluhMax);
+    const s = randInt(saMin, 8);
+    const b = randInt(1, 9 - s);
+    return [p * 10 + s, b];
+  }
+
+  function petuaPuluh(a, b) {
+    const p = Math.floor(a / 10), s = a % 10;
+    if (s === 0) return p * 10 + ' dan ' + b + ' jadi ' + (a + b) + '. Puluh ' + p + ' di depan, ' + b + ' di belakang.';
+    return 'Puluh ' + p + ' kekal. Sa: ' + s + ' + ' + b + ' = ' + (s + b) + '. Jadi ' + (a + b) + '.';
+  }
+
+  // soalan dengan gambar blok puluh & titik sa
+  function soalanGambar(a, b) {
+    return {
+      t: '<span class="tp-vis">' + gambarNombor(a) + '<b>+</b>' + gambarNombor(b) + '</span>' +
+         '<span class="masa-expr">' + a + ' + ' + b + ' = ▢</span>',
+      a: a + b, w: 'raw', h: petuaPuluh(a, b)
+    };
+  }
+
+  BANK.tambahPuluh = {
+    // Bergambar — Edris nampak blok 10 kekal, hanya titik bertambah
+    senang: [
+      () => { const b = randInt(1, 9); return soalanGambar(10, b); },
+      () => { const [a, b] = pasangan(1, 1, 1); return soalanGambar(a, b); },
+      () => { const [a, b] = pasangan(1, 1, 1); return soalanGambar(a, b); },
+      () => { const [a, b] = pasangan(1, 1, 0); return soalanGambar(a, b); }
+    ],
+    // Nombor sahaja — contoh 12 + 3, 14 + 5, 21 + 5
+    sederhana: [
+      () => { const [a, b] = pasangan(1, 2, 1);
+        return { t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaPuluh(a, b) }; },
+      () => { const [a, b] = pasangan(2, 2, 1);
+        return { t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaPuluh(a, b) }; },
+      () => { const [a, b] = pasangan(1, 2, 0);
+        return { t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaPuluh(a, b) }; },
+      // terbalik: 1 digit di depan
+      () => { const [a, b] = pasangan(1, 2, 1);
+        return { t: b + ' + ' + a + ' = ▢', a: a + b,
+          h: 'Sama dengan ' + a + ' + ' + b + ' — tukar tempat pun jawapan tetap ' + (a + b) + '. ' + petuaPuluh(a, b) }; }
+    ],
+    // Puluh lebih besar, nombor hilang, cerita
+    susah: [
+      () => { const [a, b] = pasangan(3, 4, 1);
+        return { t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaPuluh(a, b) }; },
+      () => { const [a, b] = pasangan(2, 4, 0);
+        return { t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaPuluh(a, b) }; },
+      // nombor hilang
+      () => { const [a, b] = pasangan(1, 3, 1);
+        return { t: a + ' + ▢ = ' + (a + b), a: b,
+          h: 'Puluh sama, jadi tengok sa sahaja: ' + (a % 10) + ' + ? = ' + ((a + b) % 10) + '. Jawapannya ' + b + '.' }; },
+      // cerita
+      () => { const [a, b] = pasangan(1, 3, 1);
+        const e = BENDA[randInt(0, BENDA.length - 1)];
+        return { t: 'Edris ada ' + a + ' ' + e + '. Ibu beri ' + b + ' lagi. Berapa semuanya?', a: a + b, w: W,
+          h: '"Beri lagi" bermakna TAMBAH. ' + petuaPuluh(a, b) }; }
+    ]
+  };
 })();
