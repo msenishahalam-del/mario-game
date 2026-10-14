@@ -656,7 +656,7 @@
 
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
-<script src="soalan-tahun6.js?v=10"></script>
+<script src="soalan-tahun6.js?v=12"></script>
 <script src="soalan-sains3.js?v=2"></script>
 
 <script>
@@ -700,6 +700,7 @@
     perpuluhan:  { label: '🔢 Pecahan → Perpuluhan', sub: 'Persepuluh · perseratus · tambah/tolak · 30 saat', style: 'background: linear-gradient(135deg, #2a9f6f, #06492c);' },
     masa:        { label: '⏰ Masa &amp; Waktu', sub: 'Operasi masa + tukar unit · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #0e5c63, #5fc9d1);' },
     masa2:       { label: '🕰️ Masa: Selesaikan Masalah', sub: 'Soalan cerita · jam / minit / saat · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #c0392b, #f0796a);' },
+    geografi6:   { label: '📍 Bandar & Negeri', sub: 'Shah Alam di negeri mana? · A/B/C/D · 40 saat', style: 'background: linear-gradient(135deg, #11998e, #38ef7d);' },
     tambahPuluh: { label: '➕ Tambah Puluh', sub: '12 + 3 · puluh kekal, tambah sa · 40 saat', style: 'background: linear-gradient(135deg, #43c6ac, #191654);' },
     tambah6:     { label: '➕ Tambah', sub: 'Bilang &amp; campur · cukupkan 10 · nombor hilang · 30 saat', style: 'background: linear-gradient(135deg, #4facfe, #6ee7f0);' },
     tolak6:      { label: '➖ Tolak', sub: 'Ambil keluar · beza · semak dgn tambah · 30 saat', style: 'background: linear-gradient(135deg, #f6845a, #ffc38b);' },
@@ -754,6 +755,8 @@
         topik: ['spelling', 'english', 'dino'] },
       { id: 'sn', nama: 'Sains',            emoji: '🔬', style: 'linear-gradient(135deg, #ff6a88, #ffb56b)',
         topik: ['sihat', 'warna'] },
+      { id: 'geo', nama: 'Geografi',        emoji: '🗺️', style: 'linear-gradient(135deg, #11998e, #38ef7d)',
+        topik: ['geografi6'] },
       { id: 'pi', nama: 'Pendidikan Islam', emoji: '🕌', style: 'linear-gradient(135deg, #2d6a4f, #95d5b2)',
         topik: ['agama6', 'jawi'] }
     ]
@@ -761,7 +764,7 @@
 
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sainsU7', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambah6', 'tambahPuluh', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'sihat', 'jawi', 'duit', 'english', 'dino', 'warna']
+    tahun6:  ['tambah6', 'tambahPuluh', 'geografi6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'sihat', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -979,6 +982,7 @@
     },
     tambah6:     { time: 30, generate() { return buildQuiz(BANK.tambah6); } },
     tambahPuluh: { time: 40, generate() { return buildQuiz(BANK.tambahPuluh); } },
+    geografi6:   { time: 40, generate() { return buildQuiz(BANK.geografi6); } },
     tolak6:      { time: 30, generate() { return buildQuiz(BANK.tolak6); } },
     bahagiAsas:  { time: 60, generate() { return buildQuiz(BANK.bahagiAsas); } },
     darabAsas: {
@@ -2565,7 +2569,7 @@
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
                             tambah6: 1, tolak6: 1, bahagiAsas: 1,
                             sainsU1: 1, sainsU2: 1, sainsU3: 1, sainsU4: 1, sainsU5: 1,
-                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1, sihat: 1, tambahPuluh: 1 };
+                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1, sihat: 1, tambahPuluh: 1, geografi6: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -3110,7 +3114,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-10-11 10:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-10-14 10:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;

@@ -514,4 +514,86 @@ window.BANK = window.BANK || {};
           h: '"Beri lagi" bermakna TAMBAH. ' + petuaPuluh(a, b) }; }
     ]
   };
+  // ===================== GEOGRAFI: BANDAR & NEGERI (6 tahun) =====================
+  // "Shah Alam terletak di negeri mana?" — padankan bandar dengan negeri.
+  //   senang    ibu negeri (yang paling dikenali) + fakta asas Malaysia
+  //   sederhana bandar besar
+  //   susah     bandar kecil, ibu negeri songsang, fakta peta
+  // Bandar yang NAMANYA memberi jawapan (Kuala Selangor, Kuala Perlis) diletak
+  // di aras sederhana, bukan susah, supaya aras susah benar-benar menguji.
+  const NEGERI = {
+    'Selangor':        { ibu: 'Shah Alam',        besar: ['Petaling Jaya', 'Klang', 'Kajang', 'Subang Jaya', 'Kuala Selangor'], kecil: ['Rawang', 'Sepang', 'Banting'] },
+    'Negeri Sembilan': { ibu: 'Seremban',         besar: ['Port Dickson', 'Nilai'],                    kecil: ['Kuala Pilah', 'Rembau', 'Tampin', 'Jempol'] },
+    'Melaka':          { ibu: 'Bandaraya Melaka', besar: ['Alor Gajah'],                               kecil: ['Jasin', 'Masjid Tanah'] },
+    'Johor':           { ibu: 'Johor Bahru',      besar: ['Muar', 'Batu Pahat', 'Kluang'],             kecil: ['Segamat', 'Mersing', 'Pontian', 'Kota Tinggi'] },
+    'Pahang':          { ibu: 'Kuantan',          besar: ['Temerloh', 'Bentong', 'Cameron Highlands'], kecil: ['Raub', 'Pekan', 'Jerantut'] },
+    'Terengganu':      { ibu: 'Kuala Terengganu', besar: ['Kemaman', 'Dungun'],                        kecil: ['Besut', 'Marang'] },
+    'Kelantan':        { ibu: 'Kota Bharu',       besar: ['Pasir Mas', 'Tanah Merah'],                 kecil: ['Machang', 'Gua Musang', 'Tumpat'] },
+    'Perak':           { ibu: 'Ipoh',             besar: ['Taiping', 'Teluk Intan', 'Lumut'],          kecil: ['Kuala Kangsar', 'Sitiawan', 'Batu Gajah'] },
+    'Kedah':           { ibu: 'Alor Setar',       besar: ['Sungai Petani', 'Langkawi', 'Kulim'],       kecil: ['Jitra', 'Baling'] },
+    'Perlis':          { ibu: 'Kangar',           besar: ['Arau', 'Kuala Perlis'],                     kecil: ['Padang Besar'] },
+    'Pulau Pinang':    { ibu: 'George Town',      besar: ['Butterworth', 'Bukit Mertajam'],            kecil: ['Bayan Lepas', 'Balik Pulau'] },
+    'Sabah':           { ibu: 'Kota Kinabalu',    besar: ['Sandakan', 'Tawau'],                        kecil: ['Lahad Datu', 'Keningau', 'Semporna'] },
+    'Sarawak':         { ibu: 'Kuching',          besar: ['Miri', 'Sibu', 'Bintulu'],                  kecil: ['Sri Aman', 'Mukah'] }
+  };
+  const SEMUA_NEGERI = Object.keys(NEGERI);
+  const pilih1 = arr => arr[randInt(0, arr.length - 1)];
+  // Penjana diulang beberapa kali dalam kolam supaya soalan BANDAR -> NEGERI
+  // menjadi majoriti; item fakta tetap sekali sahaja (ia tidak boleh berulang).
+  const ulang = (k, fn) => Array.from({ length: k }, () => fn);
+
+  // bandar -> negeri, 4 pilihan negeri
+  function soalBandar(bandar, negeri, adalahIbu) {
+    const lain = shuffle(SEMUA_NEGERI.filter(n => n !== negeri)).slice(0, 3);
+    return {
+      t: '📍 <b>' + bandar + '</b><br>terletak di negeri mana?',
+      a: negeri, c: [negeri].concat(lain), w: W,
+      h: adalahIbu
+        ? bandar + ' ialah ibu negeri ' + negeri + '.'
+        : bandar + ' terletak di ' + negeri + '. Ibu negeri ' + negeri + ' ialah ' + NEGERI[negeri].ibu + '.'
+    };
+  }
+  // negeri -> ibu negeri (songsang)
+  function soalIbu(negeri) {
+    const lain = shuffle(SEMUA_NEGERI.filter(n => n !== negeri)).slice(0, 3).map(n => NEGERI[n].ibu);
+    return {
+      t: '🏛️ Apakah ibu negeri <b>' + negeri + '</b>?',
+      a: NEGERI[negeri].ibu, c: [NEGERI[negeri].ibu].concat(lain), w: W,
+      h: 'Ibu negeri ' + negeri + ' ialah ' + NEGERI[negeri].ibu + '.'
+    };
+  }
+  // ibu negeri yang paling dikenali kanak-kanak — untuk aras senang
+  const IBU_MUDAH = ['Selangor', 'Perak', 'Johor', 'Sabah', 'Sarawak', 'Pulau Pinang', 'Kelantan', 'Pahang', 'Kedah'];
+
+  BANK.geografi6 = {
+    senang: [
+      ...ulang(4, () => { const n = pilih1(IBU_MUDAH); return soalBandar(NEGERI[n].ibu, n, true); }),
+      ...ulang(2, () => { const n = pilih1(SEMUA_NEGERI); return soalBandar(NEGERI[n].ibu, n, true); }),
+      { t: '🇲🇾 Apakah <b>ibu negara</b> Malaysia?', a: 'Kuala Lumpur', c: ['Kuala Lumpur', 'Shah Alam', 'Ipoh', 'Kuching'], w: W,
+        h: 'Kuala Lumpur ialah ibu negara Malaysia — Menara Berkembar Petronas ada di sana.' },
+      { t: '🗺️ Berapa buah <b>negeri</b> di Malaysia?', a: '13', c: ['13', '10', '14', '9'], w: W,
+        h: 'Malaysia ada 13 negeri, dan 3 Wilayah Persekutuan: Kuala Lumpur, Putrajaya dan Labuan.' },
+      { t: '🇲🇾 Bendera Malaysia dipanggil?', a: 'Jalur Gemilang', c: ['Jalur Gemilang', 'Sang Saka', 'Bintang Merah', 'Bulan Bintang'], w: W,
+        h: 'Bendera Malaysia ialah Jalur Gemilang — 14 jalur merah dan putih.' }
+    ],
+    sederhana: [
+      ...ulang(6, () => { const n = pilih1(SEMUA_NEGERI); return soalBandar(pilih1(NEGERI[n].besar), n, false); }),
+      { t: '🏙️ <b>Menara Berkembar Petronas</b> terletak di?', a: 'Kuala Lumpur', c: ['Kuala Lumpur', 'Johor Bahru', 'Kuching', 'Ipoh'], w: W,
+        h: 'Menara Berkembar Petronas berada di Kuala Lumpur, ibu negara Malaysia.' },
+      { t: '⛰️ <b>Gunung Kinabalu</b> terletak di negeri mana?', a: 'Sabah', c: ['Sabah', 'Sarawak', 'Pahang', 'Perak'], w: W,
+        h: 'Gunung Kinabalu di Sabah ialah gunung tertinggi di Malaysia.' }
+    ],
+    susah: [
+      ...ulang(7, () => { const n = pilih1(SEMUA_NEGERI); return soalBandar(pilih1(NEGERI[n].kecil), n, false); }),
+      ...ulang(3, () => soalIbu(pilih1(SEMUA_NEGERI))),
+      { t: '📏 Negeri manakah paling <b>KECIL</b> di Malaysia?', a: 'Perlis', c: ['Perlis', 'Melaka', 'Pulau Pinang', 'Selangor'], w: W,
+        h: 'Perlis ialah negeri paling kecil, di hujung utara Semenanjung.' },
+      { t: '📏 Negeri manakah paling <b>BESAR</b> di Malaysia?', a: 'Sarawak', c: ['Sarawak', 'Sabah', 'Pahang', 'Johor'], w: W,
+        h: 'Sarawak paling besar, diikuti Sabah.' },
+      { t: '🏝️ Sabah dan Sarawak terletak di pulau?', a: 'Borneo', c: ['Borneo', 'Langkawi', 'Pinang', 'Tioman'], w: W,
+        h: 'Sabah dan Sarawak di Pulau Borneo, dipisahkan oleh Laut China Selatan daripada Semenanjung.' },
+      { t: '🧭 Negeri manakah di hujung <b>SELATAN</b> Semenanjung?', a: 'Johor', c: ['Johor', 'Perlis', 'Kedah', 'Kelantan'], w: W,
+        h: 'Johor di hujung selatan, bersebelahan dengan Singapura.' }
+    ]
+  };
 })();
