@@ -596,4 +596,80 @@ window.BANK = window.BANK || {};
         h: 'Johor di hujung selatan, bersebelahan dengan Singapura.' }
     ]
   };
+  // ===================== TAMBAH RATUS (6 tahun) =====================
+  // Sambungan Tambah Puluh: nombor 3 digit, TANPA mengumpul semula.
+  // Setiap tempat (ratus, puluh, sa) ditambah berasingan dan jumlahnya tidak
+  // pernah melebihi 9 — jadi tiada "bawa", dan ratus kekal kecuali ditambah ratus.
+
+  // Gambar: kotak besar = 100, bar = 10, titik = 1
+  function gambarRatus(n) {
+    const r = Math.floor(n / 100), p = Math.floor(n / 10) % 10, s = n % 10;
+    return '<span class="tp-nv">' + '<i class="tp-b100">100</i>'.repeat(r) +
+           '<i class="tp-b10">10</i>'.repeat(p) + '<i class="tp-s1"></i>'.repeat(s) + '</span>';
+  }
+  const dgt = (n, k) => Math.floor(n / Math.pow(10, k)) % 10;   // k: 0=sa 1=puluh 2=ratus
+
+  // nombor b yang boleh ditambah kepada a tanpa mengumpul semula;
+  // sifar=true benarkan digit 0 pada setiap tempat (b perlu > 0)
+  function tanpaKumpul(a, tempat) {
+    let b = 0;
+    for (let k = 0; k < tempat; k++) b += randInt(0, 9 - dgt(a, k)) * Math.pow(10, k);
+    return b;
+  }
+
+  // Petua: tambah ikut tempat
+  function petuaRatus(a, b) {
+    const jum = a + b;
+    if (b < 10) {
+      return 'Ratus ' + dgt(a, 2) + ' dan puluh ' + dgt(a, 1) + ' kekal. Sa: ' + dgt(a, 0) + ' + ' + b +
+             ' = ' + (dgt(a, 0) + b) + '. Jadi ' + jum + '.';
+    }
+    if (a % 100 === 0 && b % 100 === 0) {
+      return (a / 100) + ' ratus + ' + (b / 100) + ' ratus = ' + (jum / 100) + ' ratus. Jadi ' + jum + '.';
+    }
+    const bah = [];
+    if (dgt(b, 2)) bah.push('ratus ' + dgt(a, 2) + ' + ' + dgt(b, 2) + ' = ' + dgt(jum, 2)); else bah.push('ratus ' + dgt(a, 2) + ' kekal');
+    if (b >= 10) bah.push('puluh ' + dgt(a, 1) + ' + ' + dgt(b, 1) + ' = ' + dgt(jum, 1));
+    bah.push('sa ' + dgt(a, 0) + ' + ' + dgt(b, 0) + ' = ' + dgt(jum, 0));
+    return 'Tambah ikut tempat: ' + bah.join(' · ') + '. Jadi ' + jum + '.';
+  }
+
+  function soalanGambarRatus(a, b) {
+    return {
+      t: '<span class="tp-vis">' + gambarRatus(a) + '<b>+</b>' + gambarRatus(b) + '</span>' +
+         '<span class="masa-expr">' + a + ' + ' + b + ' = ▢</span>',
+      a: a + b, w: 'raw', h: petuaRatus(a, b)
+    };
+  }
+  const soalanBiasa = (a, b) => ({ t: a + ' + ' + b + ' = ▢', a: a + b, h: petuaRatus(a, b) });
+
+  BANK.tambahRatus = {
+    // Bergambar, nombor kecil — kotak 100 & bar 10 kekal, hanya titik bertambah
+    senang: [
+      () => { const b = randInt(1, 9); return soalanGambarRatus(100, b); },
+      () => { const a = 100 + randInt(0, 3) * 10 + randInt(1, 5); const b = randInt(1, Math.min(4, 9 - a % 10)); return soalanGambarRatus(a, b); },
+      () => { const a = 100 + randInt(1, 3) * 10 + randInt(0, 5); const b = randInt(1, Math.min(4, 9 - a % 10)); return soalanGambarRatus(a, b); },
+      () => { const a = randInt(2, 3) * 100; const b = randInt(1, 5); return soalanGambarRatus(a, b); }
+    ],
+    // Nombor sahaja: 3 digit + 1 digit, + puluh bulat, ratus + ratus
+    sederhana: [
+      () => { const a = randInt(1, 8) * 100 + randInt(0, 9) * 10 + randInt(0, 8); const b = randInt(1, 9 - a % 10); return soalanBiasa(a, b); },
+      () => { const a = randInt(1, 8) * 100 + randInt(0, 8) * 10; const b = randInt(1, 9 - dgt(a, 1)) * 10; return soalanBiasa(a, b); },
+      () => { const a = randInt(1, 7) * 100; const b = randInt(1, 9 - a / 100) * 100; return soalanBiasa(a, b); }
+    ],
+    // 3 digit + 2 digit, 3 digit + 3 digit, nombor hilang, cerita
+    susah: [
+      () => { let a, b; do { a = randInt(1, 8) * 100 + randInt(0, 8) * 10 + randInt(0, 8); b = tanpaKumpul(a, 2); } while (b < 11 || b % 10 === 0);
+              return soalanBiasa(a, b); },
+      () => { let a, b; do { a = randInt(1, 7) * 100 + randInt(0, 8) * 10 + randInt(0, 8); b = tanpaKumpul(a, 3); } while (b < 111 || dgt(b, 0) === 0 || dgt(b, 1) === 0);
+              return soalanBiasa(a, b); },
+      () => { const a = randInt(1, 8) * 100 + randInt(0, 9) * 10 + randInt(0, 7); const b = randInt(1, 9 - a % 10);
+              return { t: a + ' + ▢ = ' + (a + b), a: b,
+                h: 'Ratus dan puluh sama, jadi tengok sa sahaja: ' + (a % 10) + ' + ? = ' + ((a + b) % 10) + '. Jawapannya ' + b + '.' }; },
+      () => { const a = randInt(1, 4) * 100 + randInt(1, 4) * 10; const b = randInt(1, 9 - a % 10);
+              const e = BENDA[randInt(0, BENDA.length - 1)];
+              return { t: 'Edris ada ' + a + ' ' + e + '. Kawan beri ' + b + ' lagi. Berapa semuanya?', a: a + b, w: W,
+                h: '"Beri lagi" bermakna TAMBAH. ' + petuaRatus(a, b) }; }
+    ]
+  };
 })();

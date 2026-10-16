@@ -82,6 +82,12 @@
     box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
   }
   .tp-s1 { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; background: #ff9f43; }
+  .tp-b100 {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.6em; height: 2.6em; border-radius: 7px; font-style: normal;
+    background: #e63973; color: #fff; font-weight: bold; font-size: 0.9em;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35);
+  }
 
   /* Makanan sihat — dua gambar besar dibanding sebelah-menyebelah */
   .sihat-vs {
@@ -656,7 +662,7 @@
 
 <script src="soalan-nombor.js?v=2"></script>
 <script src="soalan-ukuran.js?v=2"></script>
-<script src="soalan-tahun6.js?v=12"></script>
+<script src="soalan-tahun6.js?v=13"></script>
 <script src="soalan-sains3.js?v=2"></script>
 
 <script>
@@ -701,6 +707,7 @@
     masa:        { label: '⏰ Masa &amp; Waktu', sub: 'Operasi masa + tukar unit · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #0e5c63, #5fc9d1);' },
     masa2:       { label: '🕰️ Masa: Selesaikan Masalah', sub: 'Soalan cerita · jam / minit / saat · senang → susah · 1 minit', style: 'background: linear-gradient(135deg, #c0392b, #f0796a);' },
     geografi6:   { label: '📍 Bandar & Negeri', sub: 'Shah Alam di negeri mana? · A/B/C/D · 40 saat', style: 'background: linear-gradient(135deg, #11998e, #38ef7d);' },
+    tambahRatus: { label: '➕ Tambah Ratus', sub: '123 + 4 · tambah ikut tempat · 1 minit', style: 'background: linear-gradient(135deg, #e63973, #6a3093);' },
     tambahPuluh: { label: '➕ Tambah Puluh', sub: '12 + 3 · puluh kekal, tambah sa · 40 saat', style: 'background: linear-gradient(135deg, #43c6ac, #191654);' },
     tambah6:     { label: '➕ Tambah', sub: 'Bilang &amp; campur · cukupkan 10 · nombor hilang · 30 saat', style: 'background: linear-gradient(135deg, #4facfe, #6ee7f0);' },
     tolak6:      { label: '➖ Tolak', sub: 'Ambil keluar · beza · semak dgn tambah · 30 saat', style: 'background: linear-gradient(135deg, #f6845a, #ffc38b);' },
@@ -748,7 +755,7 @@
     ],
     tahun6: [
       { id: 'mt', nama: 'Matematik',        emoji: '🔢', style: 'linear-gradient(135deg, #667eea, #764ba2)',
-        topik: ['tambah6', 'tambahPuluh', 'tolak6', 'darabAsas', 'bahagiAsas', 'duit'] },
+        topik: ['tambah6', 'tambahPuluh', 'tambahRatus', 'tolak6', 'darabAsas', 'bahagiAsas', 'duit'] },
       { id: 'bm', nama: 'Bahasa Melayu',    emoji: '📖', style: 'linear-gradient(135deg, #fbc2eb, #a18cd1)',
         topik: ['ejaan', 'ejaan2', 'ejaan3'] },
       { id: 'bi', nama: 'Bahasa Inggeris',  emoji: '🇬🇧', style: 'linear-gradient(135deg, #fa709a, #fee140)',
@@ -764,7 +771,7 @@
 
   const SET_GROUPS = {
     darjah3: ['darab', 'bahagi', 'bahagi2', 'bundar', 'pecahan', 'sains1', 'sains2', 'sains3', 'sainsU1', 'sainsU2', 'sainsU3', 'sainsU4', 'sainsU5', 'sainsU7', 'agama', 'cariX', 'darabBahagi', 'pantun', 'peribahasa', 'penjodoh', 'jawi3', 'perpuluhan', 'masa', 'masa2', 'nilaiTempat', 'tambah10k', 'tolak10k', 'wang100', 'panjang', 'jisim', 'isipadu'],
-    tahun6:  ['tambah6', 'tambahPuluh', 'geografi6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'sihat', 'jawi', 'duit', 'english', 'dino', 'warna']
+    tahun6:  ['tambah6', 'tambahPuluh', 'tambahRatus', 'geografi6', 'tolak6', 'darabAsas', 'bahagiAsas', 'ejaan', 'ejaan2', 'ejaan3', 'spelling', 'agama6', 'sihat', 'jawi', 'duit', 'english', 'dino', 'warna']
   };
   const PASS_SCORE = 7;
   const MIN_REWARD_SCORE = 4;   // kurang daripada ini → 0 minit, tak boleh main game
@@ -982,6 +989,7 @@
     },
     tambah6:     { time: 30, generate() { return buildQuiz(BANK.tambah6); } },
     tambahPuluh: { time: 40, generate() { return buildQuiz(BANK.tambahPuluh); } },
+    tambahRatus: { time: 60, generate() { return buildQuiz(BANK.tambahRatus); } },
     geografi6:   { time: 40, generate() { return buildQuiz(BANK.geografi6); } },
     tolak6:      { time: 30, generate() { return buildQuiz(BANK.tolak6); } },
     bahagiAsas:  { time: 60, generate() { return buildQuiz(BANK.bahagiAsas); } },
@@ -2569,7 +2577,7 @@
                             wang100: 1, panjang: 1, jisim: 1, isipadu: 1,
                             tambah6: 1, tolak6: 1, bahagiAsas: 1,
                             sainsU1: 1, sainsU2: 1, sainsU3: 1, sainsU4: 1, sainsU5: 1,
-                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1, sihat: 1, tambahPuluh: 1, geografi6: 1 };
+                            ejaan3: 1, spelling: 1, sainsU7: 1, agama6: 1, sihat: 1, tambahPuluh: 1, geografi6: 1, tambahRatus: 1 };
   function topikSedia(k) {
     if (!TOPIK_BANK_LUAR[k]) return true;
     return !!(window.BANK && window.BANK[k]);
@@ -3114,7 +3122,7 @@
   finalizeStalePending();
 
   // Version tag — statik (GitHub Pages tiada server). Kemas kini masa ini setiap deploy.
-  const BUILD_TIME = '2026-10-14 10:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
+  const BUILD_TIME = '2026-10-16 10:00';   // ⬅️ tarikh + masa kemas kini terakhir (MYT)
   (function () {
     const el = document.getElementById('versionTag');
     if (el) el.textContent = 'V' + BUILD_TIME;
